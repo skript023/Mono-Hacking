@@ -3,7 +3,7 @@
 
 namespace big
 {
-	bool hooks::is_wet(void* _this)
+	bool hooks::is_under_roof(void* _this)
 	{
 		if (g_settings.self.is_wet)
 		{
@@ -12,6 +12,6 @@ namespace big
 			return false;
 		}
 
-		return detour_base::get_original<is_wet>()(_this);
+		return detour_base::get_original<is_under_roof>()(_this);
 	}
 }

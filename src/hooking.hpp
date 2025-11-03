@@ -1,7 +1,7 @@
 #pragma once
 #include "common.hpp"
+#include "mono/mono.hpp"
 #include "hooking/detour_hook.hpp"
-#include "class/uobject.hpp"
 #include "hooking/vmt_hook.hpp"
 
 namespace big
@@ -22,7 +22,8 @@ namespace big
 		static BOOL set_cursor_pos(int x, int y);
 		static bool is_teleportable(void* _this);
 		static void create_tomb_stone(void* _this);
-		static bool is_wet(void* _this);
+		static bool is_under_roof(void* _this);
+		static void on_selected_item(void* this_ptr, void* grid_ptr, MonoObject* item_data_obj, iVector2 pos, int mod);
 	};
 
 	struct minhook_keepalive
