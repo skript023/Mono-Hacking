@@ -23,6 +23,7 @@ namespace big
 		
 		detour_base::add<hooks::is_teleportable>(new detour_hook("Humanoid::IsTeleportable", mono::get_compile_method("Humanoid", "IsTeleportable", 0, "assembly_valheim"), hooks::is_teleportable));
 		detour_base::add<hooks::create_tomb_stone>(new detour_hook("Player::CreateTombStone", mono::get_compile_method("Player", "CreateTombStone", 0, "assembly_valheim"), hooks::create_tomb_stone));
+		detour_base::add<hooks::is_wet>(new detour_hook("EnvMan::IsWet", mono::get_compile_method("EnvMan", "IsWet", 0, "assembly_valheim"), hooks::is_wet));
 
 		g_hooking = this;
 	}

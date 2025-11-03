@@ -22,6 +22,7 @@ namespace big
 		static BOOL set_cursor_pos(int x, int y);
 		static bool is_teleportable(void* _this);
 		static void create_tomb_stone(void* _this);
+		static bool is_wet(void* _this);
 	};
 
 	struct minhook_keepalive
