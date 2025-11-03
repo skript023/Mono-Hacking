@@ -13,7 +13,6 @@ namespace big
 		}
 
 		LOG(INFO) << "Mono module found at address: " << m_mono;
-		LOG(INFO) << std::filesystem::current_path();
 
 		// Necessary functions to get method addresses
 		mono_domain_assembly_open = reinterpret_cast<mono_domain_assembly_open_t>(GetProcAddress(m_mono, "mono_domain_assembly_open"));
