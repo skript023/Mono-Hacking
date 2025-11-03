@@ -1,6 +1,6 @@
 #pragma once
 #include "common.hpp"
-#include "detour_hook.hpp"
+#include "hooking/detour_hook.hpp"
 #include "class/uobject.hpp"
 #include "hooking/vmt_hook.hpp"
 
@@ -42,11 +42,6 @@ namespace big
 		minhook_keepalive m_minhook_keepalive;
 
 		WNDPROC m_og_wndproc;
-
-		detour_hook m_convert_thread_to_fiber_hook;
-		detour_hook m_swapchain_present_hook;
-		detour_hook m_swapchain_resizebuffers_hook;
-		detour_hook m_set_cursor_pos_hook;
 	};
 
 	inline hooking* g_hooking{};

@@ -36,7 +36,6 @@ namespace big
 				auto method = mono::get_method("Player", "SetMaxHealth", 2, "assembly_valheim");
                 auto klass = mono::get_class("Player", "assembly_valheim");
                 auto m_baseHP = mono::get_field(klass, "m_baseHP");
-                auto field = mono::get_field(klass, "m_baseHP");
 
                 if (!method || !klass)
                 {

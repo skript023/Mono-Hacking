@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graphic_enums.hpp"
-#include "detour_hook.hpp"
+#include "hooking/detour_hook.hpp"
 
 namespace big
 {

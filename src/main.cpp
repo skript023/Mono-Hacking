@@ -55,12 +55,14 @@ DWORD APIENTRY main_thread(LPVOID)
 		auto thread_pool_instance = std::make_unique<thread_pool>();
 		LOG(HACKER) << "Thread Pool initialized.";
 
+		mono::init();
+		LOG(HACKER) << "Mono initialized.";
+
 		auto hooking_instance = std::make_unique<hooking>();
 		LOG(HACKER) << "Hooking initialized.";
 
 		g_pointers->update();
 
-		mono::init();
 		LOG(HACKER) << "Service registered.";
 
 		/*auto server_instance = std::make_unique<server_module>();
