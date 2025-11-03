@@ -80,8 +80,9 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		while (g_running)
 		{
-			/*g_settings.attempt_save();
+			/*
 			g_script_mgr.tick();*/
+			g_settings.attempt_save();
 			std::this_thread::sleep_for(1s);
 		}
 

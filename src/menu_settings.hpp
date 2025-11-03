@@ -25,34 +25,11 @@ namespace big
 	public:
 		struct self
 		{
-			bool infinite_psychic{ false };
-			bool no_sas_cooldown{ false };
-			bool infinite_sas_duration{ false };
-			bool infinite_brain_dive{ false };
-			bool instant_brain_field{ false };
-			bool infinite_battle_point{ false };
-			bool no_items_cooldown{ false };
-			bool enter_brain_dive{ false };
-			bool infinite_credits{ false };
-			bool infinite_health{ false };
-			bool ignore_damage{ false };
+			bool is_teleportable{ false };
+			bool open_all_recipe_and_free_craft{ false };
 
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, infinite_psychic, no_sas_cooldown, infinite_sas_duration, infinite_brain_dive, instant_brain_field, infinite_battle_point, no_items_cooldown, enter_brain_dive, infinite_credits, infinite_health, ignore_damage)
+			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft)
 		} self;
-
-		struct skill_set
-		{
-			int slot_1;
-			int slot_2;
-			int slot_3;
-			int slot_4;
-			int slot_5;
-			int slot_6;
-			int slot_7;
-			int slot_8;
-
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(skill_set, slot_1, slot_2, slot_3, slot_4, slot_5, slot_6, slot_7, slot_8)
-		} skill;
 
 		struct window
 		{
@@ -167,7 +144,7 @@ namespace big
 			)
 		} window;
 
-		NLOHMANN_DEFINE_TYPE_INTRUSIVE(menu_settings, window, self, skill)
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(menu_settings, window, self)
 	};
 
 	inline menu_settings g_settings{};
