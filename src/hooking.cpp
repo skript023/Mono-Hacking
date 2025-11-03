@@ -22,6 +22,7 @@ namespace big
 		detour_base::add<hooks::convert_thread_to_fiber>(new detour_hook("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>(), hooks::convert_thread_to_fiber));
 		
 		detour_base::add<hooks::is_teleportable>(new detour_hook("Humanoid::IsTeleportable", mono::get_compile_method("Humanoid", "IsTeleportable", 0, "assembly_valheim"), hooks::is_teleportable));
+		detour_base::add<hooks::create_tomb_stone>(new detour_hook("Player::CreateTombStone", mono::get_compile_method("Player", "CreateTombStone", 0, "assembly_valheim"), hooks::create_tomb_stone));
 
 		g_hooking = this;
 	}
