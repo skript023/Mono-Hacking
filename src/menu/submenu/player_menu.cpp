@@ -75,7 +75,7 @@ namespace big
                 mono::invoke_method(method, unity::get_local_player(), args);
                 mono::set_field_value(unity::get_local_player(), m_baseHP, &g_settings.self.max_hp);
             });
-            sub->add_option<bool_slider_float_option>("Set Max Health", nullptr, &g_settings.self.enable_max_stam, &g_settings.self.max_stam, 50.f, 1000.f, 10.f, 3, true, [] {
+            sub->add_option<bool_slider_float_option>("Set Max Stamina", nullptr, &g_settings.self.enable_max_stam, &g_settings.self.max_stam, 50.f, 1000.f, 10.f, 3, true, [] {
                 auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
                 auto klass = mono::get_class("Player", "assembly_valheim");
                 auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
