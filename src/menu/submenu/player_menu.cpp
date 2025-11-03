@@ -56,7 +56,7 @@ namespace big
 
                 LOG(INFO) << "Force Crafting Anywhere/All Recipes disetel ke: " << (g_settings.self.open_all_recipe_and_free_craft ? "TRUE" : "FALSE");
             });
-            sub->add_option<reguler_option>("Set Max Health", nullptr, [] {
+            sub->add_option<bool_slider_float_option>("Set Max Health", nullptr, &g_settings.self.enable_max_hp, &g_settings.self.max_hp, 25.f, 1000.f, 10.f, [] {
 				auto method = mono::get_method("Player", "SetMaxHealth", 2, "assembly_valheim");
                 auto klass = mono::get_class("Player", "assembly_valheim");
                 auto m_baseHP = mono::get_field(klass, "m_baseHP");
@@ -68,13 +68,13 @@ namespace big
                     return;
                 }
 
-                float health = 600;
                 bool flashBar = true;
-                void* args[2] = { &health, &flashBar };
+
+                void* args[2] = { &g_settings.self.max_hp, &flashBar };
                 mono::invoke_method(method, unity::get_local_player(), args);
-                mono::set_field_value(unity::get_local_player(), m_baseHP, &health);
+                mono::set_field_value(unity::get_local_player(), m_baseHP, &g_settings.self.max_hp);
             });
-            sub->add_option<reguler_option>("Test", nullptr, [] {
+            sub->add_option<bool_slider_float_option>("Set Max Health", nullptr, &g_settings.self.enable_max_stam, &g_settings.self.max_stam, 50.f, 1000.f, 10.f, [] {
                 auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
                 auto klass = mono::get_class("Player", "assembly_valheim");
                 auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
@@ -87,14 +87,13 @@ namespace big
                     return;
                 }
 
-                float stamina = 600;
                 bool flashBar = true;
-                void* args[2] = { &stamina, &flashBar };
-                auto result = mono::invoke_method(method, unity::get_local_player(), args);
-                LOG(INFO) << "Success invoke Player::SetMaxStamina " << result;
 
-                mono::set_field_value(unity::get_local_player(), m_baseStamina, &stamina);
-                mono::set_field_value(unity::get_local_player(), m_stamina, &stamina);
+                void* args[2] = { &g_settings.self.max_stam, &flashBar };
+                mono::invoke_method(method, unity::get_local_player(), args);
+
+                mono::set_field_value(unity::get_local_player(), m_baseStamina, &g_settings.self.max_stam);
+                mono::set_field_value(unity::get_local_player(), m_stamina, &g_settings.self.max_stam);
             });
         });
     }

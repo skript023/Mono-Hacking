@@ -46,8 +46,6 @@ namespace big
 
 		MonoObject* execution;
 
-		LOG(INFO) << "Invoking method from " << method;
-
 		return mono_runtime_invoke(method, obj, params, &execution);
 	}
 	void* mono::get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName) const

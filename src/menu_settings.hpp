@@ -29,6 +29,10 @@ namespace big
 			bool open_all_recipe_and_free_craft{ false };
 			bool no_drop_on_dead{ false };
 			bool forsaken_power_always_ready{ false };
+			bool enable_max_hp{ false };
+			bool enable_max_stam{ false };
+			float max_hp{ 25.f };
+			float max_stam{ 50.f };
 
 			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead)
 		} self;

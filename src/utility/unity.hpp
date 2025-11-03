@@ -52,6 +52,30 @@ namespace big::unity
 		return zone_system_ptr_instance;
 	}
 
+	inline MonoObject* get_env_man()
+	{
+		// 1. Cari Class Player
+		MonoClass* env_man = mono::get_class("EnvMan", "assembly_valheim");
+		if (env_man == nullptr) return nullptr;
+
+		// 2. Cari Static Field m_localPlayer
+		MonoClassField* env_man_instance = mono::get_field(env_man, "s_instance");
+		if (env_man_instance == nullptr) return nullptr;
+
+		// 3. Dapatkan Base Address Static Field Data
+		void* static_field_data_addr = mono::get_static_field_data(env_man);
+		if (static_field_data_addr == nullptr) return nullptr;
+
+		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
+		uint32_t offset = mono::get_field_offset(env_man_instance);
+		void* env_man_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
+		MonoObject* env_man_ptr_instance = *(MonoObject**)env_man_ptr_addr;
+
+		return env_man_ptr_instance;
+	}
+
 	inline bool is_key_pressed(std::uint16_t key)
 	{
 		if (GetForegroundWindow() == g_pointers->m_hwnd)
