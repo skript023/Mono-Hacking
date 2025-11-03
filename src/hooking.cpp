@@ -24,7 +24,7 @@ namespace big
 		detour_base::add<hooks::is_teleportable>(new detour_hook("Humanoid::IsTeleportable", mono::get_compile_method("Humanoid", "IsTeleportable", 0, "assembly_valheim"), hooks::is_teleportable));
 		detour_base::add<hooks::create_tomb_stone>(new detour_hook("Player::CreateTombStone", mono::get_compile_method("Player", "CreateTombStone", 0, "assembly_valheim"), hooks::create_tomb_stone));
 		detour_base::add<hooks::is_under_roof>(new detour_hook("Cover::IsUnderRoof", mono::get_compile_method("Cover", "IsUnderRoof", 0, "assembly_valheim"), hooks::is_under_roof));
-		detour_base::add<hooks::on_selected_item>(new detour_hook("InventoryGui::OnSelectedItem", mono::get_compile_method("InventoryGui", "OnSelectedItem", 0, "assembly_valheim"), hooks::on_selected_item));
+		detour_base::add<hooks::on_selected_item>(new detour_hook("InventoryGui::OnSelectedItem", mono::get_compile_method("InventoryGui", "OnSelectedItem", 3, "assembly_valheim"), hooks::on_selected_item));
 
 		g_hooking = this;
 	}
