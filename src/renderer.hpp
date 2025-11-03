@@ -21,7 +21,7 @@ namespace big
 		void merge_icon_with_latest_font(float font_size, bool FontDataOwnedByAtlas = false);
 
 		void load_texture(ID3D11Device* resource);
-
+		void process_hwnd();
 		void wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 		bool LoadTextureFromFile(const char* filename, ID3D11Device* d3dDevice, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height);
 	public:

@@ -6,14 +6,15 @@
 #include "memory/module.hpp"
 #include "pointers.hpp"
 #include "renderer.hpp"
+#include "graphic/graphic_manager.hpp"
 
 #include <MinHook.h>
 
 namespace big
 {
 	hooking::hooking() :
-		m_swapchain_present_hook("SwapChainPresent", g_pointers->m_swapchain_methods[hooks::swapchain_present_index], &hooks::swapchain_present),
-		m_swapchain_resizebuffers_hook("SwapChainResizeBuffers", g_pointers->m_swapchain_methods[hooks::swapchain_resizebuffers_index], &hooks::swapchain_resizebuffers),
+		m_swapchain_present_hook("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index), &hooks::swapchain_present),
+		m_swapchain_resizebuffers_hook("SwapChainResizeBuffers", graphic_manager::get_method_table(hooks::swapchain_resizebuffers_index), &hooks::swapchain_resizebuffers),
 		m_set_cursor_pos_hook("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>(), &hooks::set_cursor_pos),
 		m_convert_thread_to_fiber_hook("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>(), &hooks::convert_thread_to_fiber)
 	{

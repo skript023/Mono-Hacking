@@ -8,6 +8,7 @@
 #include "fiber_pool.hpp"
 #include "file_manager.hpp"
 
+#include "mono/mono.hpp"
 #include "server/server_module.hpp"
 #include "event_loop/backend_events.hpp"
 
@@ -17,7 +18,7 @@ DWORD APIENTRY main_thread(LPVOID)
 {
 	using namespace big;
 
-	while (!FindWindow("UnrealWindow", "ScarletNexus  "))
+	while (!FindWindow("UnityWndClass", "Valheim"))
 		std::this_thread::sleep_for(1s);
 
 	benchmark initialization_benchmark("Initialization");
@@ -59,10 +60,11 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		g_pointers->update();
 
+		mono::init();
 		LOG(HACKER) << "Service registered.";
 
-		auto server_instance = std::make_unique<server_module>();
-		LOG(HACKER) << "Server initialized.";
+		/*auto server_instance = std::make_unique<server_module>();
+		LOG(HACKER) << "Server initialized.";*/
 
 		g_script_mgr.add_script(std::make_unique<script>(&backend_events::player_skill_event));
 		g_script_mgr.add_script(std::make_unique<script>(&backend_events::script_func));
@@ -76,8 +78,9 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		while (g_running)
 		{
-			g_settings.attempt_save();
-			std::this_thread::sleep_for(2s);
+			/*g_settings.attempt_save();
+			g_script_mgr.tick();*/
+			std::this_thread::sleep_for(1s);
 		}
 
 		g_hooking->disable();
@@ -88,8 +91,8 @@ DWORD APIENTRY main_thread(LPVOID)
 		g_script_mgr.remove_all_scripts();
 		LOG(HACKER) << "Scripts unregistered.";
 
-		server_instance.reset();
-		LOG(HACKER) << "Server unregistered.";
+		/*server_instance.reset();
+		LOG(HACKER) << "Server unregistered.";*/
 		
 		LOG(HACKER) << "Service unregistered.";
 

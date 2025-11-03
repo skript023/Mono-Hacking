@@ -7,7 +7,13 @@ namespace big
 		// Implementation details for initializing Mono
 		m_mono = GetModuleHandleA("mono-2.0-bdwgc.dll");
 		if (m_mono == NULL)
+		{
+			LOG(WARNING) << "Failed to find Mono module.";
 			return;
+		}
+
+		LOG(INFO) << "Mono module found at address: " << m_mono;
+		LOG(INFO) << std::filesystem::current_path();
 
 		// Necessary functions to get method addresses
 		mono_domain_assembly_open = reinterpret_cast<mono_domain_assembly_open_t>(GetProcAddress(m_mono, "mono_domain_assembly_open"));
@@ -40,29 +46,51 @@ namespace big
 
 		MonoObject* execution;
 
+		LOG(INFO) << "Invoking method from " << method;
+
 		return mono_runtime_invoke(method, obj, params, &execution);
 	}
 	void* mono::get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName) const
 	{
 		MonoDomain* domain = mono_get_root_domain();
 		if (domain == nullptr)
+		{
+			LOG(WARNING) << "Failed to get Mono root domain.";
+
 			return nullptr;
+		}
 
 		MonoAssembly* assembly = mono_domain_assembly_open(domain, assemblyName);
 		if (assembly == nullptr)
+		{
+			LOG(WARNING) << "Failed to open assembly: " << assemblyName;
+
 			return nullptr;
+		}
 
 		MonoImage* image = mono_assembly_get_image(assembly);
 		if (image == nullptr)
+		{
+			LOG(WARNING) << "Failed to get image from assembly: " << assemblyName;
+
 			return nullptr;
+		}
 
 		MonoClass* klass = mono_class_from_name(image, "", className);
 		if (klass == nullptr)
+		{
+			LOG(WARNING) << "Failed to get class: " << klass;
+
 			return nullptr;
+		}
 
 		MonoMethod* method = mono_class_get_method_from_name(klass, methodName, param_count);
 		if (method == nullptr)
+		{
+			LOG(WARNING) << "Failed to get method: " << methodName;
+
 			return nullptr;
+		}
 
 		return mono_compile_method(method);
 	}
@@ -70,19 +98,35 @@ namespace big
 	{
 		MonoDomain* domain = mono_get_root_domain();
 		if (domain == nullptr)
-			return nullptr;
+		{
+			LOG(WARNING) << "Failed to get Mono root domain.";
 
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, assemblyName);
-		if (assembly == nullptr)
 			return nullptr;
+		}
+
+		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
+		if (assembly == nullptr)
+		{
+			LOG(WARNING) << "Failed to open assembly: " << assemblyName;
+
+			return nullptr;
+		}
 
 		MonoImage* image = mono_assembly_get_image(assembly);
 		if (image == nullptr)
+		{
+			LOG(WARNING) << "Failed to get image from assembly: " << assemblyName;
+
 			return nullptr;
+		}
 
 		MonoClass* klass = mono_class_from_name(image, nameSpace, className);
 		if (klass == nullptr)
+		{
+			LOG(WARNING) << "Failed to get class: " << klass;
+
 			return nullptr;
+		}
 
 		return mono_class_get_method_from_name(klass, methodName, param_count);
 	}
@@ -179,5 +223,9 @@ namespace big
 		void* value = (void*)(addr + offset);
 
 		return value;
+	}
+	std::filesystem::path mono::get_assembly_path(const char* assemblyName) const
+	{
+		return std::filesystem::current_path() / std::filesystem::path(std::format("./Valheim_Data/Managed/{}.dll", assemblyName));
 	}
 }

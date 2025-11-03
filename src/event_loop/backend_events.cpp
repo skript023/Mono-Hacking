@@ -16,7 +16,7 @@ namespace big
 		{
 			TRY_CLAUSE
 			{
-
+				
 			}
 			EXCEPT_CLAUSE
 			script::get_current()->yield();
@@ -31,7 +31,7 @@ namespace big
 			{
 				features();
 				
-				g_server_module->run();
+				//g_server_module->run();
 			} 
 			EXCEPT_CLAUSE
 			script::get_current()->yield();

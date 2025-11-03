@@ -12,6 +12,7 @@
 #include <imgui_internal.h>
 
 #include "ui/canvas.hpp"
+#include "graphic/graphic_manager.hpp"
 
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 //CW.exe+2D4E21610
@@ -19,7 +20,11 @@ namespace big
 {
 	renderer::renderer()
 	{
-		g_gui.init();
+		if (graphic_manager::get_swapchain(eGraphicsAPI::directx11) != eInitializationStatus::FAILED)
+		{
+			process_hwnd();
+			g_gui.init();
+		}
 
 		g_renderer = this;
 	}
@@ -70,7 +75,6 @@ namespace big
 
 			DXGI_SWAP_CHAIN_DESC sd;
 			swapchain->GetDesc(&sd);
-			m_window = sd.OutputWindow;
 
 			ID3D11Texture2D* m_back_buffer;
 			swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&m_back_buffer);
@@ -109,7 +113,7 @@ namespace big
 		ctx->IO.IniFilename = path.c_str();
 
 		ImGui_ImplDX11_Init(m_d3d_device, m_d3d_context);
-		ImGui_ImplWin32_Init(m_window);
+		ImGui_ImplWin32_Init(g_pointers->m_hwnd);
 
 		ImFontConfig font_cfg{};
 		font_cfg.FontDataOwnedByAtlas = false;
@@ -275,6 +279,42 @@ namespace big
 		for (auto& callback : g_gui.m_texture_callbacks)
 		{
 			callback(device);
+		}
+	}
+	void renderer::process_hwnd()
+	{
+		bool window_focus = false;
+		while (window_focus == false) 
+		{
+			DWORD foreground_window_process_id;
+			GetWindowThreadProcessId(GetForegroundWindow(), &foreground_window_process_id);
+
+			if (GetCurrentProcessId() == foreground_window_process_id) 
+			{
+
+				auto id = GetCurrentProcessId();
+				auto handle = GetCurrentProcess();
+				m_window = GetForegroundWindow();
+
+				RECT TempRect;
+				GetWindowRect(m_window, &TempRect);
+				auto width = TempRect.right - TempRect.left;
+				auto height = TempRect.bottom - TempRect.top;
+
+				char TempTitle[MAX_PATH];
+				GetWindowText(m_window, TempTitle, sizeof(TempTitle));
+				auto title = TempTitle;
+
+				char TempClassName[MAX_PATH];
+				GetClassName(m_window, TempClassName, sizeof(TempClassName));
+				auto class_name = TempClassName;
+
+				char TempPath[MAX_PATH];
+				GetModuleFileNameEx(handle, NULL, TempPath, sizeof(TempPath));
+				auto path = TempPath;
+
+				window_focus = true;
+			}
 		}
 	}
 }

@@ -7,8 +7,8 @@ namespace big
 	{
 		void init_impl();
 		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params) const;
-		void* get_compile_method_impl(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp") const;
-        MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
+		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName) const;
+        MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
         MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
         MonoClass* get_class_from_method_impl(MonoMethod* method) const;
         MonoClassField* get_field_impl(const char* className, const char* fieldName, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
@@ -20,6 +20,7 @@ namespace big
         void* get_static_field_data_impl(MonoVTable* pVTable) const;
         void* get_static_field_data_impl(MonoClass* pKlass) const;
 		void* get_static_field_value_impl(const char* className, const char* fieldName);
+		std::filesystem::path get_assembly_path(const char* assemblyName) const;
         static mono& get_instance()
         {
             static mono instance;
