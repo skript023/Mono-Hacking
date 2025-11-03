@@ -60,7 +60,7 @@ namespace big
 			return nullptr;
 		}
 
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, assemblyName);
+		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
 		if (assembly == nullptr)
 		{
 			LOG(WARNING) << "Failed to open assembly: " << assemblyName;
@@ -136,7 +136,7 @@ namespace big
 		if (domain == nullptr)
 			return nullptr;
 
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, assemblyName);
+		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
 		if (assembly == nullptr)
 			return nullptr;
 
@@ -158,7 +158,7 @@ namespace big
 		if (domain == nullptr)
 			return nullptr;
 
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, assemblyName);
+		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
 		if (assembly == nullptr)
 			return nullptr;
 
