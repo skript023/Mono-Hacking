@@ -54,6 +54,7 @@ namespace big
 		WNDPROC m_og_wndproc;
 
 		swap_pointer_hook m_present_hook;
+		swap_pointer_hook m_resizebuffer_hook;
 	};
 
 	inline hooking* g_hooking{};

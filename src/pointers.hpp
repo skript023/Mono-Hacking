@@ -20,6 +20,7 @@ namespace big
 		HWND m_hwnd{};
 
 		void** m_present;
+		void** m_resizebuffer;
 
 		EngineBase** m_engine{};
 		FUObjectArray* m_object_array{};
