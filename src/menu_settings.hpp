@@ -25,6 +25,7 @@ namespace big
 	public:
 		struct self
 		{
+			bool flying{ false };
 			bool is_teleportable{ false };
 			bool open_all_recipe_and_free_craft{ false };
 			bool no_drop_on_dead{ false };
@@ -35,6 +36,7 @@ namespace big
 			float max_stam{ 50.f };
 
 			bool is_wet{ false };
+			bool no_weight{ false };
 
 			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead)
 		} self;

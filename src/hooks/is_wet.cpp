@@ -9,7 +9,7 @@ namespace big
 		{
 			LOG(INFO) << "Pointer of roof is " << startPos.x;
 
-			return false;
+			return true;
 		}
 
 		return detour_base::get_original<is_under_roof>()(startPos);
