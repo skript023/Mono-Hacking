@@ -21,12 +21,12 @@ namespace big
 		static LRESULT wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 		static BOOL set_cursor_pos(int x, int y);
 		static bool is_teleportable(void* _this);
-		static void create_tomb_stone(void* _this);
+		static void create_tomb_stone(MonoObject* player);
 		static bool is_under_roof(Vector3 startPos);
 		static void on_selected_item(void* this_ptr, void* grid_ptr, MonoObject* item_data_obj, iVector2 pos, int mod);
 		static float get_weight(void* _thisint, int stackOverride);
 		static void update_water(MonoObject* _this, float dt);
-		static bool is_debug_flying(MonoObject* _this);
+		static bool is_debug_flying(MonoObject* player);
 	};
 
 	struct minhook_keepalive

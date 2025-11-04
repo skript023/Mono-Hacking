@@ -3,14 +3,13 @@
 
 namespace big
 {
-	void hooks::create_tomb_stone(void* _this)
+	void hooks::create_tomb_stone(MonoObject* player)
 	{
 		if (g_settings.self.no_drop_on_dead)
 		{
-			LOG(INFO) << "Pointer of player is " << _this;
 			return;
 		}
 
-		return detour_base::get_original<create_tomb_stone>()(_this);
+		return detour_base::get_original<create_tomb_stone>()(player);
 	}
 }
