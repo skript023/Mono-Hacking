@@ -10,6 +10,7 @@ namespace big
 	class pointers
 	{
 		memory::pattern_batch main_batch;
+		memory::pattern_batch discord_batch;
 	public:
 		explicit pointers();
 		~pointers();
@@ -18,7 +19,7 @@ namespace big
 	public:
 		HWND m_hwnd{};
 
-		void* m_swapchain_methods[19];
+		void** m_present;
 
 		EngineBase** m_engine{};
 		FUObjectArray* m_object_array{};

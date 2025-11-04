@@ -15,7 +15,7 @@ namespace big
 					g_renderer->on_present();
 			}
 
-			return detour_base::get_original<hooks::swapchain_present>()(this_, sync_interval, flags);
+			return g_hooking->m_present_hook.get_original<decltype(&hooks::swapchain_present)>()(this_, sync_interval, flags);
 		} EXCEPT_CLAUSE
 
 			return NULL;

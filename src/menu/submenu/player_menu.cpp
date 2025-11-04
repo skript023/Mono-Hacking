@@ -11,15 +11,10 @@ namespace big
         {
             sub->add_option<bool_option<bool>>("Flying", nullptr, &g_settings.self.flying);
             sub->add_option<bool_option<bool>>("Allow Teleporting with Any Items", nullptr, &g_settings.self.is_teleportable);
+            sub->add_option<bool_option<bool>>("No Weight", nullptr, &g_settings.self.no_weight);
             sub->add_option<bool_option<bool>>("Don't Drop Items when Dead", nullptr, &g_settings.self.no_drop_on_dead);
             sub->add_option<bool_option<bool>>("Never Wet", nullptr, &g_settings.self.is_wet);
-            sub->add_option<bool_option<bool>>("Forsaken Power Always Ready", nullptr, &g_settings.self.forsaken_power_always_ready, [] {
-                auto klass = mono::get_class("Player", "assembly_valheim");
-                auto m_guardianPowerCooldown = mono::get_field(klass, "m_guardianPowerCooldown");
-
-                float cooldown = 0.f;
-                mono::set_field_value(unity::get_local_player(), m_guardianPowerCooldown, &cooldown);
-            });
+            sub->add_option<bool_option<bool>>("Forsaken Power Always Ready", nullptr, &g_settings.self.forsaken_power_always_ready);
             sub->add_option<bool_option<bool>>("Opens all recipes and free crafting", nullptr, &g_settings.self.open_all_recipe_and_free_craft, [] {
                 MonoObject* player_instance = unity::get_local_player();
 

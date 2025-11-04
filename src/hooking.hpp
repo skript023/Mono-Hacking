@@ -1,8 +1,10 @@
 #pragma once
 #include "common.hpp"
 #include "mono/mono.hpp"
-#include "hooking/detour_hook.hpp"
+
 #include "hooking/vmt_hook.hpp"
+#include "hooking/detour_hook.hpp"
+#include "hooking/swap_pointer_hook.hpp"
 
 namespace big
 {
@@ -27,6 +29,7 @@ namespace big
 		static float get_weight(void* _thisint, int stackOverride);
 		static void update_water(MonoObject* _this, float dt);
 		static bool is_debug_flying(MonoObject* player);
+		static void update_guardian_power(MonoObject* player, float dt);
 	};
 
 	struct minhook_keepalive
@@ -49,6 +52,8 @@ namespace big
 		minhook_keepalive m_minhook_keepalive;
 
 		WNDPROC m_og_wndproc;
+
+		swap_pointer_hook m_present_hook;
 	};
 
 	inline hooking* g_hooking{};
