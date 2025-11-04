@@ -11,10 +11,11 @@ namespace big
             LOG(INFO) << "Item diklik! Alamat ItemDrop.ItemData: " << item_data_obj;
 
             // 1. Dapatkan Class ItemDrop.ItemData
-            MonoClass* item_data_class = mono::get_class("ItemData", "assembly_valheim", "ItemDrop");
+            MonoClass* item_data_class = mono::get_class("ItemDrop/ItemData", "assembly_valheim");
 
-            if (item_data_class)
+            if (item_data_class != nullptr)
             {
+                LOG(INFO) << "SUCCESS: Class ItemDrop+ItemData Ditemukan.";
                 // 2. Akses Data Item (Misalnya, Durability)
                 MonoClassField* durability = mono::get_field(item_data_class, "m_durability");
                 MonoClassField* quality = mono::get_field(item_data_class, "m_quality");

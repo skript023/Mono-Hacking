@@ -3,15 +3,15 @@
 
 namespace big
 {
-	bool hooks::is_under_roof(void* _this)
+	bool hooks::is_under_roof(Vector3 startPos)
 	{
 		if (g_settings.self.is_wet)
 		{
-			LOG(INFO) << "Pointer of EnvMan is " << _this;
+			LOG(INFO) << "Pointer of roof is " << startPos.x;
 
 			return false;
 		}
 
-		return detour_base::get_original<is_under_roof>()(_this);
+		return detour_base::get_original<is_under_roof>()(startPos);
 	}
 }
