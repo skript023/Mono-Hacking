@@ -22,9 +22,9 @@ namespace big
 		});
 
 		main_batch.run(memory::module(nullptr));
-		discord_batch.run(memory::module("DiscordHook64.dll"));
+		//discord_batch.run(memory::module("DiscordHook64.dll"));
 
-		this->m_hwnd = FindWindow("UnityWndClass", "Valheim");
+		this->m_hwnd = FindWindow(WINDOW_CLASS, WINDOW_NAME);
 		if (!this->m_hwnd)
 			throw std::runtime_error("Failed to find the game's window.");
 

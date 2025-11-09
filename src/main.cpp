@@ -18,8 +18,13 @@ DWORD APIENTRY main_thread(LPVOID)
 {
 	using namespace big;
 
-	while (!FindWindow("UnityWndClass", "Valheim"))
+	while (true)
+	{
+		if (GetAsyncKeyState(VK_F4) & 1)
+			break;
+
 		std::this_thread::sleep_for(1s);
+	}
 
 	benchmark initialization_benchmark("Initialization");
 
@@ -28,17 +33,19 @@ DWORD APIENTRY main_thread(LPVOID)
 
 	g_file_manager.init(base_dir);
 
-	auto logger_instance = std::make_unique<logger>("Scarlet Nexus", g_file_manager.get_project_file(std::format("./{}.log", LOG_NAME)));
+	auto logger_instance = std::make_unique<logger>(WINDOW_NAME, g_file_manager.get_project_file(std::format("./{}.log", LOG_NAME)));
 
 	try
 	{
 		LOG(RAW_GREEN_TO_CONSOLE) << R"kek(
-  _____                _      _   _   _                  _______        _                 
- / ____|              | |    | | | \ | |                |__   __|      (_)                
-| (___   ___ __ _ _ __| | ___| |_|  \| | _____  ___   _ ___| |_ __ __ _ _ _ __   ___ _ __ 
- \___ \ / __/ _` | '__| |/ _ \ __| . ` |/ _ \ \/ / | | / __| | '__/ _` | | '_ \ / _ \ '__|
- ____) | (_| (_| | |  | |  __/ |_| |\  |  __/>  <| |_| \__ \ | | | (_| | | | | |  __/ |   
-|_____/ \___\__,_|_|  |_|\___|\__|_| \_|\___/_/\_,\____|___/_|_|  \__,_|_|_| |_|\___|_| 
+  __  __                   _    _            _    _             
+|  \/  |                 | |  | |          | |  (_)            
+| \  / | ___  _ __   ___ | |__| | __ _  ___| | ___ _ __   __ _ 
+| |\/| |/ _ \| '_ \ / _ \|  __  |/ _` |/ __| |/ / | '_ \ / _` |
+| |  | | (_) | | | | (_) | |  | | (_| | (__|   <| | | | | (_| |
+|_|  |_|\___/|_| |_|\___/|_|  |_|\__,_|\___|_|\_\_|_| |_|\__, |
+                                                          __/ |
+                                                         |___/ 
 )kek";
 		g_settings.load();
 		LOG(HACKER) << "Settings initialized.";

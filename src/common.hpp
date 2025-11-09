@@ -1,4 +1,7 @@
-#pragma once
+#ifndef COMMON_INC
+#define COMMON_INC
+
+// clang-format off
 
 #pragma warning(disable:4369 4129)
 
@@ -62,14 +65,14 @@
 
 #pragma comment(lib, "Xinput.lib")
 
-#define GAME "ScarletNexus-Win64-Shipping.exe"
-#define GAME_NAME "Scarlet Nexus"
-#define FOLDER_NAME "Scarlet Nexus Trainer"
-#define LOG_NAME "ScarletNexus.log"
-#define LOG_EVENT_NAME "ScarletNexusEvents.log"
+#define GAME "Valheim.exe"
+#define GAME_NAME "Valheim"
+#define FOLDER_NAME "Valheim"
+#define LOG_NAME "Valheim.log"
+#define LOG_EVENT_NAME "ValheimEvents.log"
 
-#define WINDOW_CLASS "UnrealWindow"
-#define WINDOW_NAME "ScarletNexus  "
+#define WINDOW_CLASS "UnityWndClass"
+#define WINDOW_NAME "Valheim"
 
 namespace big
 {
@@ -83,3 +86,5 @@ namespace big
 	inline DWORD g_main_thread_id{};
 	inline std::atomic_bool g_running{ true };
 }
+
+#endif

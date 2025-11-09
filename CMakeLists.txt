@@ -40,6 +40,7 @@ file(GLOB_RECURSE SRC_MAIN
     "${SRC_DIR}/**.cpp"
     "${SRC_DIR}/**.cc"
     "${SRC_DIR}/**.cxx"
+    "${SRC_DIR}/**.def"
 )
 
 if (MSVC)
@@ -79,5 +80,7 @@ add_compile_definitions(ScarletNexus
     "NOMINMAX"
     "WIN32_LEAN_AND_MEAN"
 )
+
+set_target_properties(ScarletNexus PROPERTIES OUTPUT_NAME "version")
 
 add_subdirectory(injector)

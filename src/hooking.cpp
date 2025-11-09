@@ -13,12 +13,10 @@
 
 namespace big
 {
-	hooking::hooking(): 
-		m_present_hook("SwapChainPresent", g_pointers->m_present, hooks::swapchain_present),
-		m_resizebuffer_hook("SwapChainPresent", g_pointers->m_resizebuffer, hooks::swapchain_resizebuffers)
+	hooking::hooking()
 	{
-		/*detour_base::add<hooks::swapchain_present>(new detour_hook("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index), hooks::swapchain_present));
-		detour_base::add<hooks::swapchain_resizebuffers>(new detour_hook("SwapChainResizeBuffers", graphic_manager::get_method_table(hooks::swapchain_resizebuffers_index), hooks::swapchain_resizebuffers));*/
+		detour_base::add<hooks::swapchain_present>(new detour_hook("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index), hooks::swapchain_present));
+		detour_base::add<hooks::swapchain_resizebuffers>(new detour_hook("SwapChainResizeBuffers", graphic_manager::get_method_table(hooks::swapchain_resizebuffers_index), hooks::swapchain_resizebuffers));
 
 		detour_base::add<hooks::set_cursor_pos>(new detour_hook("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>(), hooks::set_cursor_pos));
 		detour_base::add<hooks::convert_thread_to_fiber>(new detour_hook("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>(), hooks::convert_thread_to_fiber));
@@ -45,9 +43,6 @@ namespace big
 
 	void hooking::enable()
 	{
-		m_present_hook.enable();
-		m_resizebuffer_hook.enable();
-
 		m_og_wndproc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&hooks::wndproc)));
 
 		detour_base::enable_all();
@@ -60,9 +55,6 @@ namespace big
 	void hooking::disable()
 	{
 		m_enabled = false;
-
-		m_present_hook.disable();
-		m_resizebuffer_hook.disable();
 
 		SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_og_wndproc));
 
