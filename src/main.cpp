@@ -18,13 +18,8 @@ DWORD APIENTRY main_thread(LPVOID)
 {
 	using namespace big;
 
-	while (true)
-	{
-		if (GetAsyncKeyState(VK_F4) & 1)
-			break;
-
+	while (!FindWindow(WINDOW_CLASS, WINDOW_NAME))
 		std::this_thread::sleep_for(1s);
-	}
 
 	benchmark initialization_benchmark("Initialization");
 
