@@ -5,34 +5,27 @@ namespace big
 	void mono::init_impl()
 	{
 		// Implementation details for initializing Mono
-		m_mono = GetModuleHandleA("mono-2.0-bdwgc.dll");
-		if (m_mono == NULL)
-		{
-			LOG(WARNING) << "Failed to find Mono module.";
-			return;
-		}
-
-		LOG(INFO) << "Mono module found at address: " << m_mono;
+		auto module = memory::module("mono-2.0-bdwgc.dll");
 
 		// Necessary functions to get method addresses
-		mono_domain_assembly_open = reinterpret_cast<mono_domain_assembly_open_t>(GetProcAddress(m_mono, "mono_domain_assembly_open"));
-		mono_assembly_get_image = reinterpret_cast<mono_assembly_get_image_t>(GetProcAddress(m_mono, "mono_assembly_get_image"));
-		mono_class_from_name = reinterpret_cast<mono_class_from_name_t>(GetProcAddress(m_mono, "mono_class_from_name"));
-		mono_class_get_method_from_name = reinterpret_cast<mono_class_get_method_from_name_t>(GetProcAddress(m_mono, "mono_class_get_method_from_name"));
-		mono_compile_method = reinterpret_cast<mono_compile_method_t>(GetProcAddress(m_mono, "mono_compile_method"));
-		mono_runtime_invoke = reinterpret_cast<mono_runtime_invoke_t>(GetProcAddress(m_mono, "mono_runtime_invoke"));
+		mono_domain_assembly_open = module.get_export("mono_domain_assembly_open").as<mono_domain_assembly_open_t>();
+		mono_assembly_get_image = module.get_export("mono_assembly_get_image").as<mono_assembly_get_image_t>();
+		mono_class_from_name = module.get_export("mono_class_from_name").as<mono_class_from_name_t>();
+		mono_class_get_method_from_name = module.get_export("mono_class_get_method_from_name").as<mono_class_get_method_from_name_t>();
+		mono_compile_method = module.get_export("mono_compile_method").as<mono_compile_method_t>();
+		mono_runtime_invoke = module.get_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
 
-		mono_class_get_field_from_name = reinterpret_cast<mono_class_get_field_from_name_t>(GetProcAddress(m_mono, "mono_class_get_field_from_name"));
-		mono_field_get_value = reinterpret_cast<mono_field_get_value_t>(GetProcAddress(m_mono, "mono_field_get_value"));
-		mono_field_set_value = reinterpret_cast<mono_field_set_value_t>(GetProcAddress(m_mono, "mono_field_set_value"));
-		mono_method_get_class = reinterpret_cast<mono_method_get_class_t>(GetProcAddress(m_mono, "mono_method_get_class"));
-		mono_class_vtable = reinterpret_cast<mono_class_vtable_t>(GetProcAddress(m_mono, "mono_class_vtable"));
-		mono_vtable_get_static_field_data = reinterpret_cast<mono_vtable_get_static_field_data_t>(GetProcAddress(m_mono, "mono_vtable_get_static_field_data"));
-		mono_field_get_offset = reinterpret_cast<mono_field_get_offset_t>(GetProcAddress(m_mono, "mono_field_get_offset"));
+		mono_class_get_field_from_name = module.get_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
+		mono_field_get_value = module.get_export("mono_field_get_value").as<mono_field_get_value_t>();
+		mono_field_set_value = module.get_export("mono_field_set_value").as<mono_field_set_value_t>();
+		mono_method_get_class = module.get_export("mono_method_get_class").as<mono_method_get_class_t>();
+		mono_class_vtable = module.get_export("mono_class_vtable").as<mono_class_vtable_t>();
+		mono_vtable_get_static_field_data = module.get_export("mono_vtable_get_static_field_data").as<mono_vtable_get_static_field_data_t>();
+		mono_field_get_offset = module.get_export("mono_field_get_offset").as<mono_field_get_offset_t>();
 
 		// Attach thread to prevent crashes
-		mono_thread_attach = reinterpret_cast<mono_thread_attach_t>(GetProcAddress(m_mono, "mono_thread_attach"));
-		mono_get_root_domain = reinterpret_cast<mono_get_root_domain_t>(GetProcAddress(m_mono, "mono_get_root_domain"));
+		mono_thread_attach = module.get_export("mono_thread_attach").as<mono_thread_attach_t>();
+		mono_get_root_domain = module.get_export("mono_get_root_domain").as<mono_get_root_domain_t>();
 
 		// Melampirkan thread ini ke domain Mono root agar aman
 		mono_thread_attach(mono_get_root_domain());

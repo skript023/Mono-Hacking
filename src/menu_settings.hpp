@@ -32,6 +32,7 @@ namespace big
 			bool forsaken_power_always_ready{ false };
 			bool enable_max_hp{ false };
 			bool enable_max_stam{ false };
+			bool no_animal_alert{ false };
 			float max_hp{ 25.f };
 			float max_stam{ 50.f };
 

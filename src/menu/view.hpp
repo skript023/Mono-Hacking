@@ -11,7 +11,7 @@ namespace big
 		{
 			home();
 			player_submenu();
-			stats_submenu();
+			//stats_submenu();
 			//teleport_submenu();
 			//esp_submenu();
 			setting_submenu();

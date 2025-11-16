@@ -1,5 +1,6 @@
 #pragma once
 #include "mono_functions.hpp"
+#include "memory/module.hpp"
 
 namespace big
 {
@@ -87,7 +88,6 @@ namespace big
         static bool is_initialized() { return get_instance().initalized; };
 	private:
 		bool initalized = false;
-		HMODULE m_mono = nullptr;
 	private:
         // --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
 

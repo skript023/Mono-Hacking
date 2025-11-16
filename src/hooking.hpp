@@ -30,6 +30,8 @@ namespace big
 		static void update_water(MonoObject* _this, float dt);
 		static bool is_debug_flying(MonoObject* player);
 		static void update_guardian_power(MonoObject* player, float dt);
+		static void update(MonoObject* player);
+		static void set_alerted(MonoObject* player, bool alerted);
 	};
 
 	struct minhook_keepalive
