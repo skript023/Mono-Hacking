@@ -37,7 +37,9 @@ namespace big
 			float max_stam{ 50.f };
 
 			bool is_wet{ false };
+			bool always_wind{ false };
 			bool no_weight{ false };
+			bool allow_pickup_fish{ false };
 
 			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead)
 		} self;

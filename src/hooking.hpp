@@ -32,6 +32,8 @@ namespace big
 		static void update_guardian_power(MonoObject* player, float dt);
 		static void update(MonoObject* player);
 		static void set_alerted(MonoObject* player, bool alerted);
+		static bool is_wind_controll_active(MonoObject* player);
+		static bool is_out_of_water(MonoObject* player);
 	};
 
 	struct minhook_keepalive

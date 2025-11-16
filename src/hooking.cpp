@@ -31,6 +31,8 @@ namespace big
 		detour_base::add<hooks::on_selected_item>(new detour_hook("InventoryGui::OnSelectedItem", mono::get_compile_method("InventoryGui", "OnSelectedItem", 4, "assembly_valheim"), hooks::on_selected_item));
 		detour_base::add<hooks::get_weight>(new detour_hook("ItemDrop::ItemData::GetWeight", mono::get_compile_method("ItemDrop/ItemData", "GetWeight", 1, "assembly_valheim"), hooks::get_weight));
 		detour_base::add<hooks::set_alerted>(new detour_hook("AnimalAI::SetAlerted", mono::get_compile_method("AnimalAI", "SetAlerted", 1, "assembly_valheim"), hooks::set_alerted));
+		detour_base::add<hooks::is_wind_controll_active>(new detour_hook("Ship::IsWindControllActive", mono::get_compile_method("Ship", "IsWindControllActive", 1, "assembly_valheim"), hooks::is_wind_controll_active));
+		detour_base::add<hooks::is_wind_controll_active>(new detour_hook("Fish::IsOutOfWater", mono::get_compile_method("Fish", "IsOutOfWater", 1, "assembly_valheim"), hooks::is_wind_controll_active));
 
 		g_hooking = this;
 	}
