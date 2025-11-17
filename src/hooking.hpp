@@ -1,6 +1,7 @@
 #pragma once
 #include "common.hpp"
 #include "mono/mono.hpp"
+#include "mono/enums.hpp"
 
 #include "hooking/vmt_hook.hpp"
 #include "hooking/detour_hook.hpp"
@@ -34,6 +35,7 @@ namespace big
 		static void set_alerted(MonoObject* player, bool alerted);
 		static bool is_wind_controll_active(MonoObject* player);
 		static bool is_out_of_water(MonoObject* player);
+		static void raise_skill(MonoObject* player, SkillType type, float value);
 	};
 
 	struct minhook_keepalive
