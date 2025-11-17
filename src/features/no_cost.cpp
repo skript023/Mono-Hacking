@@ -1,4 +1,7 @@
 #include "commands/looped_command.hpp"
+#include "mono/mono.hpp"
+
+#include "utility/unity.hpp"
 
 namespace big::features
 {
@@ -38,12 +41,12 @@ namespace big::features
 
 			// 3. Set Nilai
 			// Mono merepresentasikan bool C# (saat set/get field) sebagai int32_t (4 bytes)
-			int32_t value = g_settings.self.open_all_recipe_and_free_craft ? 1 : 0;
+			int32_t value = this->get_state() ? 1 : 0;
 
 			// Set field m_noCostCheat pada instance player
 			mono::set_field_value(player_instance, no_cost_cheat_field, &value);
 
-			LOG(INFO) << "Force Crafting Anywhere/All Recipes disetel ke: " << (g_settings.self.open_all_recipe_and_free_craft ? "TRUE" : "FALSE");
+			LOG(INFO) << "Force Crafting Anywhere/All Recipes disetel ke: " << (value ? "TRUE" : "FALSE");
 		}
 
 		virtual void on_disable() override
@@ -78,12 +81,12 @@ namespace big::features
 
 			// 3. Set Nilai
 			// Mono merepresentasikan bool C# (saat set/get field) sebagai int32_t (4 bytes)
-			int32_t value = g_settings.self.open_all_recipe_and_free_craft ? 1 : 0;
+			int32_t value = this->get_state() ? 1 : 0;
 
 			// Set field m_noCostCheat pada instance player
 			mono::set_field_value(player_instance, no_cost_cheat_field, &value);
 
-			LOG(INFO) << "Force Crafting Anywhere/All Recipes disetel ke: " << (g_settings.self.open_all_recipe_and_free_craft ? "TRUE" : "FALSE");
+			LOG(INFO) << "Force Crafting Anywhere/All Recipes disetel ke: " << (value ? "TRUE" : "FALSE");
 		}
 	};
 

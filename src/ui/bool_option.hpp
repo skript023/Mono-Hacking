@@ -1,6 +1,8 @@
 #pragma once
 #include "base_option.hpp"
 #include "canvas.hpp"
+#include "commands/commands.hpp"
+#include "commands/bool_command.hpp"
 
 namespace big
 {
@@ -11,6 +13,25 @@ namespace big
 		explicit bool_option(const char* text, const char* description, BoolType* b00l, std::function<void()> action = [] {}) :
 			m_bool(b00l)
 		{
+			Base::set_left_text(text);
+			if (description)
+				Base::set_description(description);
+			Base::set_action(std::move(action));
+		}
+		explicit bool_option(uint32_t id, std::function<void()> action = [] {}) :
+			m_command(commands::get_command<bool_command>(id))
+			m_bool(nullptr)
+		{
+			if (!m_command)
+			{
+				LOG(FATAL) << "Command not found.";
+
+				return;
+			}
+			m_bool = &m_command->get_state();
+			auto description = m_command->get_description().c_str();
+			auto text = m_command->get_label().c_str();
+
 			Base::set_left_text(text);
 			if (description)
 				Base::set_description(description);
@@ -27,7 +48,14 @@ namespace big
 		{
 			if (action == OptionAction::EnterPress)
 			{
-				*m_bool = !*m_bool;
+				if (m_command)
+				{
+					m_command->set_state(!*m_bool);
+				}
+				else
+				{
+					*m_bool = !*m_bool;
+				}
 			}
 
 			Base::handle_action(action);
@@ -45,6 +73,7 @@ namespace big
 		}
 	private:
 		BoolType* m_bool;
+		bool_command* m_command{ nullptr };
 		using Base = base_option<bool_option<BoolType>>;
 	};
 }

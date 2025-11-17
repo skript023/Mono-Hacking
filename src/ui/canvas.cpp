@@ -340,14 +340,6 @@ namespace big
 	{
 		if (opt->get_flag(OptionFlag::BoolSliderInt))
 		{
-			/*draw_sprite(
-				g_renderer->m_toggle_gpu_handle,
-				g_settings.window.m_pos.x + m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
-				32.f,
-				32.f,
-				m_bool_slider_int_option ? g_settings.window.m_toggle_on_color : g_settings.window.m_toggle_off_color);*/
-
 			draw_checkbox(
 				g_settings.window.m_pos.x + m_padding.x,
 				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
@@ -358,14 +350,6 @@ namespace big
 		
 		if (opt->get_flag(OptionFlag::BoolSliderFloat))
 		{
-			/*draw_sprite(
-				g_renderer->m_toggle_gpu_handle,
-				g_settings.window.m_pos.x + m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
-				32.f,
-				32.f,
-				m_bool_slider_float_option ? g_settings.window.m_toggle_on_color : g_settings.window.m_toggle_off_color);*/
-
 			draw_checkbox(
 				g_settings.window.m_pos.x + m_padding.x,
 				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
@@ -376,14 +360,6 @@ namespace big
 
 		if (opt->get_flag(OptionFlag::Toggle))
 		{
-			/*draw_sprite(
-				g_renderer->m_toggle_gpu_handle,
-				g_settings.window.m_pos.x + m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
-				32.f,
-				32.f,
-				m_bool_option ? g_settings.window.m_toggle_on_color : g_settings.window.m_toggle_off_color);*/
-
 			draw_checkbox(
 				g_settings.window.m_pos.x + m_padding.x,
 				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
@@ -437,46 +413,55 @@ namespace big
 				opt->get_max_float());
 		}
 
-		/*if (opt->get_flag(OptionFlag::Toggle))
-		{
-			draw_sprite(
-				g_renderer->m_toggle_gpu_handle,
-				g_settings.window.m_pos.x + (g_settings.window.m_width - (m_padding.x * 5.f)),
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
-				32.f,
-				32.f,
-				m_bool_option ? g_settings.window.m_toggle_on_color : g_settings.window.m_toggle_off_color);
-		}*/
-
 		m_draw_base_y += m_option_height;
 	}
 
 	void canvas::draw_slider(float x, float y, float current_value, float min_value, float max_value)
 	{
-		const float slider_width = g_settings.window.m_width * 0.55f; // Width of the slider
-		const float slider_height = 10.f; // Height of the slider line
-		const float knob_size = 10.0f; // Size of the knob
+		const float slider_width = g_settings.window.m_width * 0.55f;
+		const float slider_height = 10.f;
+		const float knob_size = 10.0f;
 
-		// Draw the slider track
-		draw_rect(
-			x,
-			y,
-			slider_width,
-			slider_height,
-			g_settings.window.m_slider_track_color
-		);
-
-		// Calculate the knob position based on the current value
+		// Normalized (0..1)
 		float normalized_value = (current_value - min_value) / (max_value - min_value);
-		float knob_x = (normalized_value * slider_width);
+		normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
 
-		draw_rect(
-			x,
-			y,
-			knob_x,
-			slider_height,
-			g_settings.window.m_slider_knob_color
-		);
+		float filled_width = normalized_value * slider_width;
+
+		// --- choose colors ---
+		auto track_color = g_settings.window.m_slider_track_color;
+		auto knob_color = g_settings.window.m_slider_knob_color;
+
+		// If slider full → knob becomes black
+		bool is_full = normalized_value >= 0.999f;
+		if (is_full)
+		{
+			knob_color = { 0, 0, 0, 255 }; // black
+		}
+
+		// Draw track
+		draw_rect(x, y, slider_width, slider_height, track_color);
+
+		// Draw filled region
+		draw_rect(x, y, filled_width, slider_height, knob_color);
+
+		// ---- TEXT ----
+		// Center of slider
+		float track_center_x = x + slider_width * 0.5f;
+		float track_center_y = y - 2.5f;
+
+		// Format number (float with 2 decimals, but change if you want)
+		char textbuf[32];
+		snprintf(textbuf, sizeof(textbuf), "%.2f", current_value);
+
+		// If slider is full and black → use white text
+		Color color_text;
+		if (is_full)
+			color_text = { 255, 255, 255, 255 }; // bright
+		else
+			color_text = { 0, 0, 0, 255 };       // dark
+
+		draw_centered_text(textbuf, track_center_x, track_center_y, color_text, g_renderer->m_monospace_font);
 	}
 
 	void canvas::draw_scrollbar(int selected_option, int total_options, int options_per_page)

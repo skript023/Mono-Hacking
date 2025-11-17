@@ -127,12 +127,6 @@ namespace big
 		load_texture(m_d3d_device);
 
 		g_gui.dx_init();
-
-		/*if (!LoadTextureFromFile(std::format("{}\\Scarlet Nexus Trainer\\Textures\\Header.png", std::getenv("appdata")).c_str(), m_d3d_device, &m_header, &m_header_size.x, &m_header_size.y))
-			LOG(WARNING) << "Unable to load image header";
-
-		if (!LoadTextureFromFile(std::format("{}\\Scarlet Nexus Trainer\\Textures\\Toggle.png", std::getenv("appdata")).c_str(), m_d3d_device, &m_toggle, &m_toggle_size.x, &m_toggle_size.y))
-			LOG(WARNING) << "Unable to load image toggle";*/
 	}
 
 	void renderer::pre_reset()

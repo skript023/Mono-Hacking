@@ -9,8 +9,9 @@
 #include "file_manager.hpp"
 
 #include "mono/mono.hpp"
+#include "settings/settings.hpp"
 #include "server/server_module.hpp"
-#include "event_loop/backend_events.hpp"
+#include "worker/main_worker.hpp"
 
 #include "services/notification/notification_service.hpp"
 
@@ -42,6 +43,7 @@ DWORD APIENTRY main_thread(LPVOID)
                                                           __/ |
                                                          |___/ 
 )kek";
+		settings::initialize(g_file_manager.get_project_file("./settings.json"));
 		g_settings.load();
 		LOG(HACKER) << "Settings initialized.";
 		
@@ -67,11 +69,10 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		LOG(HACKER) << "Service registered.";
 
-		/*auto server_instance = std::make_unique<server_module>();
-		LOG(HACKER) << "Server initialized.";*/
+		//auto server_instance = std::make_unique<server_module>();
+		LOG(HACKER) << "Server initialized.";
 
-		g_script_mgr.add_script(std::make_unique<script>(&backend_events::player_skill_event));
-		g_script_mgr.add_script(std::make_unique<script>(&backend_events::script_func));
+		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
 		LOG(HACKER) << "Scripts registered.";
 
 		g_hooking->enable();
@@ -82,9 +83,8 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		while (g_running)
 		{
-			/*
-			g_script_mgr.tick();*/
 			g_settings.attempt_save();
+			settings::tick();
 			std::this_thread::sleep_for(1s);
 		}
 
@@ -96,8 +96,8 @@ DWORD APIENTRY main_thread(LPVOID)
 		g_script_mgr.remove_all_scripts();
 		LOG(HACKER) << "Scripts unregistered.";
 
-		/*server_instance.reset();
-		LOG(HACKER) << "Server unregistered.";*/
+		//server_instance.reset();
+		LOG(HACKER) << "Server unregistered.";
 		
 		LOG(HACKER) << "Service unregistered.";
 

@@ -7,7 +7,6 @@ namespace big
 	{
 		if (g_settings.self.no_weight)
 		{
-			LOG(INFO) << "Pointer of player is " << _this;
 			return 0.f;
 		}
 
