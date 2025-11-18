@@ -19,7 +19,7 @@ namespace big
 			Base::set_action(std::move(action));
 		}
 		explicit bool_option(uint32_t id, std::function<void()> action = [] {}) :
-			m_command(commands::get_command<bool_command>(id))
+			m_command(commands::get_command<bool_command>(id)),
 			m_bool(nullptr)
 		{
 			if (!m_command)
