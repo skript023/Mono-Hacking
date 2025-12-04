@@ -31,6 +31,7 @@ include(scripts/stbi.cmake)
 include(scripts/asio.cmake)
 include(scripts/websocket.cmake)
 include(scripts/discord.cmake)
+include(scripts/quickjs.cmake)
 
 # ScarletNexus
 message(STATUS "ScarletNexus")
@@ -66,11 +67,12 @@ target_include_directories(ScarletNexus PRIVATE
     "${websocket_SOURCE_DIR}"
     "${asio_SOURCE_DIR}/asio/include"
     "${discord_SOURCE_DIR}/include"
+    "${quickjs_SOURCE_DIR}/src"
     "${OPENSSL_INCLUDE_DIR}"
 )
 
 target_precompile_headers(ScarletNexus PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(ScarletNexus PRIVATE minhook imgui g3log discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32)
+target_link_libraries(ScarletNexus PRIVATE minhook quickjs imgui g3log discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32)
 
 # Warnings as errors
 #set_property(TARGET ScarletNexus PROPERTY COMPILE_WARNING_AS_ERROR ON)

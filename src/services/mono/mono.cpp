@@ -1,3 +1,4 @@
+#pragma warning (disable:4311 4312)
 #include "mono.hpp"
 
 namespace big

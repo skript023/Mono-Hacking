@@ -25,8 +25,5 @@ if (NOT discord_POPULATED)
 
     target_include_directories(discord PRIVATE "${discord_SOURCE_DIR}/include")
 
-    # Ensure WIN32_LEAN_AND_MEAN is undefined for this target
-    target_compile_definitions(discord PRIVATE -UWIN32_LEAN_AND_MEAN)
-
     set_property(TARGET discord PROPERTY COMPILE_WARNING_AS_ERROR OFF)
 endif()
