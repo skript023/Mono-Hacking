@@ -45,6 +45,9 @@ namespace big
 
 	void javacript_binding::bind(Context& ctx)
 	{
-		
+		auto& module = ctx.addModule("commands");
+		module.function("call", [&ctx](const std::string& cmd, JSValue js_args) {
+			call_command(cmd, js_args, ctx);
+		});
 	}
 }
