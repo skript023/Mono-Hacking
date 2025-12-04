@@ -2,5 +2,8 @@
 
 namespace big
 {
+	void javascript_manager::init_impl()
+	{
 
+	}
 }

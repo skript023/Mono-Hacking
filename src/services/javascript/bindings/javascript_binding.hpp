@@ -1,7 +1,4 @@
 #pragma once
-#include "quickjspp.hpp"
-
-using namespace qjs;
 
 namespace big
 {
@@ -14,8 +11,8 @@ namespace big
 			return i;
 		}
 
-
 	public:
+		static void init();
 
 	};
 }
