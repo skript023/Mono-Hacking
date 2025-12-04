@@ -1871,6 +1871,19 @@ public:
         assert(ptr);
         return *static_cast<Context *>(ptr);
     }
+
+    bool isUndefined(JSValue const& val) const
+	{
+		return JS_IsUndefined(val);
+	}
+	bool isNull(JSValue const& val) const
+	{
+		return JS_IsNull(val);
+	}
+	bool isArray(JSValue const& val) const
+	{
+		return JS_IsArray(ctx, val);
+	}
 };
 
 /** Conversion traits for Value.

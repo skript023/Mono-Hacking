@@ -1,7 +1,10 @@
 #pragma once
+#include "../quickjspp.hpp"
 
 namespace big
 {
+	using namespace qjs;
+
 	class javacript_binding
 	{
 		static javacript_binding& get()
@@ -12,7 +15,7 @@ namespace big
 		}
 
 	public:
-		static void init();
+		static void bind(Context& ctx);
 
 	};
 }

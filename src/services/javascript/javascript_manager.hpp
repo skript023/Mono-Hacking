@@ -8,11 +8,20 @@ namespace big
 		qjs::Runtime m_runtime;
 		qjs::Context m_context;
 
+		javascript_manager() :
+		    m_context(m_runtime)
+		{
+		} // Context depends on Runtime
+
+		// disable copy
+		javascript_manager(const javascript_manager&) = delete;
+		javascript_manager& operator=(const javascript_manager&) = delete;
+
 		static javascript_manager& get()
 		{
-			static javascript_manager i{};
+			static javascript_manager instance;
 
-			return i;
+			return instance;
 		}
 
 		void init_impl();
