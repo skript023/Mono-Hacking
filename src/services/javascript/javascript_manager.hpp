@@ -26,6 +26,9 @@ namespace big
 
 		void init_impl();
 	public:
-
+		static void init()
+		{
+			get().init_impl();
+		}
 	};
 }

@@ -12,6 +12,7 @@
 #include "settings/settings.hpp"
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
+#include "javascript/javascript_manager.hpp"
 
 #include "services/notification/notification_service.hpp"
 
@@ -67,6 +68,7 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		g_pointers->update();
 
+		javascript_manager::init();
 		LOG(HACKER) << "Service registered.";
 
 		//auto server_instance = std::make_unique<server_module>();

@@ -7,11 +7,19 @@
 namespace big::features
 {
 	float_command _eitr_amount("eitr_amount", "Stamina Regen Amount", "Amount of stamina to regenerate per second.", 0.f, 100.f, 0.f);
-	class eitr : public looped_command
+	class eitr : public bool_command
 	{
-		using looped_command::looped_command;
+		using bool_command::bool_command;
 
-		virtual void on_tick() override
+		virtual void on_call() override
+		{
+			if (m_state)
+				on_enable();
+			else
+				on_disable();
+		}
+
+		virtual void on_enable() override
 		{
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_maxEitr = mono::get_field(klass, "m_maxEitr");

@@ -7,11 +7,19 @@
 namespace big::features
 {
 	float_command _max_hp("max_hp", "Stamina Regen Amount", "Amount of stamina to regenerate per second.", 25.f, 1000.f, 25.f);
-	class max_health : public looped_command
+	class max_health : public bool_command
 	{
-		using looped_command::looped_command;
+		using bool_command::bool_command;
 
-		virtual void on_tick() override
+		virtual void on_call() override
+		{
+			if (m_state)
+				on_enable();
+			else
+				on_disable();
+		}
+
+		virtual void on_enable() override
 		{
 			auto method = mono::get_method("Player", "SetMaxHealth", 2, "assembly_valheim");
 			auto klass = mono::get_class("Player", "assembly_valheim");

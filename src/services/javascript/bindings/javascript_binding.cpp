@@ -43,11 +43,48 @@ namespace big
 			cmd->call();
 	}
 
+	static void js_log_info(std::string const& args)
+	{
+		LOG(INFO) << args;
+	}
+
+	static JSValue js_console_log(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+	{
+		for (int i = 0; i < argc; i++)
+		{
+			const char* str = JS_ToCString(ctx, argv[i]);
+			if (str)
+			{
+				LOG(INFO) << std::format("[JS] {}", str);
+				JS_FreeCString(ctx, str);
+			}
+		}
+
+		return JS_UNDEFINED;
+	}
+
 	void javacript_binding::bind(Context& ctx)
 	{
 		auto& module = ctx.addModule("commands");
 		module.function("call", [&ctx](const std::string& cmd, JSValue js_args) {
 			call_command(cmd, js_args, ctx);
 		});
+
+		auto& logger = ctx.addModule("Logger");
+		logger.function<&js_log_info>("info");
+
+		JSValue console = JS_NewObject(ctx.ctx);
+
+		JS_SetPropertyStr(
+		    ctx.ctx,
+		    console,
+		    "log",
+		    JS_NewCFunction(ctx.ctx, js_console_log, "log", 1));
+
+		JS_SetPropertyStr(
+		    ctx.ctx,
+		    JS_GetGlobalObject(ctx.ctx),
+		    "console",
+		    console);
 	}
 }
