@@ -11,8 +11,8 @@ namespace big
 			m_context.eval(R"(
 				import * as log from 'Logger';
 				log.info("This is a test log from javascript");
-				console.log('hello from js', 123, true));
-			)", "<eval>", JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY | JS_EVAL_TYPE_GLOBAL);
+				console.log('hello from js', 123, true);
+			)", "<eval>", JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);
 		}
 		catch (qjs::exception&)
 		{
