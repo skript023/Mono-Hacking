@@ -168,26 +168,42 @@ namespace big
 	MonoClassField* mono::get_field_impl(MonoClass* pKlass, const char* fieldName) const
 	{
 		MonoClassField* field = mono_class_get_field_from_name(pKlass, fieldName);
+
 		return field;
 	}
 	uint32_t mono::get_field_offset_impl(MonoClassField* field) const
 	{
+		if (!field)
+			return 0u;
+
 		return mono_field_get_offset(field);
 	}
 	void mono::get_field_value_impl(void* instance, MonoClassField* field, void* out) const
 	{
+		if (!instance || !field || !out)
+			return;
+
 		mono_field_get_value(instance, field, out);
 	}
 	void mono::set_field_value_impl(MonoObject* obj, MonoClassField* field, void* value)
 	{
+		if (!obj || !field || !value)
+			return;
+
 		mono_field_set_value(obj, field, value);
 	}
 	MonoVTable* mono::get_vtable_impl(MonoClass* pKlass) const
 	{
+		if (!pKlass)
+			return nullptr;
+
 		return mono_class_vtable(mono_get_root_domain(), pKlass);
 	}
 	void* mono::get_static_field_data_impl(MonoVTable* pVTable) const
 	{
+		if (!pVTable)
+			return nullptr;
+
 		return mono_vtable_get_static_field_data(pVTable);
 	}
 	void* mono::get_static_field_data_impl(MonoClass* pKlass) const
