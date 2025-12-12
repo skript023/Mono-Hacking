@@ -25,8 +25,8 @@ DWORD APIENTRY main_thread(LPVOID)
 
 	benchmark initialization_benchmark("Initialization");
 
-	std::filesystem::path base_dir = std::getenv("appdata");
-	base_dir /= FOLDER_NAME;
+	std::filesystem::path base_dir = std::filesystem::current_path();
+	base_dir /= MOD_FOLDER_NAME;
 
 	file_manager::init(base_dir);
 

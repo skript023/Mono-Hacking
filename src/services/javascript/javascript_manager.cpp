@@ -2,6 +2,8 @@
 
 #include "utility/joaat.hpp"
 #include "bindings/javascript_binding.hpp"
+#include "bindings/command_binding.hpp"
+#include "bindings/mono_binding.hpp"
 
 namespace big
 {
@@ -27,6 +29,8 @@ namespace big
 	void javascript_manager::init_impl()
 	{
 		javacript_binding::bind(m_context);
+		js::mono::bind(m_context);
+		js::command::bind(m_context);
 
 		m_scripts_folder = file_manager::get_project_folder("./scripts");
 		m_scripts_config_folder = m_scripts_folder.get_folder("./scripts_config");

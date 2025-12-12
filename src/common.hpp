@@ -68,6 +68,7 @@
 #define GAME "Valheim.exe"
 #define GAME_NAME "Valheim"
 #define FOLDER_NAME "Valheim"
+#define MOD_FOLDER_NAME "Valheim Mod"
 #define LOG_NAME "Valheim.log"
 #define LOG_EVENT_NAME "ValheimEvents.log"
 
