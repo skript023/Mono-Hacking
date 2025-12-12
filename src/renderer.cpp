@@ -105,7 +105,7 @@ namespace big
 
 	void renderer::imgui_init()
 	{
-		auto file_path = g_file_manager.get_project_file("./imgui.ini").get_path();
+		auto file_path = file_manager::get_project_file("./imgui.ini").get_path();
 
 		ImGuiContext* ctx = ImGui::CreateContext();
 

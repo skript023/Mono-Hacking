@@ -2,7 +2,7 @@
 
 namespace big
 {
-	bool file_manager::init(const std::filesystem::path& base_dir)
+	bool file_manager::init_impl(const std::filesystem::path& base_dir)
 	{
 		m_base_dir = base_dir;
 		file_manager::ensure_folder_exists(m_base_dir);
@@ -10,12 +10,12 @@ namespace big
 		return true;
 	}
 
-	const std::filesystem::path& file_manager::get_base_dir()
+	const std::filesystem::path& file_manager::get_base_dir_impl()
 	{
 		return m_base_dir;
 	}
 
-	file file_manager::get_project_file(std::filesystem::path file_path)
+	file file_manager::get_project_file_impl(std::filesystem::path file_path) const
 	{
 		if (file_path.is_absolute())
 			throw std::invalid_argument("Project files are relative to the BaseDir, don't use absolute paths!");
@@ -25,7 +25,7 @@ namespace big
 		return file_manager::ensure_file_can_be_created(m_base_dir / file_path);
 	}
 
-	folder file_manager::get_project_folder(std::filesystem::path folder_path)
+	folder file_manager::get_project_folder_impl(std::filesystem::path folder_path)
 	{
 		if (folder_path.is_absolute())
 			throw std::invalid_argument("Project folders are relative to the BaseDir, don't use absolute paths!");

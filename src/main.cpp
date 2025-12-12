@@ -28,9 +28,9 @@ DWORD APIENTRY main_thread(LPVOID)
 	std::filesystem::path base_dir = std::getenv("appdata");
 	base_dir /= FOLDER_NAME;
 
-	g_file_manager.init(base_dir);
+	file_manager::init(base_dir);
 
-	auto logger_instance = std::make_unique<logger>(WINDOW_NAME, g_file_manager.get_project_file(std::format("./{}.log", LOG_NAME)));
+	auto logger_instance = std::make_unique<logger>(WINDOW_NAME, file_manager::get_project_file(std::format("./{}.log", LOG_NAME)));
 
 	try
 	{
@@ -44,7 +44,7 @@ DWORD APIENTRY main_thread(LPVOID)
                                                           __/ |
                                                          |___/ 
 )kek";
-		settings::initialize(g_file_manager.get_project_file("./settings.json"));
+		settings::initialize(file_manager::get_project_file("./settings.json"));
 		g_settings.load();
 		LOG(HACKER) << "Settings initialized.";
 		
