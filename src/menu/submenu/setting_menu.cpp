@@ -15,6 +15,7 @@ namespace big
             sub->add_option<number_option<float>>("X Position", nullptr, &g_settings.window.m_pos.x, 0.f, 2000.f, 25.f, 2);
             sub->add_option<number_option<float>>("Y Position", nullptr, &g_settings.window.m_pos.y, 0.f, 2000.f, 25.f, 2);
             sub->add_option<number_option<float>>("Width", nullptr, &g_settings.window.m_width, 0.f, 1000.f, 50.f, 2);
+			sub->add_option<bool_option<bool>>("Show JS Script", nullptr, &g_settings.window.js_eval);
             sub->add_option<bool_option<bool>>("Sounds", nullptr, &g_settings.window.m_sounds);
             sub->add_option<bool_option<bool>>("Draw Mouse", nullptr, &g_settings.window.mouse_active);
             sub->add_option<reguler_option>("Unload", nullptr, [] { g_running = false; });

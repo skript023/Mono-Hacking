@@ -1,6 +1,7 @@
 #pragma once
 #include "imgui.h"
 #include "submenu.hpp"
+#include "misc/cpp/imgui_stdlib.h"
 
 namespace big
 {
@@ -18,6 +19,7 @@ namespace big
 		}
 	public:
 		static void home();
+		static void js_scripts();
 		static void draw_input();
 		static void draw_overlay();
 		static void notifications();

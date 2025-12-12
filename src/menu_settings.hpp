@@ -59,6 +59,7 @@ namespace big
 			bool input = false;
 			bool censor = true;
 			bool overlay = false;
+			bool js_eval = false;
 
 			uint32_t open_key{ VK_INSERT };
 			uint32_t back_key{ VK_NUMPAD0 };

@@ -21,6 +21,8 @@ namespace big
         void* get_static_field_data_impl(MonoVTable* pVTable) const;
         void* get_static_field_data_impl(MonoClass* pKlass) const;
 		void* get_static_field_value_impl(const char* className, const char* fieldName);
+		MonoThread* mono_thread_attach_impl(MonoDomain* domain) const;
+		MonoDomain* get_root_domain_impl() const;
 		std::filesystem::path get_assembly_path(const char* assemblyName) const;
         static mono& get_instance()
         {
@@ -85,6 +87,14 @@ namespace big
 		{
 			return get_instance().get_static_field_value_impl(className, fieldName);
 		};
+		static MonoThread* thread_attach(MonoDomain* domain)
+		{
+			return get_instance().mono_thread_attach_impl(domain);
+		}
+		static MonoDomain* get_root_domain()
+		{
+			return get_instance().get_root_domain_impl();
+		}
         static bool is_initialized() { return get_instance().initalized; };
 	private:
 		bool initalized = false;

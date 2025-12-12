@@ -32,7 +32,7 @@ namespace big
 		// medium priority
 		MENU = 0x1000,
 		VEHICLE_CONTROL,
-		LUA,
+		JS,
 
 		// high priority
 		INFO_OVERLAY = 0x2000,
@@ -53,6 +53,7 @@ namespace big
 		this->add_dx_callback(view::notifications, eRenderPriority::NOTIFICATIONS);
 		//this->add_dx_callback(view::draw_overlay, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback([this] { this->dx_on_opened(); }, eRenderPriority::MENU);
+		this->add_dx_callback(view::js_scripts, eRenderPriority::JS);
 
 		this->add_wndproc_callback([this](HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) { wndproc(hwnd, msg, wparam, lparam); });
 

@@ -29,15 +29,45 @@ namespace big
 		void init_impl();
 		void enable_all_modules_impl();
 		void load_all_modules_impl();
-		void unload_all_modules();
+		void unload_all_modules_impl();
 		void unload_module_impl(uint32_t module_id);
 		std::weak_ptr<javascript_module> load_module_impl(const std::filesystem::path& module_path);
+		void eval_script_impl(std::string const& script);
 	public:
 		static void init()
 		{
 			get().init_impl();
 		}
 
+		static void enable_all_modules()
+		{
+			get().enable_all_modules_impl();
+		}
+
+		static void load_all_modules()
+		{
+			get().load_all_modules_impl();
+		}
+
+		static void unload_all_modules()
+		{
+			get().unload_all_modules();
+		}
+
+		static void unload_module(uint32_t module_id)
+		{
+			get().unload_module_impl(module_id);
+		}
+
+		static std::weak_ptr<javascript_module> load_module(const std::filesystem::path& module_path)
+		{
+			return get().load_module_impl(module_path);
+		}
+
+		static void eval_script(std::string const& script)
+		{
+			get().eval_script_impl(script);
+		}
 	private:
 		std::mutex m_module_lock;
 		std::vector<std::shared_ptr<javascript_module>> m_modules;

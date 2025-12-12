@@ -36,6 +36,7 @@ namespace big
 		static bool is_wind_controll_active(MonoObject* player);
 		static bool is_out_of_water(MonoObject* player);
 		static void raise_skill(MonoObject* player, SkillType type, float value);
+		static bool take_input(MonoObject* player_controller, bool look);
 	};
 
 	struct minhook_keepalive

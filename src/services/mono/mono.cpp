@@ -231,6 +231,14 @@ namespace big
 
 		return value;
 	}
+	MonoThread* mono::mono_thread_attach_impl(MonoDomain* domain) const
+	{
+		return mono_thread_attach(domain);
+	}
+	MonoDomain* mono::get_root_domain_impl() const
+	{
+		return mono_get_root_domain();
+	}
 	std::filesystem::path mono::get_assembly_path(const char* assemblyName) const
 	{
 		return std::filesystem::current_path() / std::filesystem::path(std::format("./Valheim_Data/Managed/{}.dll", assemblyName));

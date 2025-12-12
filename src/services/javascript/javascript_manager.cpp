@@ -84,7 +84,7 @@ namespace big
 				load_module_impl(entry.path());
 	}
 
-	void javascript_manager::unload_all_modules()
+	void javascript_manager::unload_all_modules_impl()
 	{
 		{
 			std::lock_guard guard(m_module_lock);
@@ -154,5 +154,17 @@ namespace big
 		std::lock_guard disabled_guard(m_disabled_module_lock);
 		m_disabled_modules.push_back(module);
 		return module;
+	}
+	void javascript_manager::eval_script_impl(std::string const& script)
+	{
+		try
+		{
+			m_context.eval(script, "<eval>", JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);
+		}
+		catch (qjs::exception&)
+		{
+			auto exc = m_context.getException();
+			LOG(WARNING) << "[JS Error] " << (std::string)exc;
+		}
 	}
 }
