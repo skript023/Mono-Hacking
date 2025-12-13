@@ -37,6 +37,7 @@ namespace big
 		static bool is_out_of_water(MonoObject* player);
 		static void raise_skill(MonoObject* player, SkillType type, float value);
 		static bool take_input(MonoObject* player_controller, bool look);
+		static float get_body_armor(MonoObject* player);
 	};
 
 	struct minhook_keepalive
