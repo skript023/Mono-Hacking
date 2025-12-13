@@ -34,7 +34,7 @@ namespace big
 		detour_base::add<hooks::is_wind_controll_active>(new detour_hook("Ship::IsWindControllActive", mono::get_compile_method("Ship", "IsWindControllActive", 0, "assembly_valheim"), hooks::is_wind_controll_active));
 		detour_base::add<hooks::is_out_of_water>(new detour_hook("Fish::IsOutOfWater", mono::get_compile_method("Fish", "IsOutOfWater", 0, "assembly_valheim"), hooks::is_out_of_water));
 		detour_base::add<hooks::raise_skill>(new detour_hook("Player::RaiseSkill", mono::get_compile_method("Player", "RaiseSkill", 2, "assembly_valheim"), hooks::raise_skill));
-		detour_base::add<hooks::raise_skill>(new detour_hook("PlayerController::TakeInput", mono::get_compile_method("PlayerController", "TakeInput", 1, "assembly_valheim"), hooks::raise_skill));
+		detour_base::add<hooks::take_input>(new detour_hook("PlayerController::TakeInput", mono::get_compile_method("PlayerController", "TakeInput", 1, "assembly_valheim"), hooks::take_input));
 
 		g_hooking = this;
 	}

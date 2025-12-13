@@ -8,6 +8,24 @@ namespace js::trampoline
 	static std::unordered_map<std::string, detour_hook*> g_hooks;
 
 	
+	static inline double js_value_to_double_checked(JSContext* ctx, JSValueConst v)
+	{
+		double d = 0.0;
+		if (JS_ToFloat64(ctx, &d, v) < 0)
+		{
+			// not a number convertible
+			return 0.0;
+		}
+		return d;
+	}
+
+	template<typename T>
+	T value_to_ptr(JSContext* ctx, JSValueConst v)
+	{
+		double d = js_value_to_double_checked(ctx, v);
+		return reinterpret_cast<T>(static_cast<uintptr_t>((uint64_t)d));
+	}
+	
 	static void pack(JSContext* ctx, JSValue& v, void* p)
 	{
 		v = JS_NewBigUint64(ctx, (uint64_t)p);
@@ -51,9 +69,7 @@ namespace js::trampoline
 
 	static void unpack_return(JSContext* ctx, JSValue v, void*& out)
 	{
-		int64_t p;
-		JS_ToBigInt64(ctx, &p, v);
-		out = (void*)(uint64_t)p;
+		out = value_to_ptr<void*>(ctx, v);
 	}
 
 	template<typename... Args>
@@ -136,8 +152,9 @@ namespace js::trampoline
 		if (!JS_IsFunction(ctx, argv[2]))
 			return JS_ThrowTypeError(ctx, "callback must be function");
 
-		int64_t addr;
-		JS_ToBigInt64(ctx, &addr, argv[0]);
+		auto addr = value_to_ptr<void*>(ctx, argv[1]);
+
+		LOG(VERBOSE) << "Adding detour '" << name << "' at address " << addr;
 
 		auto& det = JsDetour<void, void*>::instance(); // example
 
@@ -148,7 +165,7 @@ namespace js::trampoline
 			name, 
 		    new detour_hook(
 		        name,
-		        (void*)(uint64_t)addr,
+		        addr,
 		        &JsDetour<void, void*>::trampoline));
 
 		return JS_UNDEFINED;
@@ -184,7 +201,9 @@ namespace js::trampoline
 
 	static int js_detour_module_init(JSContext* ctx, JSModuleDef* m)
 	{
-		JS_SetModuleExport(ctx, m, "add", JS_NewCFunction(ctx, js_add_detour, "add", 2));
+		JS_SetModuleExport(ctx, m, "add", JS_NewCFunction(ctx, js_add_detour, "add", 3));
+		JS_SetModuleExport(ctx, m, "enable", JS_NewCFunction(ctx, js_hook_enable, "enable", 1));
+		JS_SetModuleExport(ctx, m, "disable", JS_NewCFunction(ctx, js_hook_disable, "disable", 1));
 
 		return 0; // WAJIB
 	}
@@ -197,6 +216,8 @@ namespace js::trampoline
 			return nullptr;
 
 		JS_AddModuleExport(ctx, m, "add");
+		JS_AddModuleExport(ctx, m, "enable");
+		JS_AddModuleExport(ctx, m, "disable");
 
 		return m;
 	}

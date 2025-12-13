@@ -51,7 +51,7 @@ namespace big
 	void gui::init()
 	{
 		//this->add_dx_callback(esp::draw_esp, eRenderPriority::ESP);
-		//this->add_dx_callback(view::draw_input, eRenderPriority::INPUT);
+		this->add_dx_callback(view::draw_input, eRenderPriority::INPUT);
 		this->add_dx_callback(view::notifications, eRenderPriority::NOTIFICATIONS);
 		//this->add_dx_callback(view::draw_overlay, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback([this] { this->dx_on_opened(); }, eRenderPriority::MENU);
