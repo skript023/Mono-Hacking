@@ -1,4 +1,4 @@
-#include "trampoline_binding.hpp"
+﻿#include "trampoline_binding.hpp"
 #include "hooking/detour_hook.hpp"
 
 namespace js::trampoline
@@ -159,14 +159,16 @@ namespace js::trampoline
 		auto& det = JsDetour<void, void*>::instance(); // example
 
 		det.ctx = ctx;
-		det.js_func = JS_DupValue(ctx, argv[1]);
+		det.js_func = JS_DupValue(ctx, argv[2]);
 
-		g_hooks.emplace(
-			name, 
-		    new detour_hook(
-		        name,
-		        addr,
-		        &JsDetour<void, void*>::trampoline));
+		auto* hook = new detour_hook(
+		    name,
+		    addr,
+		    &JsDetour<void, void*>::trampoline);
+
+		det.original = (decltype(det.original))hook->get_original_ptr();
+
+		g_hooks.emplace(name, hook);
 
 		return JS_UNDEFINED;
 	}
@@ -179,7 +181,7 @@ namespace js::trampoline
 		if (it == g_hooks.end())
 			return JS_ThrowReferenceError(ctx, "hook not found");
 
-		it->second->enable();
+		it->second->enable_immediately();
 
 		JS_FreeCString(ctx, name);
 		return JS_UNDEFINED;
@@ -193,7 +195,7 @@ namespace js::trampoline
 		if (it == g_hooks.end())
 			return JS_ThrowReferenceError(ctx, "hook not found");
 
-		it->second->disable();
+		it->second->disable_immediately();
 
 		JS_FreeCString(ctx, name);
 		return JS_UNDEFINED;

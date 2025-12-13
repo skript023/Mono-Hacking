@@ -15,7 +15,7 @@ namespace big
 
 		if (auto status = MH_CreateHook(m_target, m_detour, &m_original); status == MH_OK)
 		{
-			//LOG(VERBOSE) << "Created hook '" << m_name << "'.";
+			LOG(VERBOSE) << "Created hook '" << m_name << "'.";
 		}
 		else
 		{
