@@ -178,11 +178,19 @@ namespace js::trampoline
 
 				free_args(ctx, argv);
 
-				if (!JS_IsException(ret))
+				if (JS_IsException(ret))
+				{
+					JSValue exc = JS_GetException(ctx);
+					JS_FreeValue(ctx, ret);
+					LOG(WARNING) << "JS exception occurred";
+					return original(args...);
+				}
+				else
 				{
 					if constexpr (std::is_same_v<Ret, float>)
 					{
 						float r{};
+						LOG(VERBOSE) << "Detour JS function called successfully, unpacking return value...";
 						unpack_return(ctx, ret, r);
 						LOG(VERBOSE) << "Detour returned value: " << r;
 						JS_FreeValue(ctx, ret);
@@ -191,6 +199,7 @@ namespace js::trampoline
 					if constexpr (std::is_same_v<Ret, int>)
 					{
 						int r{};
+						LOG(VERBOSE) << "Detour JS function called successfully, unpacking return value...";
 						unpack_return(ctx, ret, r);
 						JS_FreeValue(ctx, ret);
 						LOG(VERBOSE) << "Detour returned value: " << r;
