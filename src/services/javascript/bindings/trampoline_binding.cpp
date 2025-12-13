@@ -96,7 +96,7 @@ namespace js::trampoline
 	static void pack(JSContext* ctx, JSValue& v, T x)
 	{
 		static_assert(sizeof(T) <= 8);
-		v = JS_NewUint64(ctx, (uint64_t)x);
+		v = JS_NewBigUint64(ctx, (uint64_t)x);
 	}
 
 	template<typename... Args>
@@ -121,8 +121,14 @@ namespace js::trampoline
 		}
 
 		double d;
-		JS_ToFloat64(ctx, &d, v);
-		out = (float)d;
+		if (JS_ToFloat64(ctx, &d, v) < 0)
+		{
+			LOG(WARNING) << "Failed to convert JSValue to double";
+			out = 0.f;
+			return;
+		}
+
+		out = static_cast<float>(d);
 	}
 
 	static void unpack_return(JSContext* ctx, JSValue v, bool& out)
@@ -167,6 +173,7 @@ namespace js::trampoline
 			if (JS_IsFunction(ctx, js_func))
 			{
 				JSValue argv[sizeof...(Args)];
+
 				pack_args(ctx, argv, args...);
 
 				JSValue ret = JS_Call(
@@ -178,50 +185,18 @@ namespace js::trampoline
 
 				free_args(ctx, argv);
 
-				if (JS_IsException(ret))
+				if (!JS_IsException(ret))
 				{
-					JSValue exc = JS_GetException(ctx);
-					JS_FreeValue(ctx, ret);
-					LOG(WARNING) << "JS exception occurred";
-					return original(args...);
-				}
-				else
-				{
-					if constexpr (std::is_same_v<Ret, float>)
+					if constexpr (!std::is_void_v<Ret>)
 					{
-						float r{};
-						LOG(VERBOSE) << "Detour JS function called successfully, unpacking return value...";
-						unpack_return(ctx, ret, r);
-						LOG(VERBOSE) << "Detour returned value: " << r;
-						JS_FreeValue(ctx, ret);
-						return static_cast<float>(r);
-					}
-					if constexpr (std::is_same_v<Ret, int>)
-					{
-						int r{};
-						LOG(VERBOSE) << "Detour JS function called successfully, unpacking return value...";
+						Ret r{};
 						unpack_return(ctx, ret, r);
 						JS_FreeValue(ctx, ret);
-						LOG(VERBOSE) << "Detour returned value: " << r;
-						return r;
-					}
-					if constexpr (std::is_same_v<Ret, bool>)
-					{
-						bool r{};
-						unpack_return(ctx, ret, r);
-						JS_FreeValue(ctx, ret);
-						LOG(VERBOSE) << "Detour returned value: " << r;
-						return r;
-					}
-					if constexpr (std::is_same_v<Ret, void*>)
-					{
-						void* r{};
-						unpack_return(ctx, ret, r);
-						JS_FreeValue(ctx, ret);
-						LOG(VERBOSE) << "Detour returned value: " << r;
 						return r;
 					}
 				}
+
+				JS_FreeValue(ctx, ret);
 			}
 
 			if constexpr (!std::is_void_v<Ret>)
@@ -242,9 +217,9 @@ namespace js::trampoline
 			auto* hook = new detour_hook(
 			    name,
 			    addr,
-			    &JsDetour<void, void*>::trampoline);
+			    &JsDetour<float, void*>::trampoline);
 
-			det.original = (decltype(det.original))hook->get_original_ptr();
+			det.original = hook->get_original<decltype(det.original)>();
 			return hook;
 		};
 
@@ -257,9 +232,9 @@ namespace js::trampoline
 			auto* hook = new detour_hook(
 			    name,
 			    addr,
-			    &JsDetour<void, void*>::trampoline);
+			    &JsDetour<int, void*>::trampoline);
 
-			det.original = (decltype(det.original))hook->get_original_ptr();
+			det.original = static_cast<decltype(det.original)>(hook->get_original_ptr());
 			return hook;
 		};
 
@@ -272,9 +247,9 @@ namespace js::trampoline
 			auto* hook = new detour_hook(
 			    name,
 			    addr,
-			    &JsDetour<void, void*>::trampoline);
+			    &JsDetour<bool, void*>::trampoline);
 
-			det.original = (decltype(det.original))hook->get_original_ptr();
+			det.original = static_cast<decltype(det.original)>(hook->get_original_ptr());
 			return hook;
 		};
 
@@ -289,7 +264,7 @@ namespace js::trampoline
 			    addr,
 			    &JsDetour<void, void*>::trampoline);
 
-			det.original = (decltype(det.original))hook->get_original_ptr();
+			det.original = static_cast<decltype(det.original)>(hook->get_original_ptr());
 			return hook;
 		};
 	}
