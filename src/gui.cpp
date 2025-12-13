@@ -11,6 +11,7 @@
 
 #include <imgui.h>
 #include "ui/canvas.hpp"
+#include "javascript/bindings/gui_binding.hpp"
 
 #include "menu/view.hpp"
 //#include "menu/esp/esp.h"
@@ -28,6 +29,7 @@ namespace big
 		// low priority
 		ESP,
 		CENSOR,
+		JS_GUI,
 
 		// medium priority
 		MENU = 0x1000,
@@ -54,6 +56,7 @@ namespace big
 		//this->add_dx_callback(view::draw_overlay, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback([this] { this->dx_on_opened(); }, eRenderPriority::MENU);
 		this->add_dx_callback(view::js_scripts, eRenderPriority::JS);
+		this->add_dx_callback(js_gui::register_gui, eRenderPriority::JS_GUI);
 
 		this->add_wndproc_callback([this](HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) { wndproc(hwnd, msg, wparam, lparam); });
 

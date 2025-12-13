@@ -21,7 +21,7 @@ DWORD APIENTRY main_thread(LPVOID)
 	using namespace big;
 
 	while (!FindWindow(WINDOW_CLASS, WINDOW_NAME))
-		std::this_thread::sleep_for(1s);
+		std::this_thread::sleep_for(10s);
 
 	benchmark initialization_benchmark("Initialization");
 
