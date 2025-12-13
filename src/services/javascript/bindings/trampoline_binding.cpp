@@ -210,6 +210,22 @@ namespace js::trampoline
 		return 0; // WAJIB
 	}
 
+	static JSValue js_call_original(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+	{
+		// callOriginal(name, args...)
+		if (argc < 1)
+			return JS_ThrowTypeError(ctx, "call_original(name, ...args)");
+
+		const char* name = JS_ToCString(ctx, argv[0]);
+		auto it = g_hooks.find(name);
+		if (it == g_hooks.end())
+			return JS_ThrowReferenceError(ctx, "hook not found");
+
+		//it->second->get_original<decltype(&JsDetour<void, void*>::trampoline)>()();
+
+		JS_FreeCString(ctx, name);
+	}
+
 	static JSModuleDef* js_detour_init(JSContext* ctx, const char* module_name)
 	{
 		JSModuleDef* m = JS_NewCModule(ctx, module_name, js_detour_module_init);
