@@ -1,4 +1,5 @@
 #include "javascript_binding.hpp"
+#include "utility/unity.hpp"
 #include "commands/commands.hpp"
 #include "commands/command.hpp"
 
@@ -72,6 +73,11 @@ namespace big
 
 		auto& logger = ctx.addModule("Logger");
 		logger.function<&js_log_info>("info");
+
+		auto& player = ctx.addModule("Player");
+		player.function<&unity::get_local_player>("get_local_player");
+		player.function<&unity::get_zone_system>("get_zone_system");
+		player.function<&unity::get_env_man>("get_env_man");
 
 		JSValue console = JS_NewObject(ctx.ctx);
 
