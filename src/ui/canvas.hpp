@@ -43,6 +43,8 @@ namespace big
 	{
 		std::vector<std::unique_ptr<abstract_submenu>> m_all_tabs;
 		std::stack<abstract_submenu*, std::vector<abstract_submenu*>> m_tabs_stack;
+		std::vector<abstract_submenu*> m_last_submenu_per_tab;
+
 		static canvas& instance()
 		{
 			static canvas i{};
@@ -200,7 +202,7 @@ namespace big
 
 		float m_draw_base_y{};
 		void draw_header();
-		void draw_tabs();
+		void draw_tabs(abstract_submenu* sub);
 		void draw_submenu_bar(abstract_submenu* sub);
 		void draw_option(abstract_option* opt, bool selected);
 		void draw_slider(float x, float y, float current_value, float min_value, float max_value);

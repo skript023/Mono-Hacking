@@ -21,7 +21,7 @@ namespace big
 				sub->reset();
 				sub->execute();
 
-				if (!m_all_tabs.empty()) draw_tabs();
+				if (!m_all_tabs.empty()) draw_tabs(sub);
 
 				if (sub->get_num_option() != 0)
 				{
@@ -180,6 +180,8 @@ namespace big
 			{
 				if (m_selected_tab < m_all_tabs.size() - 1)
 				{
+					m_last_submenu_per_tab[m_selected_tab] = sub;
+
 					m_selected_tab += 1;
 
 					switch_to_tabmenu(m_all_tabs[m_selected_tab]->get_id());
@@ -190,6 +192,8 @@ namespace big
 			{
 				if (m_selected_tab > 0)
 				{
+					m_last_submenu_per_tab[m_selected_tab] = sub;
+
 					m_selected_tab -= 1;
 
 					switch_to_tabmenu(m_all_tabs[m_selected_tab]->get_id());
@@ -228,70 +232,62 @@ namespace big
 		m_draw_base_y += m_header_height;
 	}
 
-	void canvas::draw_tabs()
+	void canvas::draw_tabs(abstract_submenu* sub)
 	{
-		int max_visible_tabs = 3;
-		size_t total_tabs = m_all_tabs.size();
+		const size_t total_tabs = m_all_tabs.size();
 		if (total_tabs == 0)
 			return;
 
-		float tab_width = g_settings.window.m_width / max_visible_tabs;
+		const int max_visible_tabs = 3;
+		const float lerp_speed = 0.15f;
 
-		// --- Scroll window logic ---
-		static size_t start_index = 0;
+		const float total_width = g_settings.window.m_width;
+		const float base_width = total_width / max_visible_tabs;
 
-		// Jika tab aktif melewati batas kanan dari window saat ini → geser ke next group
-		if (m_selected_tab >= start_index + max_visible_tabs)
-		{
-			// Masih ada tab berikutnya? geser ke depan
-			if (m_selected_tab < total_tabs)
-				start_index += max_visible_tabs;
+		const float selected_width_target = base_width * 1.4f;
+		const float normal_width_target =
+		    (total_width - selected_width_target) / (max_visible_tabs - 1);
 
-			// Jangan keluar dari total tab
-			if (start_index + max_visible_tabs > total_tabs)
-				start_index = total_tabs > max_visible_tabs ? total_tabs - max_visible_tabs : 0;
-		}
-		// Jika tab aktif melewati batas kiri (misal balik ke tab sebelumnya)
-		else if (m_selected_tab < start_index)
-		{
-			// Geser ke group sebelumnya
-			if (start_index >= max_visible_tabs)
-				start_index -= max_visible_tabs;
-			else
-				start_index = 0;
-		}
+		static std::vector<float> anim_w;
+		if (anim_w.size() != total_tabs)
+			anim_w.assign(total_tabs, base_width);
 
-		size_t end_index = std::min(start_index + max_visible_tabs, total_tabs);
+		float x = g_settings.window.m_pos.x;
+		float y = m_draw_base_y + (m_submenu_bar_height / 2) - 5.f;
 
-		// --- Animasi tab aktif ---
-		static float animated_tab_index = 0.0f;
-		float target_index = static_cast<float>(m_selected_tab);
-		animated_tab_index = lerp(animated_tab_index, target_index, 0.05f);
-
-		float anim_offset_x = (animated_tab_index - static_cast<float>(start_index)) * tab_width;
-
-		// --- Gambar tab ---
-		for (size_t i = start_index; i < end_index; ++i)
+		for (size_t i = 0; i < total_tabs; ++i)
 		{
 			bool is_selected = (i == m_selected_tab);
-			float tab_x = g_settings.window.m_pos.x + ((i - start_index) * tab_width);
 
-			if (is_selected)
-				tab_x = g_settings.window.m_pos.x + anim_offset_x;
+			float target_w = is_selected ? selected_width_target : normal_width_target;
 
-			draw_rect(tab_x, m_draw_base_y + (m_submenu_bar_height / 2) - 5.f, tab_width, m_submenu_bar_height,
-				is_selected ? g_settings.window.m_tab_selected_color : g_settings.window.m_tab_unselected_color);
+			anim_w[i] = lerp(anim_w[i], target_w, lerp_speed);
+
+			draw_rect(
+			    x,
+			    y,
+			    anim_w[i],
+			    m_submenu_bar_height,
+			    is_selected ? g_settings.window.m_tab_selected_color : g_settings.window.m_tab_unselected_color);
+
+			const char* title = (is_selected && sub != nullptr) ? sub->get_name() : m_all_tabs[i]->get_name();
 
 			draw_centered_text(
-				m_all_tabs[i]->get_name(),
-				tab_x + (tab_width / 2),
-				m_draw_base_y + (m_submenu_bar_height / 2) + 11.f,
-				is_selected ? g_settings.window.m_tab_selected_text_color : g_settings.window.m_tab_unselected_text_color,
-				g_renderer->m_font);
+			    title,
+			    x + anim_w[i] / 2.f,
+			    m_draw_base_y + (m_submenu_bar_height / 2) + 11.f,
+			    is_selected ? g_settings.window.m_tab_selected_text_color : g_settings.window.m_tab_unselected_text_color,
+			    g_renderer->m_font);
+
+			x += anim_w[i];
 		}
 
-		float line_y = m_draw_base_y + m_submenu_bar_height;
-		draw_rect(g_settings.window.m_pos.x, line_y + 19.f, g_settings.window.m_width, 2.0f, Color(255, 255, 255, 255));
+		draw_rect(
+		    g_settings.window.m_pos.x,
+		    m_draw_base_y + m_submenu_bar_height + 19.f,
+		    total_width,
+		    2.f,
+		    Color(255, 255, 255, 255));
 
 		m_draw_base_y += m_submenu_bar_height;
 	}
@@ -432,13 +428,6 @@ namespace big
 		auto track_color = g_settings.window.m_slider_track_color;
 		auto knob_color = g_settings.window.m_slider_knob_color;
 
-		// If slider full → knob becomes black
-		bool is_full = normalized_value >= 0.999f;
-		if (is_full)
-		{
-			knob_color = { 0, 0, 0, 255 }; // black
-		}
-
 		// Draw track
 		draw_rect(x, y, slider_width, slider_height, track_color);
 
@@ -447,21 +436,23 @@ namespace big
 
 		// ---- TEXT ----
 		// Center of slider
-		float track_center_x = x + slider_width * 0.5f;
-		float track_center_y = y - 2.5f;
+		float text_center_x = x + slider_width * 0.5f;
+		float text_center_y = y - 2.5f;
+
+		float knob_x = x + filled_width - knob_size;
+		if (knob_x < x)
+			knob_x = x;
+		float knob_center_x = knob_x + knob_size * 0.5f;
 
 		// Format number (float with 2 decimals, but change if you want)
 		char textbuf[32];
 		snprintf(textbuf, sizeof(textbuf), "%.2f", current_value);
 
 		// If slider is full and black → use white text
-		Color color_text;
-		if (is_full)
-			color_text = { 255, 255, 255, 255 }; // bright
-		else
-			color_text = { 0, 0, 0, 255 };       // dark
+		Color text_color =
+		    (knob_center_x >= text_center_x) ? track_color : knob_color;
 
-		draw_centered_text(textbuf, track_center_x, track_center_y, color_text, g_renderer->m_monospace_font);
+		draw_centered_text(textbuf, text_center_x, text_center_y, text_color, g_renderer->m_monospace_font);
 	}
 
 	void canvas::draw_scrollbar(int selected_option, int total_options, int options_per_page)
