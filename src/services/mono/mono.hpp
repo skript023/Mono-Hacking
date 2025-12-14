@@ -103,6 +103,16 @@ namespace big
         static bool is_initialized() { return get_instance().initalized; };
 	private:
 		bool initalized = false;
+
+	public:
+		static MonoClass* object_get_class(MonoObject* obj)
+		{
+			return get_instance().mono_object_get_class(obj);
+		}
+		static MonoMethod* class_get_method_from_name(MonoClass* obj, const char* name, int param)
+		{
+			return get_instance().mono_class_get_method_from_name(obj, name, param);
+		}
 	private:
         // --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
 
@@ -115,6 +125,7 @@ namespace big
         mono_compile_method_t mono_compile_method = nullptr;
         mono_runtime_invoke_t mono_runtime_invoke = nullptr;
 		mono_object_unbox_t mono_object_unbox = nullptr;
+		mono_object_get_class_t mono_object_get_class = nullptr;
 
         // --- Member untuk Fungsi Class dan Field ---
 

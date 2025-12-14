@@ -16,6 +16,7 @@ namespace big
 	using mono_compile_method_t = void* (*)(MonoMethod* method);
 	using mono_runtime_invoke_t = MonoObject * (*)(MonoMethod* method, void* obj, void** params, MonoObject** exc);
 	using mono_object_unbox_t = void* (*)(MonoObject * obj);
+	using mono_object_get_class_t = MonoClass* (*)(MonoObject * obj);
 	// --- Fungsi Class dan Field ---
 
 	using mono_class_get_field_from_name_t = MonoClassField * (*)(MonoClass* klass, const char* name);

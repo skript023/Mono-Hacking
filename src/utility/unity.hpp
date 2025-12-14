@@ -76,6 +76,46 @@ namespace big::unity
 		return env_man_ptr_instance;
 	}
 
+	inline std::vector<MonoObject*> list_to_vector(MonoObject* list)
+	{
+		std::vector<MonoObject*> out;
+		if (!list)
+			return out;
+
+		MonoClass* klass = mono::object_get_class(list);
+
+		// get_Count()
+		MonoMethod* getCount =
+		    mono::class_get_method_from_name(klass, "get_Count", 0);
+
+		// get_Item(int)
+		MonoMethod* getItem =
+		    mono::class_get_method_from_name(klass, "get_Item", 1);
+
+		if (!getCount || !getItem)
+			return out;
+
+		MonoObject* ret = mono::invoke_method(getCount, list);
+
+		if (!ret)
+			return out;
+
+		int count = *(int*)mono::object_unbox(ret);
+
+		for (int i = 0; i < count; ++i)
+		{
+			void* args[1];
+			args[0] = &i;
+
+			MonoObject* item = mono::invoke_method(getItem, list, args);
+
+			if (item)
+				out.push_back(item);
+		}
+
+		return out;
+	}
+
 	inline bool is_key_pressed(std::uint16_t key)
 	{
 		if (GetForegroundWindow() == g_pointers->m_hwnd)
