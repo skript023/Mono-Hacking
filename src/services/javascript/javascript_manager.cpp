@@ -173,4 +173,16 @@ namespace big
 			LOG(WARNING) << "[JS Error] " << (std::string)exc;
 		}
 	}
+	void javascript_manager::eval_file_impl(const std::filesystem::path& path)
+	{
+		try
+		{
+			m_context.evalFile(path.string().c_str(), JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);
+		}
+		catch (qjs::exception&)
+		{
+			auto exc = m_context.getException();
+			LOG(WARNING) << "[JS Error] " << (std::string)exc;
+		}
+	}
 }

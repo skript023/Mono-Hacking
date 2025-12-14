@@ -33,6 +33,7 @@ namespace big
 		void unload_module_impl(uint32_t module_id);
 		std::weak_ptr<javascript_module> load_module_impl(const std::filesystem::path& module_path);
 		void eval_script_impl(std::string const& script);
+		void eval_file_impl(const std::filesystem::path& path);
 	public:
 		static void init()
 		{
@@ -67,6 +68,11 @@ namespace big
 		static void eval_script(std::string const& script)
 		{
 			get().eval_script_impl(script);
+		}
+
+		static void eval_file(const std::filesystem::path& path)
+		{
+			get().eval_file_impl(path);
 		}
 	private:
 		std::mutex m_module_lock;
