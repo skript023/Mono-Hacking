@@ -79,7 +79,7 @@ namespace js::trampoline
 
 	static void pack(JSContext* ctx, JSValue& v, void* p)
 	{
-		v = JS_NewBigUint64(ctx, (uint64_t)p);
+		v = JS_NewFloat64(ctx, (double)(uintptr_t)p);
 	}
 
 	static void pack(JSContext* ctx, JSValue& v, int x)
@@ -96,7 +96,7 @@ namespace js::trampoline
 	static void pack(JSContext* ctx, JSValue& v, T x)
 	{
 		static_assert(sizeof(T) <= 8);
-		v = JS_NewBigUint64(ctx, (uint64_t)x);
+		v = JS_NewFloat64(ctx, (double)(uintptr_t)x);
 	}
 
 	template<typename... Args>
