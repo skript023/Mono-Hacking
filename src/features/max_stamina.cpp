@@ -24,7 +24,6 @@ namespace big::features
 			auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
-			auto m_stamina = mono::get_field(klass, "m_stamina");
 
 			if (!method || !klass)
 			{
@@ -39,7 +38,6 @@ namespace big::features
 			mono::invoke_method(method, unity::get_local_player(), args);
 
 			mono::set_field_value(unity::get_local_player(), m_baseStamina, &_max_stam.get_state());
-			mono::set_field_value(unity::get_local_player(), m_stamina, &_max_stam.get_state());
 		}
 
 		virtual void on_disable() override
@@ -47,7 +45,6 @@ namespace big::features
 			auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
-			auto m_stamina = mono::get_field(klass, "m_stamina");
 
 			if (!method || !klass)
 			{
@@ -63,7 +60,6 @@ namespace big::features
 			mono::invoke_method(method, unity::get_local_player(), args);
 
 			mono::set_field_value(unity::get_local_player(), m_baseStamina, &default_max_stam);
-			mono::set_field_value(unity::get_local_player(), m_stamina, &default_max_stam);
 		}
 	};
 

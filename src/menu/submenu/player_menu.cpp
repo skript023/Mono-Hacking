@@ -19,6 +19,7 @@ namespace big
             sub->add_option<bool_option<bool>>("Never Wet", nullptr, &g_settings.self.is_wet);
             sub->add_option<bool_option<bool>>("Forsaken Power Always Ready", nullptr, &g_settings.self.forsaken_power_always_ready);
             sub->add_option<bool_option<bool>>("open_all_recepies"_hash);
+            sub->add_option<bool_option<bool>>("infinite_stamina"_hash);
             sub->add_option<bool_slider_float_option>("enable_raise_skill"_hash, "raise_skill"_hash, 1.f);
             sub->add_option<bool_slider_float_option>("max_body_armor"_hash, "num_body_armor"_hash, 10.f);
             sub->add_option<bool_slider_float_option>("max_carry_weight"_hash, "carry_amount"_hash, 100.f);

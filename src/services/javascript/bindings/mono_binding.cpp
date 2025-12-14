@@ -76,6 +76,15 @@ namespace js::mono
 		return make_ptr_value(ctx, klass);
 	}
 
+	static double js_mono_get_class2(std::string const& classname, std::string const& assebmly)
+	{
+		MonoClass* klass = big::mono::get_class(classname.c_str(), assebmly.c_str());
+
+		if (!klass)
+			return (double)0ull;
+		return (double)(uintptr_t)klass;
+	}
+
 	static JSValue js_mono_get_method(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
 	{
 		if (argc < 4)

@@ -96,7 +96,7 @@ namespace big
 		{
 			return get_instance().get_root_domain_impl();
 		}
-		static void* mono_object_unbox(MonoObject* obj)
+		static void* object_unbox(MonoObject* obj)
 		{
 			return get_instance().mono_object_unbox_impl(obj);
 		}
