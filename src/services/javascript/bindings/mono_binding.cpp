@@ -275,6 +275,23 @@ namespace js::mono
 		return make_ptr_value(ctx, compile_method);
 	}
 
+	static MonoObject* list_get(MonoObject* list, int index)
+	{
+		MonoClass* klass = mono_object_get_class(list);
+
+		MonoMethod* getItem =
+		    mono_class_get_method_from_name(klass, "get_Item", 1);
+
+		if (!getItem)
+			return nullptr;
+
+		void* args[1];
+		args[0] = &index;
+
+		MonoObject* exc = nullptr;
+		return mono_runtime_invoke(getItem, list, args, &exc);
+	}
+
 	/* ----------------- REGISTER helpers ----------------- */
 
 #define MONO_SET_FUNC2(target_obj, name, fn, argc) \

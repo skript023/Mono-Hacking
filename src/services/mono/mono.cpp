@@ -15,6 +15,7 @@ namespace big
 		mono_class_get_method_from_name = module.get_export("mono_class_get_method_from_name").as<mono_class_get_method_from_name_t>();
 		mono_compile_method = module.get_export("mono_compile_method").as<mono_compile_method_t>();
 		mono_runtime_invoke = module.get_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
+		mono_object_unbox = module.get_export("mono_object_unbox").as<mono_object_unbox_t>();
 
 		mono_class_get_field_from_name = module.get_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
 		mono_field_get_value = module.get_export("mono_field_get_value").as<mono_field_get_value_t>();
@@ -230,6 +231,10 @@ namespace big
 		void* value = (void*)(addr + offset);
 
 		return value;
+	}
+	void* mono::mono_object_unbox_impl(MonoObject* obj)
+	{
+		return mono_object_unbox(obj);
 	}
 	MonoThread* mono::mono_thread_attach_impl(MonoDomain* domain) const
 	{

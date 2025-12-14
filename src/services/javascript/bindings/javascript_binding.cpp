@@ -64,6 +64,21 @@ namespace big
 		return JS_UNDEFINED;
 	}
 
+	static double js_get_local_player()
+	{
+		return (double)(uintptr_t)unity::get_local_player();
+	}
+
+	static double js_get_zone_system()
+	{
+		return (double)(uintptr_t)unity::get_zone_system();
+	}
+
+	static double js_get_env_man()
+	{
+		return (double)(uintptr_t)unity::get_env_man();
+	}
+
 	void javacript_binding::bind(Context& ctx)
 	{
 		auto& module = ctx.addModule("commands");
@@ -74,10 +89,10 @@ namespace big
 		auto& logger = ctx.addModule("Logger");
 		logger.function<&js_log_info>("info");
 
-		auto& player = ctx.addModule("Player");
-		player.function<&unity::get_local_player>("get_local_player");
-		player.function<&unity::get_zone_system>("get_zone_system");
-		player.function<&unity::get_env_man>("get_env_man");
+		auto& unity = ctx.addModule("Unity");
+		unity.function<&js_get_local_player>("get_local_player");
+		unity.function<&js_get_zone_system>("get_zone_system");
+		unity.function<&js_get_env_man>("get_env_man");
 
 		JSValue console = JS_NewObject(ctx.ctx);
 

@@ -15,7 +15,7 @@ namespace big::features
 
 			if (player_instance == nullptr)
 			{
-				LOG(WARNING) << "Gagal mendapatkan instance Local Player. Tidak dapat menyetel cheat.";
+				//LOG(WARNING) << "Gagal mendapatkan instance Local Player. Tidak dapat menyetel cheat.";
 				return;
 			}
 
@@ -29,13 +29,13 @@ namespace big::features
 			if (no_cost_cheat_field == nullptr)
 			{
 				no_cost_cheat_field = mono::get_field(player_class, "m_noCostCheat");
-				LOG(WARNING) << "Gagal menemukan field Player::m_noCostCheat. Periksa decompiler!";
+				//LOG(WARNING) << "Gagal menemukan field Player::m_noCostCheat. Periksa decompiler!";
 				return;
 			}
 
 			if (no_cost_cheat_field == nullptr)
 			{
-				LOG(WARNING) << "Gagal menemukan field Player::m_noPlacementCost atau m_noCostCheat.";
+				//LOG(WARNING) << "Gagal menemukan field Player::m_noPlacementCost atau m_noCostCheat.";
 				return;
 			}
 
@@ -46,7 +46,7 @@ namespace big::features
 			// Set field m_noCostCheat pada instance player
 			mono::set_field_value(player_instance, no_cost_cheat_field, &value);
 
-			LOG(INFO) << "Force Crafting Anywhere/All Recipes disetel ke: " << (value ? "TRUE" : "FALSE");
+			//LOG(INFO) << "Force Crafting Anywhere/All Recipes disetel ke: " << (value ? "TRUE" : "FALSE");
 		}
 
 		virtual void on_disable() override

@@ -21,6 +21,7 @@ namespace big
         void* get_static_field_data_impl(MonoVTable* pVTable) const;
         void* get_static_field_data_impl(MonoClass* pKlass) const;
 		void* get_static_field_value_impl(const char* className, const char* fieldName);
+		void* mono_object_unbox_impl(MonoObject* obj);
 		MonoThread* mono_thread_attach_impl(MonoDomain* domain) const;
 		MonoDomain* get_root_domain_impl() const;
 		std::filesystem::path get_assembly_path(const char* assemblyName) const;
@@ -95,6 +96,10 @@ namespace big
 		{
 			return get_instance().get_root_domain_impl();
 		}
+		static void* mono_object_unbox(MonoObject* obj)
+		{
+			return get_instance().mono_object_unbox_impl(obj);
+		}
         static bool is_initialized() { return get_instance().initalized; };
 	private:
 		bool initalized = false;
@@ -109,6 +114,7 @@ namespace big
         mono_class_get_method_from_name_t mono_class_get_method_from_name = nullptr;
         mono_compile_method_t mono_compile_method = nullptr;
         mono_runtime_invoke_t mono_runtime_invoke = nullptr;
+		mono_object_unbox_t mono_object_unbox = nullptr;
 
         // --- Member untuk Fungsi Class dan Field ---
 
