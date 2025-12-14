@@ -43,7 +43,6 @@ namespace big
 	{
 		std::vector<std::unique_ptr<abstract_submenu>> m_all_tabs;
 		std::stack<abstract_submenu*, std::vector<abstract_submenu*>> m_tabs_stack;
-		std::vector<abstract_submenu*> m_last_submenu_per_tab;
 
 		static canvas& instance()
 		{

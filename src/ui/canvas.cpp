@@ -180,8 +180,6 @@ namespace big
 			{
 				if (m_selected_tab < m_all_tabs.size() - 1)
 				{
-					m_last_submenu_per_tab[m_selected_tab] = sub;
-
 					m_selected_tab += 1;
 
 					switch_to_tabmenu(m_all_tabs[m_selected_tab]->get_id());
@@ -192,8 +190,6 @@ namespace big
 			{
 				if (m_selected_tab > 0)
 				{
-					m_last_submenu_per_tab[m_selected_tab] = sub;
-
 					m_selected_tab -= 1;
 
 					switch_to_tabmenu(m_all_tabs[m_selected_tab]->get_id());
