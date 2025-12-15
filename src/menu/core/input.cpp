@@ -1,6 +1,6 @@
 #include "../view.hpp"
 #include "pointers.hpp"
-
+#include "fiber_pool.hpp"
 #include "imgui.h"
 #include "input/input_service.hpp"
 #include "utility/unity.hpp"
@@ -30,7 +30,9 @@ namespace big
 			ImGui::SetNextItemWidth((screen_x * 0.5f) - 30.f);
 			if (ImGui::InputText("##Input Here", g_input_service.m_input, IM_ARRAYSIZE(g_input_service.m_input), ImGuiInputTextFlags_EnterReturnsTrue))
 			{
-				g_input_service.execute();
+				g_fiber_pool->queue_job([] {
+					g_input_service.execute();
+				});
 			}
 
 			ImGui::Text("You entered: %s", g_input_service.m_input);

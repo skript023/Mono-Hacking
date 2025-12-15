@@ -206,67 +206,57 @@ namespace js::trampoline
 		}
 	};
 
+	template<typename Ret, typename... Args>
+	static detour_hook* make_factory(
+	    JSContext* ctx,
+	    const char* name,
+	    void* addr,
+	    JSValue cb)
+	{
+		auto& det = JsDetour<Ret, Args...>::instance();
+
+		det.ctx = ctx;
+		det.js_func = JS_DupValue(ctx, cb);
+
+		auto* hook = new detour_hook(
+		    name,
+		    addr,
+		    &JsDetour<Ret, Args...>::trampoline);
+
+		det.original = hook->get_original<typename JsDetour<Ret, Args...>::Fn>();
+		return hook;
+	}
+
+#define REGISTER_FACTORY(SIG, RET, ...)                                               \
+	g_factories[SIG] = [](JSContext* ctx, const char* name, void* addr, JSValue cb) { \
+		return make_factory<RET, __VA_ARGS__>(ctx, name, addr, cb);                   \
+	}
+
 	static void register_factories()
 	{
-		g_factories["float(ptr)"] = [](JSContext* ctx, const char* name, void* addr, JSValue cb) {
-			auto& det = JsDetour<float, void*>::instance(); // example
+		// ===== return float =====
+		REGISTER_FACTORY("float(ptr)", float, void*);
+		REGISTER_FACTORY("float(ptr, float)", float, void*, float);
+		REGISTER_FACTORY("float(ptr, int)", float, void*, int);
 
-			det.ctx = ctx;
-			det.js_func = JS_DupValue(ctx, cb);
+		// ===== return int =====
+		REGISTER_FACTORY("int(ptr)", int, void*);
+		REGISTER_FACTORY("int(ptr, int)", int, void*, int);
+		REGISTER_FACTORY("int(ptr, float)", int, void*, float);
 
-			auto* hook = new detour_hook(
-			    name,
-			    addr,
-			    &JsDetour<float, void*>::trampoline);
+		// ===== return bool =====
+		REGISTER_FACTORY("bool(ptr)", bool, void*);
+		REGISTER_FACTORY("bool(ptr, bool)", bool, void*, bool);
+		REGISTER_FACTORY("bool(ptr, int)", bool, void*, int);
 
-			det.original = hook->get_original<decltype(det.original)>();
-			return hook;
-		};
+		// ===== void =====
+		REGISTER_FACTORY("void(ptr)", void, void*);
+		REGISTER_FACTORY("void(ptr, int)", void, void*, int);
+		REGISTER_FACTORY("void(ptr, float)", void, void*, float);
 
-		g_factories["int(ptr)"] = [](JSContext* ctx, const char* name, void* addr, JSValue cb) {
-			auto& det = JsDetour<int, void*>::instance(); // example
-
-			det.ctx = ctx;
-			det.js_func = JS_DupValue(ctx, cb);
-
-			auto* hook = new detour_hook(
-			    name,
-			    addr,
-			    &JsDetour<int, void*>::trampoline);
-
-			det.original = static_cast<decltype(det.original)>(hook->get_original_ptr());
-			return hook;
-		};
-
-		g_factories["bool(ptr)"] = [](JSContext* ctx, const char* name, void* addr, JSValue cb) {
-			auto& det = JsDetour<bool, void*>::instance(); // example
-
-			det.ctx = ctx;
-			det.js_func = JS_DupValue(ctx, cb);
-
-			auto* hook = new detour_hook(
-			    name,
-			    addr,
-			    &JsDetour<bool, void*>::trampoline);
-
-			det.original = static_cast<decltype(det.original)>(hook->get_original_ptr());
-			return hook;
-		};
-
-		g_factories["void(ptr)"] = [](JSContext* ctx, const char* name, void* addr, JSValue cb) {
-			auto& det = JsDetour<void, void*>::instance(); // example
-
-			det.ctx = ctx;
-			det.js_func = JS_DupValue(ctx, cb);
-
-			auto* hook = new detour_hook(
-			    name,
-			    addr,
-			    &JsDetour<void, void*>::trampoline);
-
-			det.original = static_cast<decltype(det.original)>(hook->get_original_ptr());
-			return hook;
-		};
+		// ===== pointer return =====
+		REGISTER_FACTORY("ptr(ptr)", void*, void*);
+		REGISTER_FACTORY("ptr(ptr, int)", void*, void*, int);
 	}
 
 	static JSValue js_add_detour(

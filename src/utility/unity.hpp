@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "mono/mono.hpp"
 #include <pointers.hpp>
 
@@ -116,6 +116,51 @@ namespace big::unity
 		return out;
 	}
 
+	inline Vector3 get_teleport_from()
+	{
+		Vector3 pos{};
+
+		MonoObject* player = unity::get_local_player();
+		if (!player)
+			return pos;
+
+		MonoClass* playerClass = mono::get_class("Player", "assembly_valheim");
+		if (!playerClass)
+			return pos;
+
+		auto teleportField = mono::get_field(playerClass, "m_lastDistCheck");
+		if (!teleportField)
+			return pos;
+
+		mono::get_field_value(player, teleportField, &pos);
+
+		LOG(VERBOSE) << std::format("Player m_teleportFromPos = {:.3f}, {:.3f}, {:.3f}",
+		    pos.x,
+		    pos.y,
+		    pos.z);
+
+		return pos;
+	}
+	inline void teleport_to(Vector3 const& position, Vector4 const& rotation, bool distantTeleport)
+	{
+		MonoObject* player = unity::get_local_player();
+
+		if (!player)
+			return;
+
+		MonoMethod* method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
+
+		bool flashBar = true;
+
+		auto pos = position;
+		auto rot = rotation;
+		auto distant = distantTeleport;
+
+		void* args[3] = {&pos, &rot, &distant};
+
+		MonoObject* ret = mono::invoke_method(method, player, args);
+
+	}
 	inline bool is_key_pressed(std::uint16_t key)
 	{
 		if (GetForegroundWindow() == g_pointers->m_hwnd)

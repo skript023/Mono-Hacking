@@ -13,7 +13,7 @@ namespace big
 			home();
 			player_submenu();
 			//stats_submenu();
-			//teleport_submenu();
+			teleport_submenu();
 			//esp_submenu();
 			setting_submenu();
 		}
@@ -27,7 +27,7 @@ namespace big
 		//static void esp_submenu();
 		static void player_submenu();
 		static void stats_submenu();
-		//static void teleport_submenu();
+		static void teleport_submenu();
 		static void setting_submenu();
 	};
 }
