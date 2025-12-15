@@ -5,322 +5,195 @@ namespace js::trampoline
 {
 	using namespace big;
 
-	using detour_factory_t = std::function<detour_hook*(JSContext*, const char* name, void* addr, JSValue cb)>;
+	constexpr size_t ABI_MAX_ARGS = 7;
+
+	struct AbiContext
+	{
+		uint64_t args[ABI_MAX_ARGS];
+		uint64_t ret;
+		void* original;
+	};
 
 	static std::unordered_map<std::string, detour_hook*> g_hooks;
 
-	static std::unordered_map<std::string, detour_factory_t> g_factories;
+	static JSClassID g_ctx_class;
 
-	enum class RetType
-	{
-		Void,
-		Int,
-		Float,
-		Ptr
-	};
+	// =========================================================
+	// JS <-> C++ helpers
+	// =========================================================
 
-	enum class ArgType
+	static JSValue js_ctx_get_args(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
-		Ptr,
-		Int,
-		Float
-	};
+		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
+		JSValue arr = JS_NewArray(ctx);
 
-	static RetType parse_ret(const std::string& s)
-	{
-		if (s == "void")
-			return RetType::Void;
-		if (s == "int")
-			return RetType::Int;
-		if (s == "float")
-			return RetType::Float;
-		if (s == "ptr")
-			return RetType::Ptr;
-		throw std::runtime_error("invalid return type");
-	}
-
-	static ArgType parse_arg(const std::string& s)
-	{
-		if (s == "ptr")
-			return ArgType::Ptr;
-		if (s == "int")
-			return ArgType::Int;
-		if (s == "float")
-			return ArgType::Float;
-		throw std::runtime_error("invalid arg type");
-	}
-
-	static inline double js_value_to_double_checked(JSContext* ctx, JSValueConst v)
-	{
-		double d = 0.0;
-		if (JS_ToFloat64(ctx, &d, v) < 0)
+		for (uint32_t i = 0; i < ABI_MAX_ARGS; ++i)
 		{
-			// not a number convertible
-			return 0.0;
+			JS_SetPropertyUint32(ctx, arr, i, JS_NewFloat64(ctx, (double)c->args[i]));
 		}
-		return d;
+		return arr;
 	}
 
-	template<typename T>
-	T value_to_ptr(JSContext* ctx, JSValueConst v)
+	static JSValue js_ctx_set_arg(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
-		double d = js_value_to_double_checked(ctx, v);
-		return reinterpret_cast<T>(static_cast<uintptr_t>((uint64_t)d));
+		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
+		if (argc != 2)
+			return JS_ThrowTypeError(ctx, "setArg(index, value)");
+
+		uint32_t idx;
+		JS_ToUint32(ctx, &idx, argv[0]);
+		if (idx >= ABI_MAX_ARGS)
+			return JS_ThrowRangeError(ctx, "arg index out of range");
+
+		double v;
+		JS_ToFloat64(ctx, &v, argv[1]);
+		c->args[idx] = (uint64_t)v;
+		return JS_UNDEFINED;
 	}
 
-	uint32_t get_array_length(JSContext* ctx, JSValueConst arr)
+	static JSValue js_ctx_call_original(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
-		JSValue len_val = JS_GetPropertyStr(ctx, arr, "length");
-		uint32_t len = 0;
-		JS_ToUint32(ctx, &len, len_val);
-		JS_FreeValue(ctx, len_val);
-		return len;
+		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
+
+		using Fn = uint64_t(__fastcall*)(
+		    uint64_t,
+		    uint64_t,
+		    uint64_t,
+		    uint64_t,
+		    uint64_t,
+		    uint64_t,
+		    uint64_t);
+
+		auto fn = (Fn)c->original;
+		c->ret = fn(
+		    c->args[0],
+		    c->args[1],
+		    c->args[2],
+		    c->args[3],
+		    c->args[4],
+		    c->args[5],
+		    c->args[6]);
+
+		return JS_NewFloat64(ctx, (double)c->ret);
 	}
 
-	static void pack(JSContext* ctx, JSValue& v, void* p)
+	static JSClassDef ctx_class_def{
+	    "NativeContext"};
+
+	static void register_ctx_class(JSContext* ctx)
 	{
-		v = JS_NewFloat64(ctx, (double)(uintptr_t)p);
+		JS_NewClassID(&g_ctx_class);
+		JS_NewClass(JS_GetRuntime(ctx), g_ctx_class, &ctx_class_def);
+
+		JSValue proto = JS_NewObject(ctx);
+
+		JS_SetPropertyStr(ctx, proto, "args", JS_NewCFunction(ctx, js_ctx_get_args, "args", 0));
+
+		JS_SetPropertyStr(ctx, proto, "setArg", JS_NewCFunction(ctx, js_ctx_set_arg, "setArg", 2));
+
+		JS_SetPropertyStr(ctx, proto, "callOriginal", JS_NewCFunction(ctx, js_ctx_call_original, "callOriginal", 0));
+
+		JS_SetClassProto(ctx, g_ctx_class, proto);
 	}
 
-	static void pack(JSContext* ctx, JSValue& v, int x)
-	{
-		v = JS_NewInt32(ctx, x);
-	}
+	// =========================================================
+	// ABI TRAMPOLINE
+	// =========================================================
 
-	static void pack(JSContext* ctx, JSValue& v, float f)
-	{
-		v = JS_NewFloat64(ctx, f);
-	}
-
-	template<typename T>
-	static void pack(JSContext* ctx, JSValue& v, T x)
-	{
-		static_assert(sizeof(T) <= 8);
-		v = JS_NewFloat64(ctx, (double)(uintptr_t)x);
-	}
-
-	template<typename... Args>
-	void pack_args(JSContext* ctx, JSValue* argv, Args... args)
-	{
-		int i = 0;
-		((pack(ctx, argv[i++], args)), ...);
-	}
-
-	static void unpack_return(JSContext* ctx, JSValue v, int& out)
-	{
-		JS_ToInt32(ctx, &out, v);
-	}
-
-	static void unpack_return(JSContext* ctx, JSValue v, float& out)
-	{
-		if (!JS_IsNumber(v))
-		{
-			LOG(WARNING) << "JS return value is not a number";
-			out = 0.f; // fallback
-			return;
-		}
-
-		double d;
-		if (JS_ToFloat64(ctx, &d, v) < 0)
-		{
-			LOG(WARNING) << "Failed to convert JSValue to double";
-			out = 0.f;
-			return;
-		}
-
-		out = static_cast<float>(d);
-	}
-
-	static void unpack_return(JSContext* ctx, JSValue v, bool& out)
-	{
-		bool d = JS_ToBool(ctx, v);
-		
-		out = (bool)d;
-	}
-
-	static void unpack_return(JSContext* ctx, JSValue v, void*& out)
-	{
-		out = value_to_ptr<void*>(ctx, v);
-	}
-
-	template<typename... Args>
-	static void free_args(JSContext* ctx, JSValue* argv)
-	{
-		for (size_t i = 0; i < sizeof...(Args); ++i)
-		{
-			JS_FreeValue(ctx, argv[i]);
-		}
-	}
-
-
-	template<typename Ret, typename... Args>
 	struct JsDetour
 	{
-		using Fn = Ret(__fastcall*)(Args...);
-
-		inline static Fn original = nullptr;
 		inline static JSContext* ctx = nullptr;
 		inline static JSValue js_func = JS_UNDEFINED;
+		inline static void* original = nullptr;
 
-		static JsDetour& instance()
+		static uint64_t __fastcall trampoline(
+		    uint64_t a0, uint64_t a1, uint64_t a2,
+		    uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6)
 		{
-			static JsDetour detour;
-			return detour;
-		}
+			AbiContext* abi = new AbiContext();
+			abi->args[0] = a0;
+			abi->args[1] = a1;
+			abi->args[2] = a2;
+			abi->args[3] = a3;
+			abi->args[4] = a4;
+			abi->args[5] = a5;
+			abi->args[6] = a6;
+			abi->original = original;
 
-		static Ret __fastcall trampoline(Args... args)
-		{
 			if (JS_IsFunction(ctx, js_func))
 			{
-				JSValue argv[sizeof...(Args)];
+				JSValue obj = JS_NewObjectClass(ctx, g_ctx_class);
+				JS_SetOpaque(obj, abi);
 
-				pack_args(ctx, argv, args...);
-
-				JSValue ret = JS_Call(
-				    ctx,
-				    js_func,
-				    JS_UNDEFINED,
-				    sizeof...(Args),
-				    argv);
-
-				free_args(ctx, argv);
+				JSValue ret = JS_Call(ctx, js_func, JS_UNDEFINED, 1, &obj);
+				JS_FreeValue(ctx, obj);
 
 				if (!JS_IsException(ret))
 				{
-					if constexpr (!std::is_void_v<Ret>)
+					double d;
+					if (JS_ToFloat64(ctx, &d, ret) == 0)
 					{
-						Ret r{};
-						unpack_return(ctx, ret, r);
 						JS_FreeValue(ctx, ret);
-						return r;
+						return (uint64_t)d;
 					}
 				}
-
 				JS_FreeValue(ctx, ret);
 			}
 
-			if constexpr (!std::is_void_v<Ret>)
-				return original(args...);
-			else
-				original(args...);
+			using Fn = uint64_t(__fastcall*)(
+			    uint64_t,
+			    uint64_t,
+			    uint64_t,
+			    uint64_t,
+			    uint64_t,
+			    uint64_t,
+			    uint64_t);
+
+			return ((Fn)original)(
+			    abi->args[0],
+			    abi->args[1],
+			    abi->args[2],
+			    abi->args[3],
+			    abi->args[4],
+			    abi->args[5],
+			    abi->args[6]);
 		}
 	};
 
-	template<typename Ret, typename... Args>
-	static detour_hook* make_factory(
-	    JSContext* ctx,
-	    const char* name,
-	    void* addr,
-	    JSValue cb)
-	{
-		auto& det = JsDetour<Ret, Args...>::instance();
+	// =========================================================
+	// JS API
+	// =========================================================
 
-		det.ctx = ctx;
-		det.js_func = JS_DupValue(ctx, cb);
+	static JSValue js_add_detour(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+	{
+		if (argc != 3)
+			return JS_ThrowTypeError(ctx, "add(name, addr, cb)");
+
+		const char* name = JS_ToCString(ctx, argv[0]);
+		void* addr;
+		double d;
+		JS_ToFloat64(ctx, &d, argv[1]);
+		addr = (void*)(uint64_t)d;
+
+		JsDetour::ctx = ctx;
+		JsDetour::js_func = JS_DupValue(ctx, argv[2]);
 
 		auto* hook = new detour_hook(
 		    name,
 		    addr,
-		    &JsDetour<Ret, Args...>::trampoline);
+		    &JsDetour::trampoline);
 
-		det.original = hook->get_original<typename JsDetour<Ret, Args...>::Fn>();
-		return hook;
-	}
-
-#define REGISTER_FACTORY(SIG, RET, ...)                                               \
-	g_factories[SIG] = [](JSContext* ctx, const char* name, void* addr, JSValue cb) { \
-		return make_factory<RET, __VA_ARGS__>(ctx, name, addr, cb);                   \
-	}
-
-	static void register_factories()
-	{
-		// ===== return float =====
-		REGISTER_FACTORY("float(ptr)", float, void*);
-		REGISTER_FACTORY("float(ptr, float)", float, void*, float);
-		REGISTER_FACTORY("float(ptr, int)", float, void*, int);
-
-		// ===== return int =====
-		REGISTER_FACTORY("int(ptr)", int, void*);
-		REGISTER_FACTORY("int(ptr, int)", int, void*, int);
-		REGISTER_FACTORY("int(ptr, float)", int, void*, float);
-
-		// ===== return bool =====
-		REGISTER_FACTORY("bool(ptr)", bool, void*);
-		REGISTER_FACTORY("bool(ptr, bool)", bool, void*, bool);
-		REGISTER_FACTORY("bool(ptr, int)", bool, void*, int);
-
-		// ===== void =====
-		REGISTER_FACTORY("void(ptr)", void, void*);
-		REGISTER_FACTORY("void(ptr, int)", void, void*, int);
-		REGISTER_FACTORY("void(ptr, float)", void, void*, float);
-
-		// ===== pointer return =====
-		REGISTER_FACTORY("ptr(ptr)", void*, void*);
-		REGISTER_FACTORY("ptr(ptr, int)", void*, void*, int);
-	}
-
-	static JSValue js_add_detour(
-	    JSContext* ctx,
-	    JSValueConst,
-	    int argc,
-	    JSValueConst* argv)
-	{
-		// add(name, sigObj, cb)
-		if (argc != 3)
-			return JS_ThrowTypeError(ctx, "add(name, sig, cb)");
-
-		const char* name = JS_ToCString(ctx, argv[0]);
-		JSValue sig = argv[1];
-		JSValue cb = argv[2];
-
-		if (!JS_IsObject(sig))
-			return JS_ThrowTypeError(ctx, "sig must be object");
-
-		JSValue v_addr = JS_GetPropertyStr(ctx, sig, "addr");
-		JSValue v_ret = JS_GetPropertyStr(ctx, sig, "ret");
-		JSValue v_args = JS_GetPropertyStr(ctx, sig, "args");
-
-		void* addr = value_to_ptr<void*>(ctx, v_addr);
-
-		std::string ret = JS_ToCString(ctx, v_ret);
-
-		// build signature string: "float(ptr)"
-		std::string sig_str = ret + "(";
-		
-		uint32_t len = get_array_length(ctx, v_args);
-
-		for (uint32_t i = 0; i < len; i++)
-		{
-			JSValue v = JS_GetPropertyUint32(ctx, v_args, i);
-			sig_str += JS_ToCString(ctx, v);
-			if (i + 1 < len)
-				sig_str += ",";
-			JS_FreeValue(ctx, v);
-		}
-		sig_str += ")";
-
-		LOG(VERBOSE) << "Adding detour '" << name << "' with signature '" << sig_str << "' at address " << addr;
-
-		auto it = g_factories.find(sig_str);
-		if (it == g_factories.end())
-			return JS_ThrowTypeError(ctx, "unsupported signature");
-
-		auto* hook = it->second(ctx, name, addr, cb);
+		JsDetour::original = hook->get_original_ptr();
 		g_hooks.emplace(name, hook);
 
+		JS_FreeCString(ctx, name);
 		return JS_UNDEFINED;
 	}
 
 	static JSValue js_hook_enable(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
 	{
 		const char* name = JS_ToCString(ctx, argv[0]);
-		auto it = g_hooks.find(name);
-
-		if (it == g_hooks.end())
-			return JS_ThrowReferenceError(ctx, "hook not found");
-
-		it->second->enable_immediately();
-
+		g_hooks[name]->enable_immediately();
 		JS_FreeCString(ctx, name);
 		return JS_UNDEFINED;
 	}
@@ -328,64 +201,27 @@ namespace js::trampoline
 	static JSValue js_hook_disable(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
 	{
 		const char* name = JS_ToCString(ctx, argv[0]);
-		auto it = g_hooks.find(name);
-
-		if (it == g_hooks.end())
-			return JS_ThrowReferenceError(ctx, "hook not found");
-
-		it->second->disable_immediately();
-
+		g_hooks[name]->disable_immediately();
 		JS_FreeCString(ctx, name);
 		return JS_UNDEFINED;
 	}
 
 	static int js_detour_module_init(JSContext* ctx, JSModuleDef* m)
 	{
+		register_ctx_class(ctx);
+
 		JS_SetModuleExport(ctx, m, "add", JS_NewCFunction(ctx, js_add_detour, "add", 3));
 		JS_SetModuleExport(ctx, m, "enable", JS_NewCFunction(ctx, js_hook_enable, "enable", 1));
 		JS_SetModuleExport(ctx, m, "disable", JS_NewCFunction(ctx, js_hook_disable, "disable", 1));
 
-		return 0; // WAJIB
-	}
-
-	static JSValue js_call_original(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
-	{
-		// callOriginal(name, args...)
-		if (argc < 1)
-			return JS_ThrowTypeError(ctx, "call_original(name, ...args)");
-
-		const char* name = JS_ToCString(ctx, argv[0]);
-		auto it = g_hooks.find(name);
-		if (it == g_hooks.end())
-			return JS_ThrowReferenceError(ctx, "hook not found");
-
-		//it->second->get_original<decltype(&JsDetour<void, void*>::trampoline)>()();
-
-		JS_FreeCString(ctx, name);
-	}
-
-	static JSModuleDef* js_detour_init(JSContext* ctx, const char* module_name)
-	{
-		JSModuleDef* m = JS_NewCModule(ctx, module_name, js_detour_module_init);
-
-		if (!m)
-			return nullptr;
-
-		JS_AddModuleExport(ctx, m, "add");
-		JS_AddModuleExport(ctx, m, "enable");
-		JS_AddModuleExport(ctx, m, "disable");
-
-		return m;
+		return 0;
 	}
 
 	void bind(qjs::Context& context)
 	{
-		auto ctx = context.ctx;
-
-		JSModuleDef* m = js_detour_init(ctx, "detour");
-		register_factories();
-
-		if (!m)
-			LOG(WARNING) << "Failed to init detour module";
+		JSModuleDef* m = JS_NewCModule(context.ctx, "detour", js_detour_module_init);
+		JS_AddModuleExport(context.ctx, m, "add");
+		JS_AddModuleExport(context.ctx, m, "enable");
+		JS_AddModuleExport(context.ctx, m, "disable");
 	}
-} // namespace js::trampoline
+}
