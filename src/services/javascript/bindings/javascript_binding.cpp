@@ -49,19 +49,15 @@ namespace big
 		LOG(INFO) << args;
 	}
 
-	static JSValue js_console_log(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+	static void js_console_log(const qjs::rest<std::string>& args)
 	{
-		for (int i = 0; i < argc; i++)
+		std::stringstream out;
+		for (const auto& message : args)
 		{
-			const char* str = JS_ToCString(ctx, argv[i]);
-			if (str)
-			{
-				LOG(INFO) << std::format("[JS] {}", str);
-				JS_FreeCString(ctx, str);
-			}
+			out << message;
 		}
 
-		return JS_UNDEFINED;
+		LOG(INFO) << std::format("[JS] {}", out.str());
 	}
 
 	static double js_get_local_player()
@@ -94,18 +90,10 @@ namespace big
 		unity.function<&js_get_zone_system>("get_zone_system");
 		unity.function<&js_get_env_man>("get_env_man");
 
-		JSValue console = JS_NewObject(ctx.ctx);
+		auto console_object = ctx.newObject();
+		auto global = ctx.global();
 
-		JS_SetPropertyStr(
-		    ctx.ctx,
-		    console,
-		    "log",
-		    JS_NewCFunction(ctx.ctx, js_console_log, "log", 1));
-
-		JS_SetPropertyStr(
-		    ctx.ctx,
-		    JS_GetGlobalObject(ctx.ctx),
-		    "console",
-		    console);
+		console_object.add<&js_console_log>("log");
+		global["console"] = console_object;
 	}
 }

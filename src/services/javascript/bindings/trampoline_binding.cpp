@@ -164,19 +164,14 @@ namespace js::trampoline
 	// JS API
 	// =========================================================
 
-	static JSValue js_add_detour(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+	static void js_add_detour(std::string const& name, double address, qjs::Value callback)
 	{
-		if (argc != 3)
-			return JS_ThrowTypeError(ctx, "add(name, addr, cb)");
+		void* addr = (void*)(uint64_t)address;
 
-		const char* name = JS_ToCString(ctx, argv[0]);
-		void* addr;
-		double d;
-		JS_ToFloat64(ctx, &d, argv[1]);
-		addr = (void*)(uint64_t)d;
+		LOG(VERBOSE) << "Context for detour: " << (void*)callback.ctx << " JSValue: " << (void*)callback.v.tag;
 
-		JsDetour::ctx = ctx;
-		JsDetour::js_func = JS_DupValue(ctx, argv[2]);
+		JsDetour::ctx = callback.ctx;
+		JsDetour::js_func = JS_DupValue(callback.ctx, callback.v);
 
 		auto* hook = new detour_hook(
 		    name,
@@ -185,43 +180,35 @@ namespace js::trampoline
 
 		JsDetour::original = hook->get_original_ptr();
 		g_hooks.emplace(name, hook);
-
-		JS_FreeCString(ctx, name);
-		return JS_UNDEFINED;
 	}
 
-	static JSValue js_hook_enable(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+	static void js_hook_enable(std::string const& name)
 	{
-		const char* name = JS_ToCString(ctx, argv[0]);
-		g_hooks[name]->enable_immediately();
-		JS_FreeCString(ctx, name);
-		return JS_UNDEFINED;
+		g_hooks[name.c_str()]->enable_immediately();
 	}
 
-	static JSValue js_hook_disable(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+	static void js_hook_disable(std::string const& name)
 	{
-		const char* name = JS_ToCString(ctx, argv[0]);
-		g_hooks[name]->disable_immediately();
-		JS_FreeCString(ctx, name);
-		return JS_UNDEFINED;
+		g_hooks[name.c_str()]->disable_immediately();
 	}
 
 	static int js_detour_module_init(JSContext* ctx, JSModuleDef* m)
 	{
 		register_ctx_class(ctx);
 
-		JS_SetModuleExport(ctx, m, "add", JS_NewCFunction(ctx, js_add_detour, "add", 3));
-		JS_SetModuleExport(ctx, m, "enable", JS_NewCFunction(ctx, js_hook_enable, "enable", 1));
-		JS_SetModuleExport(ctx, m, "disable", JS_NewCFunction(ctx, js_hook_disable, "disable", 1));
-
 		return 0;
 	}
 
 	void bind(qjs::Context& context)
 	{
-		JSModuleDef* m = JS_NewCModule(context.ctx, "detour", js_detour_module_init);
-		JS_AddModuleExport(context.ctx, m, "add");
-		JS_AddModuleExport(context.ctx, m, "enable");
-		JS_AddModuleExport(context.ctx, m, "disable");
+		auto ctx = context.ctx;
+
+		register_ctx_class(ctx);
+
+		auto& module = context.addModule("detour");
+
+		module.function<&js_add_detour>("add");
+		module.function<&js_hook_enable>("enable");
+		module.function<&js_hook_disable>("disable");
 	}
 }
