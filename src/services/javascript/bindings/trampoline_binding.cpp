@@ -110,20 +110,20 @@ namespace js::trampoline
 		    uint64_t a0, uint64_t a1, uint64_t a2,
 		    uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6)
 		{
-			AbiContext* abi = new AbiContext();
-			abi->args[0] = a0;
-			abi->args[1] = a1;
-			abi->args[2] = a2;
-			abi->args[3] = a3;
-			abi->args[4] = a4;
-			abi->args[5] = a5;
-			abi->args[6] = a6;
-			abi->original = original;
+			AbiContext abi{};
+			abi.args[0] = a0;
+			abi.args[1] = a1;
+			abi.args[2] = a2;
+			abi.args[3] = a3;
+			abi.args[4] = a4;
+			abi.args[5] = a5;
+			abi.args[6] = a6;
+			abi.original = original;
 
 			if (JS_IsFunction(ctx, js_func))
 			{
 				JSValue obj = JS_NewObjectClass(ctx, g_ctx_class);
-				JS_SetOpaque(obj, abi);
+				JS_SetOpaque(obj, &abi);
 
 				JSValue ret = JS_Call(ctx, js_func, JS_UNDEFINED, 1, &obj);
 				JS_FreeValue(ctx, obj);
@@ -150,13 +150,13 @@ namespace js::trampoline
 			    uint64_t);
 
 			return ((Fn)original)(
-			    abi->args[0],
-			    abi->args[1],
-			    abi->args[2],
-			    abi->args[3],
-			    abi->args[4],
-			    abi->args[5],
-			    abi->args[6]);
+			    abi.args[0],
+			    abi.args[1],
+			    abi.args[2],
+			    abi.args[3],
+			    abi.args[4],
+			    abi.args[5],
+			    abi.args[6]);
 		}
 	};
 
