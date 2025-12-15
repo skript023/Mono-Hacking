@@ -6,7 +6,7 @@
 
 namespace big::features
 {
-	float_command _food_hp("food_hp", "Food Health Amount", "Amount of food health.", 25.f, 1000.f, 25.f);
+	float_command _food_hp("food_hp", "Food Health Amount", "Amount of food health.", 25.f, 10000000.f, 25.f);
 
 	static void set_all_food_health(MonoObject* foodsList, float newHealth)
 	{
@@ -17,14 +17,31 @@ namespace big::features
 		if (foods.empty())
 			return;
 
-		// Ambil field m_health dari Food class
-		MonoClass* foodClass = mono::get_class("Food", "assembly_valheim");
-		auto healthField = mono::get_field(foodClass, "m_health");
-		if (!healthField)
+		// Ambil field m_health dari class Food yang BENAR
+		MonoClass* foodClass = mono::get_class("Player/Food", "assembly_valheim");
+		if (!foodClass)
+		{
+			LOG(WARNING) << "Failed to get Food class.";
 			return;
+		}
+
+		auto healthField = mono::get_field(foodClass, "m_time");
+		if (!healthField)
+		{
+			LOG(WARNING) << "Failed to get m_health field from food class.";
+			return;
+		}
 
 		for (MonoObject* food : foods)
 		{
+			if (!food)
+			{
+				LOG(WARNING) << "Food object is empty.";
+				continue;
+			}
+#ifdef _DEBUG
+			LOG(VERBOSE) << food << " setting food health to " << newHealth;
+#endif
 			mono::set_field_value(food, healthField, &newHealth);
 		}
 	}
@@ -49,10 +66,13 @@ namespace big::features
 
 			// Panggil GetFoods()
 			MonoMethod* method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
-			MonoObject* exc = nullptr;
+
 			MonoObject* foodsList = mono::invoke_method(method, player);
-			if (!foodsList || exc)
+			if (!foodsList)
+			{
+				LOG(WARNING) << "Failed to get food list object.";
 				return;
+			}
 
 			// Set health semua Food
 			set_all_food_health(foodsList, _food_hp.get_state());
@@ -64,5 +84,5 @@ namespace big::features
 		}
 	};
 
-	static food_health _food_health("max_food_health", "Food Health Amount", "Amount of food health.");
+	static food_health _food_health("max_food_health", "Food Timer", "Amount of food time.");
 }

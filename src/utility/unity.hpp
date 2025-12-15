@@ -84,31 +84,31 @@ namespace big::unity
 
 		MonoClass* klass = mono::object_get_class(list);
 
-		// get_Count()
-		MonoMethod* getCount =
-		    mono::class_get_method_from_name(klass, "get_Count", 0);
+		if (!klass)
+		{
+			LOG(VERBOSE) << "Failed to get class from list object.";
+			return out;
+		}
 
-		// get_Item(int)
-		MonoMethod* getItem =
-		    mono::class_get_method_from_name(klass, "get_Item", 1);
+		MonoMethod* getCount = mono::class_get_method_from_name(klass, "get_Count", 0);
+		MonoMethod* getItem = mono::class_get_method_from_name(klass, "get_Item", 1);
 
 		if (!getCount || !getItem)
 			return out;
 
 		MonoObject* ret = mono::invoke_method(getCount, list);
-
 		if (!ret)
 			return out;
 
-		int count = *(int*)mono::object_unbox(ret);
+		int count = 0;
+		void* unboxed = mono::object_unbox(ret);
+		if (unboxed)
+			count = *(int*)unboxed;
 
 		for (int i = 0; i < count; ++i)
 		{
-			void* args[1];
-			args[0] = &i;
-
+			void* args[1] = {&i};
 			MonoObject* item = mono::invoke_method(getItem, list, args);
-
 			if (item)
 				out.push_back(item);
 		}

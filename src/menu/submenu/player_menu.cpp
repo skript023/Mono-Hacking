@@ -21,13 +21,14 @@ namespace big
             sub->add_option<bool_option<bool>>("open_all_recepies"_hash);
             sub->add_option<bool_option<bool>>("infinite_stamina"_hash);
             sub->add_option<bool_slider_float_option>("enable_raise_skill"_hash, "raise_skill"_hash, 1.f);
-            sub->add_option<bool_slider_float_option>("max_food_health"_hash, "food_hp"_hash, 10.f);
+            sub->add_option<bool_slider_float_option>("max_food_health"_hash, "food_hp"_hash, 1000.f);
             sub->add_option<bool_slider_float_option>("max_body_armor"_hash, "num_body_armor"_hash, 10.f);
             sub->add_option<bool_slider_float_option>("max_carry_weight"_hash, "carry_amount"_hash, 100.f);
             sub->add_option<bool_slider_float_option>("max_health"_hash, "max_hp"_hash, 10.f);
             sub->add_option<bool_slider_float_option>("max_stamina"_hash, "max_stam"_hash, 10.f);
             sub->add_option<bool_slider_float_option>("eitr"_hash, "eitr_amount"_hash, 5.f);
             sub->add_option<bool_slider_float_option>("stamina_regen"_hash, "stamina_regen_amount"_hash, 5.f);
+            sub->add_option<bool_slider_float_option>("eitr_regen"_hash, "eitr_regen_amount"_hash, 5.f);
         });
     }
 }
