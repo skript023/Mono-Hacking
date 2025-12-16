@@ -203,7 +203,10 @@ namespace js::trampoline
 
 	static void js_hook_disable(std::string const& name)
 	{
-		g_hooks[name.c_str()]->disable_immediately();
+		auto det = g_hooks[name.c_str()];
+		det->disable_immediately();
+
+		delete det;
 	}
 
 	static int js_detour_module_init(JSContext* ctx, JSModuleDef* m)
