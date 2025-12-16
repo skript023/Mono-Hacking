@@ -178,7 +178,7 @@ namespace js::trampoline
 	// JS API
 	// =========================================================
 
-	static void js_add_detour(std::string const& name, double address, qjs::Value callback)
+	static bool js_add_detour(std::string const& name, double address, qjs::Value callback)
 	{
 		void* addr = (void*)(uintptr_t)address;
 
@@ -186,7 +186,7 @@ namespace js::trampoline
 		{
 			LOG(WARNING) << "Invalid address for detour";
 
-			return;
+			return false;
 		}
 
 		LOG(VERBOSE) << "Context for detour: " << (void*)callback.ctx << " JSValue: " << (void*)callback.v.tag;
@@ -201,6 +201,8 @@ namespace js::trampoline
 
 		JsDetour::original = hook->get_original_ptr();
 		g_hooks.emplace(name, hook);
+
+		return true;
 	}
 
 	static void js_hook_enable(std::string const& name)
