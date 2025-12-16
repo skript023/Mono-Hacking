@@ -36,6 +36,7 @@ namespace big
 		detour_base::add<hooks::raise_skill>(new detour_hook("Player::RaiseSkill", mono::get_compile_method("Player", "RaiseSkill", 2, "assembly_valheim"), hooks::raise_skill));
 		detour_base::add<hooks::take_input>(new detour_hook("PlayerController::TakeInput", mono::get_compile_method("PlayerController", "TakeInput", 1, "assembly_valheim"), hooks::take_input));
 		detour_base::add<hooks::get_body_armor>(new detour_hook("Player::GetBodyArmor", mono::get_compile_method("Player", "GetBodyArmor", 0, "assembly_valheim"), hooks::get_body_armor));
+		detour_base::add<hooks::have_empty_slot>(new detour_hook("Inventory::HaveEmptySlot", mono::get_compile_method("Inventory", "HaveEmptySlot", 0, "assembly_valheim"), hooks::have_empty_slot));
 
 		g_hooking = this;
 	}

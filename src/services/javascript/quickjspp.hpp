@@ -1,6 +1,7 @@
 #pragma once
 
 #include "quickjs.h"
+#include "quickjs-data-structure.h"
 
 #include <vector>
 #include <string_view>
@@ -1444,6 +1445,38 @@ public:
         return Value{ctx, JS_EvalThis(ctx, v, buffer.data(), buffer.size(), filename, flags)};
     }
 
+	bool isUndefined() const
+	{
+		return JS_IsUndefined(v);
+	}
+	bool isNull() const
+	{
+		return JS_IsNull(v);
+	}
+	bool isArray() const
+	{
+		return JS_IsArray(ctx, v);
+	}
+
+    bool isInt() const
+    {
+		return JS_IsNumber(v);
+    }
+
+    bool isFloat() const
+    {
+		return JS_IsBigFloat(v);
+    }
+
+    bool isBigInt() const
+    {
+		return JS_IsBigInt(ctx, v);
+    }
+
+    bool isObject() const
+    {
+		return JS_IsObject(v);
+    }
 };
 
 /** Thin wrapper over JSRuntime * rt

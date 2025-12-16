@@ -1,8 +1,8 @@
 ﻿#include "mono_binding.hpp"
 #include "mono/mono.hpp"
 #include "quickjs.h"
-#include <vector>
-#include <cstdint>
+
+#include "utility/unity.hpp"
 
 namespace js::mono
 {
@@ -76,16 +76,38 @@ namespace js::mono
 		return static_cast<double>((uintptr_t)method);
 	}
 
-	static double js_mono_invoke_method(double method_ptr, double obj_ptr, const qjs::rest<double>& argv)
+	static double js_mono_invoke_method(double method_ptr, double obj_ptr, const qjs::rest<std::string>& argv)
 	{
 		MonoMethod* method = (MonoMethod*)(uintptr_t)method_ptr;
 
 		void* obj = reinterpret_cast<void*>((uintptr_t)obj_ptr);
 
 		std::vector<void*> args;
-		for (uint64_t pv : argv)
+
+		for (auto& s : argv)
 		{
-			args.push_back((void*)(uintptr_t)pv);
+			int64_t iv;
+			double dv;
+			bool bv;
+			std::string ms;
+
+			if (big::unity::is_bool(s, bv))
+			{
+				args.push_back(&bv);
+			}
+			else if (big::unity::is_int(s, iv))
+			{
+				args.push_back(&dv);
+			}
+			else if (big::unity::is_double(s, dv))
+			{
+				args.push_back(&iv);
+			}
+			else
+			{
+				ms = s;
+				args.push_back(&ms);
+			}
 		}
 
 		MonoObject* result = big::mono::invoke_method(method, obj, args.empty() ? nullptr : args.data());

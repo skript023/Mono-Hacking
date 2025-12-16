@@ -161,6 +161,34 @@ namespace big::unity
 		MonoObject* ret = mono::invoke_method(method, player, args);
 
 	}
+	inline bool is_int(const std::string& s, int64_t& out)
+	{
+		char* end{};
+		out = strtoll(s.c_str(), &end, 10);
+		return end && *end == '\0';
+	}
+
+	inline bool is_double(const std::string& s, double& out)
+	{
+		char* end{};
+		out = strtod(s.c_str(), &end);
+		return end && *end == '\0';
+	}
+
+	inline bool is_bool(const std::string& s, bool& out)
+	{
+		if (s == "true" || s == "True")
+		{
+			out = true;
+			return true;
+		}
+		if (s == "false" || s == "False")
+		{
+			out = false;
+			return true;
+		}
+		return false;
+	}
 	inline bool is_key_pressed(std::uint16_t key)
 	{
 		if (GetForegroundWindow() == g_pointers->m_hwnd)
