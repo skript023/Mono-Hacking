@@ -182,6 +182,13 @@ namespace js::trampoline
 	{
 		void* addr = (void*)(uintptr_t)address;
 
+		if (!addr)
+		{
+			LOG(WARNING) << "Invalid address for detour";
+
+			return;
+		}
+
 		LOG(VERBOSE) << "Context for detour: " << (void*)callback.ctx << " JSValue: " << (void*)callback.v.tag;
 
 		JsDetour::ctx = callback.ctx;
