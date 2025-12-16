@@ -1477,6 +1477,11 @@ public:
     {
 		return JS_IsObject(v);
     }
+
+    bool isFunction() const
+    {
+		return JS_IsFunction(ctx, v);
+    }
 };
 
 /** Thin wrapper over JSRuntime * rt
