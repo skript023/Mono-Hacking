@@ -54,7 +54,7 @@ namespace big
 		std::stringstream out;
 		for (const auto& message : args)
 		{
-			out << message;
+			out << " " << message;
 		}
 
 		LOG(INFO) << std::format("[JS] {}", out.str());

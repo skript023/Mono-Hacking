@@ -9,8 +9,8 @@ namespace js::trampoline
 
 	struct AbiContext
 	{
-		uint64_t args[ABI_MAX_ARGS];
-		uint64_t ret;
+		uintptr_t args[ABI_MAX_ARGS];
+		uintptr_t ret;
 		void* original;
 	};
 
@@ -47,7 +47,7 @@ namespace js::trampoline
 
 		double v;
 		JS_ToFloat64(ctx, &v, argv[1]);
-		c->args[idx] = (uint64_t)v;
+		c->args[idx] = (uintptr_t)v;
 		return JS_UNDEFINED;
 	}
 
@@ -55,14 +55,14 @@ namespace js::trampoline
 	{
 		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
 
-		using Fn = uint64_t(__fastcall*)(
-		    uint64_t,
-		    uint64_t,
-		    uint64_t,
-		    uint64_t,
-		    uint64_t,
-		    uint64_t,
-		    uint64_t);
+		using Fn = uintptr_t(__fastcall*)(
+		    uintptr_t,
+		    uintptr_t,
+		    uintptr_t,
+		    uintptr_t,
+		    uintptr_t,
+		    uintptr_t,
+		    uintptr_t);
 
 		auto fn = (Fn)c->original;
 		c->ret = fn(
@@ -106,9 +106,9 @@ namespace js::trampoline
 		inline static JSValue js_func = JS_UNDEFINED;
 		inline static void* original = nullptr;
 
-		static uint64_t __fastcall trampoline(
-		    uint64_t a0, uint64_t a1, uint64_t a2,
-		    uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6)
+		static uintptr_t __fastcall trampoline(
+		    uintptr_t a0, uintptr_t a1, uintptr_t a2,
+		    uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6)
 		{
 			AbiContext abi{};
 			abi.args[0] = a0;
@@ -134,20 +134,20 @@ namespace js::trampoline
 					if (JS_ToFloat64(ctx, &d, ret) == 0)
 					{
 						JS_FreeValue(ctx, ret);
-						return (uint64_t)d;
+						return (uintptr_t)d;
 					}
 				}
 				JS_FreeValue(ctx, ret);
 			}
 
-			using Fn = uint64_t(__fastcall*)(
-			    uint64_t,
-			    uint64_t,
-			    uint64_t,
-			    uint64_t,
-			    uint64_t,
-			    uint64_t,
-			    uint64_t);
+			using Fn = uintptr_t(__fastcall*)(
+			    uintptr_t,
+			    uintptr_t,
+			    uintptr_t,
+			    uintptr_t,
+			    uintptr_t,
+			    uintptr_t,
+			    uintptr_t);
 
 			return ((Fn)original)(
 			    abi.args[0],
@@ -166,7 +166,7 @@ namespace js::trampoline
 
 	static void js_add_detour(std::string const& name, double address, qjs::Value callback)
 	{
-		void* addr = (void*)(uint64_t)address;
+		void* addr = (void*)(uintptr_t)address;
 
 		LOG(VERBOSE) << "Context for detour: " << (void*)callback.ctx << " JSValue: " << (void*)callback.v.tag;
 
