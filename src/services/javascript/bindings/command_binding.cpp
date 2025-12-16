@@ -16,6 +16,13 @@ namespace js::command
 			// loop sampai semua job pending selesai
 		}
 	}
+	JSValue get_js_method(JSContext* ctx, JSValueConst obj, const char* name)
+	{
+		JSAtom atom = JS_NewAtom(ctx, name);
+		JSValue val = JS_GetProperty(ctx, obj, atom); // resolve prototype chain
+		JS_FreeAtom(ctx, atom);
+		return val;
+	}
 	// =========================
 	// js_bool_command
 	// =========================
@@ -101,18 +108,16 @@ namespace js::command
 
 		void on_tick() override
 		{
-			// ambil JS onTick *saat ini*, bukan di constructor
-			JSValue js_onTick = JS_GetPropertyStr(ctx, js_this, "onTick");
+			JSValue js_onTick = get_js_method(ctx, js_this, "onTick");
+#ifdef _DEBUG
+			LOG(VERBOSE) << "onTick is function?: " << JS_IsFunction(ctx, js_onTick);
+#endif
+
 			if (JS_IsFunction(ctx, js_onTick))
 			{
 				JSValue ret = JS_Call(ctx, js_onTick, js_this, 0, nullptr);
 				JS_FreeValue(ctx, ret);
-
-				// eksekusi pending job QuickJS (console.log, promise)
-				JSContext* pctx = nullptr;
-				while (JS_ExecutePendingJob(JS_GetRuntime(ctx), &pctx))
-				{
-				}
+				run_pending(JS_GetRuntime(ctx));
 			}
 			JS_FreeValue(ctx, js_onTick);
 		}
@@ -124,11 +129,6 @@ namespace js::command
 			{
 				JSValue ret = JS_Call(ctx, js_onDisable, js_this, 0, nullptr);
 				JS_FreeValue(ctx, ret);
-
-				JSContext* pctx = nullptr;
-				while (JS_ExecutePendingJob(JS_GetRuntime(ctx), &pctx))
-				{
-				}
 			}
 			JS_FreeValue(ctx, js_onDisable);
 		}
@@ -238,9 +238,12 @@ namespace js::command
 			const char* label = JS_ToCString(ctx, argv[1]);
 			const char* desc = JS_ToCString(ctx, argv[2]);
 
-			JSValue obj = JS_NewObjectClass(ctx, looped_command_class_id);
+			JSValue obj = JS_NewObjectProtoClass(ctx, JS_GetPrototype(ctx, new_target), looped_command_class_id);
 			js_looped_command* native = new js_looped_command(ctx, name, label, desc, obj);
 			JS_SetOpaque(obj, native);
+
+			JS_SetPropertyStr(ctx, obj, "set_state", JS_NewCFunction(ctx, js_set_state, "set_state", 1));
+			JS_SetPropertyStr(ctx, obj, "get_state", JS_NewCFunction(ctx, js_get_state, "get_state", 0));
 
 			JS_FreeCString(ctx, name);
 			JS_FreeCString(ctx, label);
