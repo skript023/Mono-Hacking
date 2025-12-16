@@ -22,7 +22,7 @@ namespace js::trampoline
 	// JS <-> C++ helpers
 	// =========================================================
 
-	static JSValue js_ctx_get_args(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+	static JSValue js_ctx_get_all_args(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
 		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
 		JSValue arr = JS_NewArray(ctx);
@@ -32,6 +32,18 @@ namespace js::trampoline
 			JS_SetPropertyUint32(ctx, arr, i, JS_NewFloat64(ctx, (double)c->args[i]));
 		}
 		return arr;
+	}
+
+	static JSValue js_ctx_get_args(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+	{
+		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
+		uint32_t idx;
+		JS_ToUint32(ctx, &idx, argv[0]);
+		if (idx >= ABI_MAX_ARGS)
+			return JS_ThrowRangeError(ctx, "arg index out of range");
+
+
+		return JS_NewFloat64(ctx, (double)c->args[idx]);
 	}
 
 	static JSValue js_ctx_set_arg(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
@@ -87,7 +99,9 @@ namespace js::trampoline
 
 		JSValue proto = JS_NewObject(ctx);
 
-		JS_SetPropertyStr(ctx, proto, "args", JS_NewCFunction(ctx, js_ctx_get_args, "args", 0));
+		JS_SetPropertyStr(ctx, proto, "args", JS_NewCFunction(ctx, js_ctx_get_all_args, "args", 0));
+
+		JS_SetPropertyStr(ctx, proto, "getArg", JS_NewCFunction(ctx, js_ctx_get_args, "getArg", 1));
 
 		JS_SetPropertyStr(ctx, proto, "setArg", JS_NewCFunction(ctx, js_ctx_set_arg, "setArg", 2));
 

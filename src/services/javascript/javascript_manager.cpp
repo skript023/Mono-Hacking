@@ -46,8 +46,7 @@ namespace big
 		try
 		{
 			m_context.eval(R"(
-				import * as log from 'Logger';
-				log.info("This is a test log from javascript");
+				logger.info("This is a test log from javascript");
 				console.log('hello from js', 123, true);
 			)", "<eval>", JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);
 		}

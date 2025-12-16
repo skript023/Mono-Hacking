@@ -113,6 +113,18 @@ namespace big
 		{
 			return get_instance().mono_class_get_method_from_name(obj, name, param);
 		}
+		static MonoImage* assembly_get_image(MonoAssembly* assembly)
+		{
+			return get_instance().mono_assembly_get_image(assembly);
+		}
+		static MonoAssembly* domain_assembly_open(MonoDomain* domain, const char* name)
+		{
+			return get_instance().mono_domain_assembly_open(domain, name);
+		}
+		static MonoClass* get_class_from_name(MonoImage* image, const char* name_space, const char* name)
+		{
+			return get_instance().mono_class_from_name(image, name_space, name);
+		}
 	private:
         // --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
 

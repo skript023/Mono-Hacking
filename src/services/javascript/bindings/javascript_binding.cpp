@@ -77,23 +77,26 @@ namespace big
 
 	void javacript_binding::bind(Context& ctx)
 	{
+		auto global = ctx.global();
+
 		auto& module = ctx.addModule("commands");
 		module.function("call", [&ctx](const std::string& cmd, JSValue js_args) {
 			call_command(cmd, js_args, ctx);
 		});
 
-		auto& logger = ctx.addModule("Logger");
-		logger.function<&js_log_info>("info");
+		auto logger = ctx.newObject();
+		logger.add<&js_log_info>("info");
 
-		auto& unity = ctx.addModule("Unity");
-		unity.function<&js_get_local_player>("get_local_player");
-		unity.function<&js_get_zone_system>("get_zone_system");
-		unity.function<&js_get_env_man>("get_env_man");
+		auto unity = ctx.newObject();
+		unity.add<&js_get_local_player>("get_local_player");
+		unity.add<&js_get_zone_system>("get_zone_system");
+		unity.add<&js_get_env_man>("get_env_man");
+		
+		auto console = ctx.newObject();
+		console.add<&js_console_log>("log");
 
-		auto console_object = ctx.newObject();
-		auto global = ctx.global();
-
-		console_object.add<&js_console_log>("log");
-		global["console"] = console_object;
+		global["console"] = console;
+		global["unity"] = unity;
+		global["logger"] = logger;
 	}
 }

@@ -58,230 +58,140 @@ namespace js::mono
 
 	/* ----------------- MONO FUNCTIONS ----------------- */
 
-	static JSValue js_mono_get_class(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	static double js_mono_get_class(std::string const& classname, std::string const& assembly)
 	{
-		if (argc < 2)
-			return JS_ThrowTypeError(ctx, "get_class(className, asmName)");
-
-		const char* class_name = JS_ToCString(ctx, argv[0]);
-		const char* asm_name = JS_ToCString(ctx, argv[1]);
-
-		MonoClass* klass = big::mono::get_class(class_name, asm_name);
-
-		JS_FreeCString(ctx, class_name);
-		JS_FreeCString(ctx, asm_name);
-
-		if (!klass)
-			return JS_NULL;
-		return make_ptr_value(ctx, klass);
-	}
-
-	static double js_mono_get_class2(std::string const& classname, std::string const& assebmly)
-	{
-		MonoClass* klass = big::mono::get_class(classname.c_str(), assebmly.c_str());
+		MonoClass* klass = big::mono::get_class(classname.c_str(), assembly.c_str());
 
 		if (!klass)
 			return (double)0ull;
 		return (double)(uintptr_t)klass;
 	}
 
-	static JSValue js_mono_get_method(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	static double js_mono_get_method(std::string const& classname, std::string const& method_name, double count, std::string const& assembly)
 	{
-		if (argc < 4)
-			return JS_ThrowTypeError(ctx, "get_method(asm, class, name, paramCount)");
+		int param_count = (int)count;
 
-		const char* asm_name = JS_ToCString(ctx, argv[0]);
-		const char* cls_name = JS_ToCString(ctx, argv[1]);
-		const char* mth_name = JS_ToCString(ctx, argv[2]);
+		MonoMethod* method = big::mono::get_method(classname.c_str(), method_name.c_str(), param_count, assembly.c_str());
 
-		int param_count = 0;
-		JS_ToInt32(ctx, &param_count, argv[3]);
-
-		MonoMethod* method = big::mono::get_method(cls_name, mth_name, param_count, asm_name);
-
-		JS_FreeCString(ctx, asm_name);
-		JS_FreeCString(ctx, cls_name);
-		JS_FreeCString(ctx, mth_name);
-
-		if (!method)
-			return JS_NULL;
-		return make_ptr_value(ctx, method);
+		return static_cast<double>((uintptr_t)method);
 	}
 
-	static JSValue js_mono_invoke_method(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	static double js_mono_invoke_method(double method_ptr, double obj_ptr, const qjs::rest<double>& argv)
 	{
-		if (argc < 3)
-			return JS_ThrowTypeError(ctx, "invoke_method(methodPtr, objPtr, argsArray)");
+		MonoMethod* method = (MonoMethod*)(uintptr_t)method_ptr;
 
-		uint64_t method_u64 = js_to_u64(ctx, argv[0]);
-		MonoMethod* method = (MonoMethod*)(uintptr_t)method_u64;
-
-		void* obj = nullptr;
-		if (!JS_IsNull(argv[1]) && !JS_IsUndefined(argv[1]))
-		{
-			uint64_t obj_u64 = js_to_u64(ctx, argv[1]);
-			obj = (void*)(uintptr_t)obj_u64;
-		}
+		void* obj = reinterpret_cast<void*>((uintptr_t)obj_ptr);
 
 		std::vector<void*> args;
-		if (argc >= 3 && JS_IsArray(ctx, argv[2]))
+		for (uint64_t pv : argv)
 		{
-			JSValue len_val = JS_GetPropertyStr(ctx, argv[2], "length");
-			uint32_t len = 0;
-			if (JS_ToUint32(ctx, &len, len_val) >= 0)
-			{
-				args.reserve(len);
-				for (uint32_t i = 0; i < len; ++i)
-				{
-					JSValue el = JS_GetPropertyUint32(ctx, argv[2], i);
-					uint64_t pv = js_to_u64(ctx, el);
-					args.push_back((void*)(uintptr_t)pv);
-					JS_FreeValue(ctx, el);
-				}
-			}
-			JS_FreeValue(ctx, len_val);
+			args.push_back((void*)(uintptr_t)pv);
 		}
 
 		MonoObject* result = big::mono::invoke_method(method, obj, args.empty() ? nullptr : args.data());
-		if (!result)
-			return JS_NULL;
-		return make_ptr_value(ctx, result);
+
+		return static_cast<double>((uintptr_t)result);
 	}
 
-	static JSValue js_mono_get_field(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	static double js_mono_get_field(double klass, std::string const& fieldname)
 	{
-		// support get_field(asm,class,field) like original code
-		if (argc < 2)
-			return JS_ThrowTypeError(ctx, "get_field(class, field)");
+		auto mono_class = reinterpret_cast<MonoClass*>((uintptr_t)klass);
+		MonoClassField* field = big::mono::get_field(mono_class, fieldname.c_str());
 
-		MonoClass* cls_name = value_to_ptr<MonoClass*>(ctx, argv[0]);
-		const char* fld_name = JS_ToCString(ctx, argv[1]);
-
-		MonoClassField* field = big::mono::get_field(cls_name, fld_name);
-
-		JS_FreeCString(ctx, fld_name);
-
-		if (!field)
-			return JS_NULL;
-		return make_ptr_value(ctx, field);
+		return static_cast<double>((uintptr_t)field);
 	}
 
-	static JSValue js_mono_set_field(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	static void js_mono_set_field_int(double obj_val, double field_val, double argv)
 	{
-		if (argc < 3)
-			return JS_ThrowTypeError(ctx, "set_field(objPtr, fieldPtr, valuePtr)");
+		auto obj = reinterpret_cast<MonoObject*>((uintptr_t)obj_val);
+		auto field = reinterpret_cast<MonoClassField*>((uintptr_t)field_val);
+		auto value = (int)argv;
 
-		auto obj = value_to_ptr<MonoObject*>(ctx, argv[0]);
-		auto field = value_to_ptr<MonoClassField*>(ctx, argv[1]);
-		auto value = value_to_ptr<void*>(ctx, argv[2]);
-
-		big::mono::set_field_value(obj, field, value);
-		return JS_UNDEFINED;
+		big::mono::set_field_value(obj, field, &value);
 	}
 
-	static JSValue js_mono_get_field_value(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	static void js_mono_set_field_float(double obj_val, double field_val, double argv)
 	{
-		if (argc < 2)
-			return JS_ThrowTypeError(ctx, "get_field_value(objPtr, fieldPtr)");
-		uint64_t obj_u64 = js_to_u64(ctx, argv[0]);
-		uint64_t fld_u64 = js_to_u64(ctx, argv[1]);
-		MonoObject* obj = (MonoObject*)(uintptr_t)obj_u64;
-		MonoClassField* field = (MonoClassField*)(uintptr_t)fld_u64;
+		auto obj = reinterpret_cast<MonoObject*>((uintptr_t)obj_val);
+		auto field = reinterpret_cast<MonoClassField*>((uintptr_t)field_val);
+		auto value = (float)argv;
+
+		big::mono::set_field_value(obj, field, &value);
+	}
+
+	static void js_mono_set_field_string(double obj_val, double field_val, std::string const& argv)
+	{
+		auto obj = reinterpret_cast<MonoObject*>((uintptr_t)obj_val);
+		auto field = reinterpret_cast<MonoClassField*>((uintptr_t)field_val);
+		auto value = argv.c_str();
+
+		big::mono::set_field_value(obj, field, &value);
+	}
+
+	static double js_mono_get_field_value(double obj_val, double field_val)
+	{
+		auto obj = reinterpret_cast<MonoObject*>((uintptr_t)obj_val);
+		auto field = reinterpret_cast<MonoClassField*>((uintptr_t)field_val);
+
 		void* out_value = nullptr;
 		big::mono::get_field_value(obj, field, &out_value);
-		return make_ptr_value(ctx, out_value);
+
+		return (double)(uintptr_t)out_value;
+	}
+	static double js_mono_get_field_offset(double field_u64)
+	{
+		// ... (Logika sama)
+		uint32_t offset = big::mono::get_field_offset((MonoClassField*)(uintptr_t)field_u64);
+		return (double)offset;
 	}
 
-	static JSValue js_mono_get_field_offset(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	// Mengembalikan double (pointer)
+	static double js_mono_get_static_field_value(std::string const& class_name, std::string const& field_name)
 	{
-		if (argc < 1)
-			return JS_ThrowTypeError(ctx, "get_field_offset(fieldPtr)");
-		uint64_t fld_u64 = js_to_u64(ctx, argv[0]);
-		MonoClassField* field = (MonoClassField*)(uintptr_t)fld_u64;
-		uint32_t offset = big::mono::get_field_offset(field);
-		return JS_NewUint32(ctx, offset);
+		void* value = big::mono::get_static_field_value(class_name.c_str(), field_name.c_str());
+		return (double)(uintptr_t)value;
 	}
 
-	static JSValue js_mono_get_static_field_value(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	// Mengembalikan double (pointer)
+	static double js_mono_get_static_field_data(double class_u64)
 	{
-		if (argc < 2)
-			return JS_ThrowTypeError(ctx, "get_static_field_value(className, fieldName)");
-		const char* class_name = JS_ToCString(ctx, argv[0]);
-		const char* field_name = JS_ToCString(ctx, argv[1]);
-		void* value = big::mono::get_static_field_value(class_name, field_name);
-		JS_FreeCString(ctx, class_name);
-		JS_FreeCString(ctx, field_name);
-		return make_ptr_value(ctx, value);
-	}
-
-	static JSValue js_mono_get_static_field_data(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
-	{
-		if (argc < 1)
-			return JS_ThrowTypeError(ctx, "get_static_field_data(classPtr)");
-		uint64_t class_u64 = js_to_u64(ctx, argv[0]);
 		MonoClass* klass = (MonoClass*)(uintptr_t)class_u64;
 		void* data = big::mono::get_static_field_data(klass);
-		return make_ptr_value(ctx, data);
+		return (double)(uintptr_t)data;
 	}
 
-	static JSValue js_mono_get_static_field_data_vtable(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	// Mengembalikan double (pointer)
+	static double js_mono_get_static_field_data_vtable(double vtable_u64)
 	{
-		if (argc < 1)
-			return JS_ThrowTypeError(ctx, "get_static_field_data_vtable(vtablePtr)");
-		uint64_t vtable_u64 = js_to_u64(ctx, argv[0]);
 		MonoVTable* vtable = (MonoVTable*)(uintptr_t)vtable_u64;
 		void* data = big::mono::get_static_field_data(vtable);
-		return make_ptr_value(ctx, data);
+		return (double)(uintptr_t)data;
 	}
 
-	static JSValue js_mono_get_vtable(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	// Mengembalikan double (pointer)
+	static double js_mono_get_vtable(double class_u64)
 	{
-		if (argc < 1)
-			return JS_ThrowTypeError(ctx, "get_vtable(classPtr)");
-		uint64_t class_u64 = js_to_u64(ctx, argv[0]);
 		MonoClass* klass = (MonoClass*)(uintptr_t)class_u64;
 		MonoVTable* vtable = big::mono::get_vtable(klass);
-		return make_ptr_value(ctx, vtable);
+		return (double)(uintptr_t)vtable;
 	}
 
-	static JSValue js_mono_get_class_from_method(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	// Mengembalikan double (pointer)
+	static double js_mono_get_class_from_method(double method_u64)
 	{
-		if (argc < 1)
-			return JS_ThrowTypeError(ctx, "get_class_from_method(methodPtr)");
-		uint64_t method_u64 = js_to_u64(ctx, argv[0]);
 		MonoMethod* method = (MonoMethod*)(uintptr_t)method_u64;
 		MonoClass* klass = big::mono::get_class_from_method(method);
 		if (!klass)
-			return JS_NULL;
-		return make_ptr_value(ctx, klass);
+			return 0.0;
+		return (double)(uintptr_t)klass;
 	}
 
-	static JSValue js_mono_get_compile_method(JSContext* ctx, JSValueConst /*this_val*/, int argc, JSValueConst* argv)
+	static double js_mono_get_compile_method(std::string const& classname, std::string const& method_name, double count, std::string const& assembly_name = "Assembly-CSharp")
 	{
-		if (argc < 3)
-			return JS_ThrowTypeError(ctx, "get_compile_method(className, methodName, paramCount [,assemblyName])");
+		int param_count = (int)count;
+		void* compile_method = big::mono::get_compile_method(classname.c_str(), method_name.c_str(), param_count, assembly_name.c_str());
 
-		const char* class_name = JS_ToCString(ctx, argv[0]);
-		const char* method_name = JS_ToCString(ctx, argv[1]);
-		int param_count = 0;
-		JS_ToInt32(ctx, &param_count, argv[2]);
-
-		const char* assembly_name = nullptr;
-		if (argc >= 4)
-			assembly_name = JS_ToCString(ctx, argv[3]);
-		else
-			assembly_name = "Assembly-CSharp";
-
-		void* compile_method = big::mono::get_compile_method(class_name, method_name, param_count, assembly_name);
-
-		JS_FreeCString(ctx, class_name);
-		JS_FreeCString(ctx, method_name);
-		if (argc >= 4)
-			JS_FreeCString(ctx, assembly_name);
-
-		if (!compile_method)
-			return JS_NULL;
-		return make_ptr_value(ctx, compile_method);
+		return (double)(uintptr_t)compile_method;
 	}
 
 	static MonoObject* list_get(MonoObject* list, int index)
@@ -310,7 +220,7 @@ namespace js::mono
 	// Call js_init_module_mono(ctx, "mono") once before evaluating any module that imports it.
 	static int js_mono_init(JSContext* ctx, JSModuleDef* m)
 	{
-		JS_SetModuleExport(ctx, m, "get_class", JS_NewCFunction(ctx, js_mono_get_class, "get_class", 2));
+		/*JS_SetModuleExport(ctx, m, "get_class", JS_NewCFunction(ctx, js_mono_get_class, "get_class", 2));
 		JS_SetModuleExport(ctx, m, "get_method", JS_NewCFunction(ctx, js_mono_get_method, "get_method", 4));
 		JS_SetModuleExport(ctx, m, "invoke_method", JS_NewCFunction(ctx, js_mono_invoke_method, "invoke_method", 3));
 		JS_SetModuleExport(ctx, m, "get_field", JS_NewCFunction(ctx, js_mono_get_field, "get_field", 3));
@@ -322,13 +232,13 @@ namespace js::mono
 		JS_SetModuleExport(ctx, m, "get_static_field_data_vtable", JS_NewCFunction(ctx, js_mono_get_static_field_data_vtable, "get_static_field_data_vtable", 1));
 		JS_SetModuleExport(ctx, m, "get_vtable", JS_NewCFunction(ctx, js_mono_get_vtable, "get_vtable", 1));
 		JS_SetModuleExport(ctx, m, "get_class_from_method", JS_NewCFunction(ctx, js_mono_get_class_from_method, "get_class_from_method", 1));
-		JS_SetModuleExport(ctx, m, "get_compile_method", JS_NewCFunction(ctx, js_mono_get_compile_method, "get_compile_method", 4));
+		JS_SetModuleExport(ctx, m, "get_compile_method", JS_NewCFunction(ctx, js_mono_get_compile_method, "get_compile_method", 4));*/
 		return 0;
 	}
 
 	static JSModuleDef* js_init_module_mono(JSContext* ctx, const char* name)
 	{
-		JSModuleDef* m = JS_NewCModule(ctx, name, js_mono_init);
+		/*JSModuleDef* m = JS_NewCModule(ctx, name, js_mono_init);
 		if (!m)
 			return nullptr;
 
@@ -344,9 +254,9 @@ namespace js::mono
 		JS_AddModuleExport(ctx, m, "get_static_field_data_vtable");
 		JS_AddModuleExport(ctx, m, "get_vtable");
 		JS_AddModuleExport(ctx, m, "get_class_from_method");
-		JS_AddModuleExport(ctx, m, "get_compile_method");
+		JS_AddModuleExport(ctx, m, "get_compile_method");*/
 
-		return m;
+		//return m;
 	}
 
 	
@@ -354,26 +264,36 @@ namespace js::mono
 	void bind(qjs::Context& context)
 	{
 		auto ctx = context.ctx;
-		JSValue global = JS_GetGlobalObject(ctx);
-		JSValue mono = JS_NewObject(ctx);
+		
+		auto mono_object = context.newObject();
+		auto global = context.global();
 
-		MONO_SET_FUNC2(mono, "get_class", js_mono_get_class, 2);
-		MONO_SET_FUNC2(mono, "get_method", js_mono_get_method, 4);
-		MONO_SET_FUNC2(mono, "invoke_method", js_mono_invoke_method, 3);
-		MONO_SET_FUNC2(mono, "get_field", js_mono_get_field, 3);
-		MONO_SET_FUNC2(mono, "set_field", js_mono_set_field, 3);
-		MONO_SET_FUNC2(mono, "get_field_value", js_mono_get_field_value, 2);
-		MONO_SET_FUNC2(mono, "get_field_offset", js_mono_get_field_offset, 1);
-		MONO_SET_FUNC2(mono, "get_static_field_value", js_mono_get_static_field_value, 2);
-		MONO_SET_FUNC2(mono, "get_static_field_data", js_mono_get_static_field_data, 1);
-		MONO_SET_FUNC2(mono, "get_static_field_data_vtable", js_mono_get_static_field_data_vtable, 1);
-		MONO_SET_FUNC2(mono, "get_vtable", js_mono_get_vtable, 1);
-		MONO_SET_FUNC2(mono, "get_class_from_method", js_mono_get_class_from_method, 1);
-		MONO_SET_FUNC2(mono, "get_compile_method", js_mono_get_compile_method, 4);
+		// Getters Class/Method/Field
+		mono_object.add<&js_mono_get_class>("get_class");
+		mono_object.add<&js_mono_get_method>("get_method");
+		mono_object.add<&js_mono_get_field>("get_field");
 
-		JS_SetPropertyStr(ctx, global, "mono", mono);
+		// Invoker
+		mono_object.add<&js_mono_invoke_method>("invoke_method");
 
-		JS_FreeValue(ctx, global);
+		// Field Set/Get
+		mono_object.add<&js_mono_set_field_int>("set_field_int");
+		mono_object.add<&js_mono_set_field_float>("set_field_float");
+		mono_object.add<&js_mono_set_field_string>("set_field_string");
+		mono_object.add<&js_mono_get_field_value>("get_field_value");
+		mono_object.add<&js_mono_get_field_offset>("get_field_offset");
+
+		// Static Field & VTable Getters
+		mono_object.add<&js_mono_get_static_field_value>("get_static_field_value");
+		mono_object.add<&js_mono_get_static_field_data>("get_static_field_data");
+		mono_object.add<&js_mono_get_static_field_data_vtable>("get_static_field_data_vtable");
+
+		// Utility Mono
+		mono_object.add<&js_mono_get_vtable>("get_vtable");
+		mono_object.add<&js_mono_get_class_from_method>("get_class_from_method");
+		mono_object.add<&js_mono_get_compile_method>("get_compile_method");
+
+		global["mono"] = mono_object;
 
 		big::mono::thread_attach(big::mono::get_root_domain());
 	}

@@ -123,7 +123,7 @@ namespace big
 		struct log_sink
 		{
 			std::map<std::string, log_color> log_colors = {
-				{INFO.text, log_color::blue | log_color::intensify},
+			    {INFO.text, log_color::green | log_color::intensify},
 				{WARNING.text, log_color::red},
 				{HACKER.text, log_color::green | log_color::intensify},
 				{FATAL.text, log_color::red | log_color::intensify},
