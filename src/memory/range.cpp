@@ -5,7 +5,8 @@
 namespace memory
 {
 	range::range(handle base, std::size_t size) :
-		m_base(base), m_size(size)
+	    m_base(base),
+	    m_size(size)
 	{
 	}
 
@@ -29,7 +30,7 @@ namespace memory
 		return h.as<std::uintptr_t>() >= begin().as<std::uintptr_t>() && h.as<std::uintptr_t>() <= end().as<std::uintptr_t>();
 	}
 
-	static std::optional<handle> scan_pattern(const std::optional<uint8_t>* sig, std::size_t length, handle begin, std::size_t module_size)
+	std::optional<handle> scan_pattern(const std::optional<uint8_t>* sig, std::size_t length, handle begin, std::size_t module_size)
 	{
 		std::size_t maxShift = length;
 		std::size_t max_idx = length - 1;
@@ -103,16 +104,18 @@ namespace memory
 		return nullptr;
 	}
 
-	std::vector<handle> range::scan_all(pattern const &sig)
+	std::vector<handle> range::scan_all(pattern const& sig)
 	{
 		std::vector<handle> result;
 
 		auto data = sig.m_bytes.data();
 		auto length = sig.m_bytes.size();
-
-		if (auto scan = scan_pattern(data, length, m_base, m_size))
+		for (std::uintptr_t i = 0; i < m_size - length; ++i)
 		{
-			result.push_back(scan.value());
+			if (pattern_matches(m_base.add(i).as<std::uint8_t*>(), data, length))
+			{
+				result.push_back(m_base.add(i));
+			}
 		}
 
 		return std::move(result);
@@ -123,25 +126,26 @@ namespace memory
 		handle base;
 		size_t size;
 		DWORD protect;
+		DWORD type;
 	};
 
 	static std::vector<memory_region> enum_process_memory()
 	{
 		std::vector<memory_region> regions;
+		regions.reserve(1024); // FIX: avoid realloc (speed)
 
 		MEMORY_BASIC_INFORMATION mbi{};
 		uintptr_t addr = 0;
 
-		while (VirtualQuery(
-		    reinterpret_cast<void*>(addr),
-		    &mbi,
-		    sizeof(mbi)))
+		while (VirtualQuery(reinterpret_cast<void*>(addr), &mbi, sizeof(mbi)))
 		{
+			// FIX: ONLY SCAN WHAT CE SCANS
 			if (mbi.State == MEM_COMMIT && !(mbi.Protect & PAGE_GUARD) && !(mbi.Protect & PAGE_NOACCESS))
 			{
 				regions.push_back({handle(mbi.BaseAddress),
 				    mbi.RegionSize,
-				    mbi.Protect});
+				    mbi.Protect,
+				    mbi.Type});
 			}
 
 			addr += mbi.RegionSize;
@@ -152,18 +156,26 @@ namespace memory
 
 	static bool is_scannable(DWORD protect)
 	{
-		return protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE);
+		return protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE);
 	}
 
 	handle range::fullscan(pattern const& sig)
 	{
-		for (auto& r : enum_process_memory())
+		auto regions = enum_process_memory();
+
+		for (const auto& r : regions)
 		{
+			// FIX: skip unreadable
 			if (!is_scannable(r.protect))
 				continue;
 
-			LOG(big::VERBOSE) << "Base: " << r.base.as<void*>() << " Size: " << std::hex << r.size;
-			range mem(r.base, r.size);
+			// FIX: skip too small
+			if (r.size < sig.m_bytes.size())
+				continue;
+
+			range mem(r.base, regions.size());
+
+			LOG(big::VERBOSE) << "Base: " << mem.begin().as<void*>() << " Size: " << std::hex << mem.end().as<void*>();
 
 			if (auto h = mem.scan(sig))
 				return h;
