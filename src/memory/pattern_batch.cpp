@@ -45,13 +45,13 @@ namespace memory
 				else
 				{
 					all_found = false;
-					LOG(FATAL) << "Failed to find '" << entry.m_name << "'.";
+					LOG(big::CRITICAL) << "Failed to find '" << entry.m_name << "'.";
 				}
 			}
 			else
 			{
 				all_found = false;
-				LOG(FATAL) << "Failed to find '" << entry.m_name << "'.";
+				LOG(big::CRITICAL) << "Failed to find '" << entry.m_name << "'.";
 			}
 		}
 

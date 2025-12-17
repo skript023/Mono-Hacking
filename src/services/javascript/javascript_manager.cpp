@@ -7,6 +7,7 @@
 #include "bindings/gui_binding.hpp"
 #include "bindings/store_binding.hpp"
 #include "bindings/trampoline_binding.hpp"
+#include "bindings/sigscanner_binding.hpp"
 
 namespace big
 {
@@ -37,6 +38,7 @@ namespace big
 		js_gui::bind(m_context);
 		js::storage::bind(m_context);
 		js::trampoline::bind(m_context);
+		js::sig::bind(m_context);
 
 		m_scripts_folder = file_manager::get_project_folder("./scripts");
 		m_scripts_config_folder = m_scripts_folder.get_folder("./scripts_config");
