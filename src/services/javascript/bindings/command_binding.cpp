@@ -31,8 +31,6 @@ namespace js::command
 	public:
 		JSContext* ctx;
 		JSValue js_this;
-		JSValue js_onEnable;
-		JSValue js_onDisable;
 
 		js_bool_command(JSContext* ctx,
 		    const char* name,
@@ -44,44 +42,39 @@ namespace js::command
 		    ctx(ctx),
 		    js_this(js_obj)
 		{
-			JS_DupValue(ctx, js_this);
-
-			js_onEnable = JS_GetPropertyStr(ctx, js_this, "onEnable");
-			if (!JS_IsFunction(ctx, js_onEnable))
-				js_onEnable = JS_UNDEFINED;
-
-			js_onDisable = JS_GetPropertyStr(ctx, js_this, "onDisable");
-			if (!JS_IsFunction(ctx, js_onDisable))
-				js_onDisable = JS_UNDEFINED;
 		}
 
 		~js_bool_command()
 		{
 			JS_FreeValue(ctx, js_this);
-			JS_FreeValue(ctx, js_onEnable);
-			JS_FreeValue(ctx, js_onDisable);
+			
+			
 		}
 
 		void on_enable() override
 		{
-			js_onEnable = JS_GetPropertyStr(ctx, js_this, "onEnable");
+			auto js_onEnable = JS_GetPropertyStr(ctx, js_this, "onEnable");
 
 			if (!JS_IsUndefined(js_onEnable))
 			{
 				JSValue ret = JS_Call(ctx, js_onEnable, js_this, 0, nullptr);
 				JS_FreeValue(ctx, ret);
 			}
+
+			JS_FreeValue(ctx, js_onEnable);
 		}
 
 		void on_disable() override
 		{
-			JSValue js_onTick = JS_GetPropertyStr(ctx, js_this, "onDisable");
+			JSValue js_onDisable = JS_GetPropertyStr(ctx, js_this, "onDisable");
 
 			if (!JS_IsUndefined(js_onDisable))
 			{
 				JSValue ret = JS_Call(ctx, js_onDisable, js_this, 0, nullptr);
 				JS_FreeValue(ctx, ret);
 			}
+
+			JS_FreeValue(ctx, js_onDisable);
 		}
 	};
 
@@ -176,8 +169,24 @@ namespace js::command
 		JS_NewClass(JS_GetRuntime(ctx), bool_command_class_id, &def);
 
 		JSValue proto = JS_NewObject(ctx);
-		JS_SetPropertyStr(ctx, proto, "get_state", JS_NewCFunction(ctx, js_get_state, "get_state", 0));
-		JS_SetPropertyStr(ctx, proto, "set_state", JS_NewCFunction(ctx, js_set_state, "set_state", 1));
+		JS_SetPropertyStr(ctx, proto, "get_state", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
+			js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, bool_command_class_id);
+			if (!native)
+				return JS_ThrowTypeError(ctx, "get_state invalid");
+			return JS_NewBool(ctx, native->get_state());
+		}, "get_state", 0));
+
+		JS_SetPropertyStr(ctx, proto, "set_state", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
+			js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, looped_command_class_id);
+			if (!native)
+				return JS_ThrowTypeError(ctx, "set_state invalid");
+			if (argc < 1)
+				return JS_ThrowTypeError(ctx, "set_state missing arg");
+
+			bool state = JS_ToBool(ctx, argv[0]);
+			native->set_state(state);
+			return JS_UNDEFINED;
+		}, "set_state", 1));
 
 		JSValue ctor = JS_NewCFunction2(ctx, [](JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv) -> JSValue {
 			if (argc < 3)
@@ -190,6 +199,25 @@ namespace js::command
 			JSValue obj = JS_NewObjectProtoClass(ctx, JS_GetPrototype(ctx, new_target), bool_command_class_id);
 			js_bool_command* native = new js_bool_command(ctx, name, label, desc, def, obj);
 			JS_SetOpaque(obj, native);
+
+			JS_SetPropertyStr(ctx, obj, "get_state", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
+				js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, bool_command_class_id);
+				if (!native)
+					return JS_ThrowTypeError(ctx, "get_state invalid");
+				return JS_NewBool(ctx, native->get_state());
+			}, "get_state", 0));
+
+			JS_SetPropertyStr(ctx, obj, "set_state", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
+				js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, looped_command_class_id);
+				if (!native)
+					return JS_ThrowTypeError(ctx, "set_state invalid");
+				if (argc < 1)
+					return JS_ThrowTypeError(ctx, "set_state missing arg");
+
+				bool state = JS_ToBool(ctx, argv[0]);
+				native->set_state(state);
+				return JS_UNDEFINED;
+			}, "set_state", 1));
 
 			JS_FreeCString(ctx, name);
 			JS_FreeCString(ctx, label);
