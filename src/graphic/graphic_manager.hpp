@@ -27,8 +27,13 @@ namespace big
         void* get_method_table_impl(int index);
 
         eGraphicsAPI m_render_type;
-        uint64_t* m_swapchain_methods = NULL;
+        std::vector<uintptr_t> m_swapchain_methods;
         static graphic_manager& get_instance();
+
+        auto vtable_view(void* ptr, size_t count)
+		{
+			return std::span{*(uintptr_t**)ptr, count};
+		}
     public:
 
         static eGraphicsAPI get_render_type() { return graphic_manager::get_instance().m_render_type; }

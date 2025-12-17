@@ -1,6 +1,8 @@
 #include "graphic_manager.hpp"
 #include "hooking.hpp"
 
+#define GRAPHIC_ARRAYSIZE(arr) ((size_t)(sizeof(arr) / sizeof(arr[0])))
+
 namespace big
 {
     graphic_manager& graphic_manager::get_instance()
@@ -22,13 +24,17 @@ namespace big
             return "DirectX 11";
         case eGraphicsAPI::directx12:
             return "DirectX 12";
+		case eGraphicsAPI::opengl:
+			return "OpenGL";
+		case eGraphicsAPI::vulkan:
+			return "Vulkan";
         }
 
         return "Unknown Type";
     }
     void* graphic_manager::get_method_table_impl(int index)
     {
-        if (m_swapchain_methods)
+        if (!m_swapchain_methods.empty())
         {
             auto address = (void*)m_swapchain_methods[index];
 
@@ -155,8 +161,12 @@ namespace big
                 return eInitializationStatus::CREATE_DUMMY_DEVICE_ERROR;
             }
 
-            m_swapchain_methods = (uint64_t*)calloc(120, sizeof(uint64_t));
-            memcpy(m_swapchain_methods, *(uint64_t**)d3d9_device, sizeof(uint64_t));
+   //         m_swapchain_methods = (uintptr_t*)calloc(120, sizeof(uintptr_t));
+			//memcpy(m_swapchain_methods, *(uintptr_t**)d3d9_device, sizeof(uintptr_t));
+			m_swapchain_methods.clear();
+			m_swapchain_methods.reserve(120);
+
+			m_swapchain_methods.append_range(vtable_view(d3d9_device, 1));
 
             create_d3d9->Release();
             create_d3d9 = nullptr;
@@ -233,10 +243,17 @@ namespace big
                 return eInitializationStatus::CREATE_DUMMY_DEVICE_ERROR;
             }
 
-            m_swapchain_methods = (uint64_t*)calloc(205, sizeof(uint64_t));
-            memcpy(this->m_swapchain_methods, *(uint64_t**)d3d11_swapchain, 18 * sizeof(uint64_t));
-            memcpy(this->m_swapchain_methods + 18, *(uint64_t**)d3d11_device, 43 * sizeof(uint64_t));
-            memcpy(this->m_swapchain_methods + 18 + 43, *(uint64_t**)d3d11_context, 144 * sizeof(uint64_t));
+   //         m_swapchain_methods = (uintptr_t*)calloc(205, sizeof(uintptr_t));
+			//memcpy(this->m_swapchain_methods, *(uintptr_t**)d3d11_swapchain, 18 * sizeof(uintptr_t));
+			//memcpy(this->m_swapchain_methods + 18, *(uintptr_t**)d3d11_device, 43 * sizeof(uintptr_t));
+			//memcpy(this->m_swapchain_methods + 18 + 43, *(uintptr_t**)d3d11_context, 144 * sizeof(uintptr_t));
+
+			m_swapchain_methods.clear();
+			m_swapchain_methods.reserve(205);
+
+			m_swapchain_methods.append_range(vtable_view(d3d11_swapchain, 18));
+			m_swapchain_methods.append_range(vtable_view(d3d11_device, 43));
+			m_swapchain_methods.append_range(vtable_view(d3d11_context, 144));
 
             d3d11_swapchain->Release();
             d3d11_swapchain = nullptr;
@@ -381,12 +398,21 @@ namespace big
                 return eInitializationStatus::CREATE_DUMMY_DEVICE_ERROR;
             }
 
-            m_swapchain_methods = (uint64_t*)calloc(150, sizeof(uint64_t));
-            ::memcpy(m_swapchain_methods, *(uint64_t**)device, 44 * sizeof(uint64_t));
-            ::memcpy(m_swapchain_methods + 44, *(uint64_t**)commandQueue, 19 * sizeof(uint64_t));
-            ::memcpy(m_swapchain_methods + 44 + 19, *(uint64_t**)commandAllocator, 9 * sizeof(uint64_t));
-            ::memcpy(m_swapchain_methods + 44 + 19 + 9, *(uint64_t**)commandList, 60 * sizeof(uint64_t));
-            ::memcpy(m_swapchain_methods + 44 + 19 + 9 + 60, *(uint64_t**)swapChain, 18 * sizeof(uint64_t));
+   //         m_swapchain_methods = (uintptr_t*)calloc(150, sizeof(uintptr_t));
+			//::memcpy(m_swapchain_methods, *(uintptr_t**)device, 44 * sizeof(uintptr_t));
+			//::memcpy(m_swapchain_methods + 44, *(uintptr_t**)commandQueue, 19 * sizeof(uintptr_t));
+			//::memcpy(m_swapchain_methods + 44 + 19, *(uintptr_t**)commandAllocator, 9 * sizeof(uintptr_t));
+			//::memcpy(m_swapchain_methods + 44 + 19 + 9, *(uintptr_t**)commandList, 60 * sizeof(uintptr_t));
+			//::memcpy(m_swapchain_methods + 44 + 19 + 9 + 60, *(uintptr_t**)swapChain, 18 * sizeof(uintptr_t));
+
+			m_swapchain_methods.clear();
+			m_swapchain_methods.reserve(150);
+
+			m_swapchain_methods.append_range(vtable_view(device, 44));
+			m_swapchain_methods.append_range(vtable_view(commandQueue, 19));
+			m_swapchain_methods.append_range(vtable_view(commandAllocator, 9));
+			m_swapchain_methods.append_range(vtable_view(commandList, 60));
+			m_swapchain_methods.append_range(vtable_view(swapChain, 18));
 
             device->Release();
             device = NULL;
@@ -409,6 +435,368 @@ namespace big
             m_render_type = eGraphicsAPI::directx12;
 
             return eInitializationStatus::SUCCESS;
+        }
+		else if (renderType == eGraphicsAPI::opengl)
+        {
+			HMODULE libOpenGL32;
+			if ((libOpenGL32 = ::GetModuleHandle("opengl32.dll")) == NULL)
+			{
+				return eInitializationStatus::FAILED;
+			}
+
+			const char* const methodsNames[] = {
+			    "glAccum",
+			    "glAlphaFunc",
+			    "glAreTexturesResident",
+			    "glArrayElement",
+			    "glBegin",
+			    "glBindTexture",
+			    "glBitmap",
+			    "glBlendFunc",
+			    "glCallList",
+			    "glCallLists",
+			    "glClear",
+			    "glClearAccum",
+			    "glClearColor",
+			    "glClearDepth",
+			    "glClearIndex",
+			    "glClearStencil",
+			    "glClipPlane",
+			    "glColor3b",
+			    "glColor3bv",
+			    "glColor3d",
+			    "glColor3dv",
+			    "glColor3f",
+			    "glColor3fv",
+			    "glColor3i",
+			    "glColor3iv",
+			    "glColor3s",
+			    "glColor3sv",
+			    "glColor3ub",
+			    "glColor3ubv",
+			    "glColor3ui",
+			    "glColor3uiv",
+			    "glColor3us",
+			    "glColor3usv",
+			    "glColor4b",
+			    "glColor4bv",
+			    "glColor4d",
+			    "glColor4dv",
+			    "glColor4f",
+			    "glColor4fv",
+			    "glColor4i",
+			    "glColor4iv",
+			    "glColor4s",
+			    "glColor4sv",
+			    "glColor4ub",
+			    "glColor4ubv",
+			    "glColor4ui",
+			    "glColor4uiv",
+			    "glColor4us",
+			    "glColor4usv",
+			    "glColorMask",
+			    "glColorMaterial",
+			    "glColorPointer",
+			    "glCopyPixels",
+			    "glCopyTexImage1D",
+			    "glCopyTexImage2D",
+			    "glCopyTexSubImage1D",
+			    "glCopyTexSubImage2D",
+			    "glCullFaceglCullFace",
+			    "glDeleteLists",
+			    "glDeleteTextures",
+			    "glDepthFunc",
+			    "glDepthMask",
+			    "glDepthRange",
+			    "glDisable",
+			    "glDisableClientState",
+			    "glDrawArrays",
+			    "glDrawBuffer",
+			    "glDrawElements",
+			    "glDrawPixels",
+			    "glEdgeFlag",
+			    "glEdgeFlagPointer",
+			    "glEdgeFlagv",
+			    "glEnable",
+			    "glEnableClientState",
+			    "glEnd",
+			    "glEndList",
+			    "glEvalCoord1d",
+			    "glEvalCoord1dv",
+			    "glEvalCoord1f",
+			    "glEvalCoord1fv",
+			    "glEvalCoord2d",
+			    "glEvalCoord2dv",
+			    "glEvalCoord2f",
+			    "glEvalCoord2fv",
+			    "glEvalMesh1",
+			    "glEvalMesh2",
+			    "glEvalPoint1",
+			    "glEvalPoint2",
+			    "glFeedbackBuffer",
+			    "glFinish",
+			    "glFlush",
+			    "glFogf",
+			    "glFogfv",
+			    "glFogi",
+			    "glFogiv",
+			    "glFrontFace",
+			    "glFrustum",
+			    "glGenLists",
+			    "glGenTextures",
+			    "glGetBooleanv",
+			    "glGetClipPlane",
+			    "glGetDoublev",
+			    "glGetError",
+			    "glGetFloatv",
+			    "glGetIntegerv",
+			    "glGetLightfv",
+			    "glGetLightiv",
+			    "glGetMapdv",
+			    "glGetMapfv",
+			    "glGetMapiv",
+			    "glGetMaterialfv",
+			    "glGetMaterialiv",
+			    "glGetPixelMapfv",
+			    "glGetPixelMapuiv",
+			    "glGetPixelMapusv",
+			    "glGetPointerv",
+			    "glGetPolygonStipple",
+			    "glGetString",
+			    "glGetTexEnvfv",
+			    "glGetTexEnviv",
+			    "glGetTexGendv",
+			    "glGetTexGenfv",
+			    "glGetTexGeniv",
+			    "glGetTexImage",
+			    "glGetTexLevelParameterfv",
+			    "glGetTexLevelParameteriv",
+			    "glGetTexParameterfv",
+			    "glGetTexParameteriv",
+			    "glHint",
+			    "glIndexMask",
+			    "glIndexPointer",
+			    "glIndexd",
+			    "glIndexdv",
+			    "glIndexf",
+			    "glIndexfv",
+			    "glIndexi",
+			    "glIndexiv",
+			    "glIndexs",
+			    "glIndexsv",
+			    "glIndexub",
+			    "glIndexubv",
+			    "glInitNames",
+			    "glInterleavedArrays",
+			    "glIsEnabled",
+			    "glIsList",
+			    "glIsTexture",
+			    "glLightModelf",
+			    "glLightModelfv",
+			    "glLightModeli",
+			    "glLightModeliv",
+			    "glLightf",
+			    "glLightfv",
+			    "glLighti",
+			    "glLightiv",
+			    "glLineStipple",
+			    "glLineWidth",
+			    "glListBase",
+			    "glLoadIdentity",
+			    "glLoadMatrixd",
+			    "glLoadMatrixf",
+			    "glLoadName",
+			    "glLogicOp",
+			    "glMap1d",
+			    "glMap1f",
+			    "glMap2d",
+			    "glMap2f",
+			    "glMapGrid1d",
+			    "glMapGrid1f",
+			    "glMapGrid2d",
+			    "glMapGrid2f",
+			    "glMaterialf",
+			    "glMaterialfv",
+			    "glMateriali",
+			    "glMaterialiv",
+			    "glMatrixMode",
+			    "glMultMatrixd",
+			    "glMultMatrixf",
+			    "glNewList",
+			    "glNormal3b",
+			    "glNormal3bv",
+			    "glNormal3d",
+			    "glNormal3dv",
+			    "glNormal3f",
+			    "glNormal3fv",
+			    "glNormal3i",
+			    "glNormal3iv",
+			    "glNormal3s",
+			    "glNormal3sv",
+			    "glNormalPointer",
+			    "glOrtho",
+			    "glPassThrough",
+			    "glPixelMapfv",
+			    "glPixelMapuiv",
+			    "glPixelMapusv",
+			    "glPixelStoref",
+			    "glPixelStorei",
+			    "glPixelTransferf",
+			    "glPixelTransferi",
+			    "glPixelZoom",
+			    "glPointSize",
+			    "glPolygonMode",
+			    "glPolygonOffset",
+			    "glPolygonStipple",
+			    "glPopAttrib",
+			    "glPopClientAttrib",
+			    "glPopMatrix",
+			    "glPopName",
+			    "glPrioritizeTextures",
+			    "glPushAttrib",
+			    "glPushClientAttrib",
+			    "glPushMatrix",
+			    "glPushName",
+			    "glRasterPos2d",
+			    "glRasterPos2dv",
+			    "glRasterPos2f",
+			    "glRasterPos2fv",
+			    "glRasterPos2i",
+			    "glRasterPos2iv",
+			    "glRasterPos2s",
+			    "glRasterPos2sv",
+			    "glRasterPos3d",
+			    "glRasterPos3dv",
+			    "glRasterPos3f",
+			    "glRasterPos3fv",
+			    "glRasterPos3i",
+			    "glRasterPos3iv",
+			    "glRasterPos3s",
+			    "glRasterPos3sv",
+			    "glRasterPos4d",
+			    "glRasterPos4dv",
+			    "glRasterPos4f",
+			    "glRasterPos4fv",
+			    "glRasterPos4i",
+			    "glRasterPos4iv",
+			    "glRasterPos4s",
+			    "glRasterPos4sv",
+			    "glReadBuffer",
+			    "glReadPixels",
+			    "glRectd",
+			    "glRectdv",
+			    "glRectf",
+			    "glRectfv",
+			    "glRecti",
+			    "glRectiv",
+			    "glRects",
+			    "glRectsv",
+			    "glRenderMode",
+			    "glRotated",
+			    "glRotatef",
+			    "glScaled",
+			    "glScalef",
+			    "glScissor",
+			    "glSelectBuffer",
+			    "glShadeModel",
+			    "glStencilFunc",
+			    "glStencilMask",
+			    "glStencilOp",
+			    "glTexCoord1d",
+			    "glTexCoord1dv",
+			    "glTexCoord1f",
+			    "glTexCoord1fv",
+			    "glTexCoord1i",
+			    "glTexCoord1iv",
+			    "glTexCoord1s",
+			    "glTexCoord1sv",
+			    "glTexCoord2d",
+			    "glTexCoord2dv",
+			    "glTexCoord2f",
+			    "glTexCoord2fv",
+			    "glTexCoord2i",
+			    "glTexCoord2iv",
+			    "glTexCoord2s",
+			    "glTexCoord2sv",
+			    "glTexCoord3d",
+			    "glTexCoord3dv",
+			    "glTexCoord3f",
+			    "glTexCoord3fv",
+			    "glTexCoord3i",
+			    "glTexCoord3iv",
+			    "glTexCoord3s",
+			    "glTexCoord3sv",
+			    "glTexCoord4d",
+			    "glTexCoord4dv",
+			    "glTexCoord4f",
+			    "glTexCoord4fv",
+			    "glTexCoord4i",
+			    "glTexCoord4iv",
+			    "glTexCoord4s",
+			    "glTexCoord4sv",
+			    "glTexCoordPointer",
+			    "glTexEnvf",
+			    "glTexEnvfv",
+			    "glTexEnvi",
+			    "glTexEnviv",
+			    "glTexGend",
+			    "glTexGendv",
+			    "glTexGenf",
+			    "glTexGenfv",
+			    "glTexGeni",
+			    "glTexGeniv",
+			    "glTexImage1D",
+			    "glTexImage2D",
+			    "glTexParameterf",
+			    "glTexParameterfv",
+			    "glTexParameteri",
+			    "glTexParameteriv",
+			    "glTexSubImage1D",
+			    "glTexSubImage2D",
+			    "glTranslated",
+			    "glTranslatef",
+			    "glVertex2d",
+			    "glVertex2dv",
+			    "glVertex2f",
+			    "glVertex2fv",
+			    "glVertex2i",
+			    "glVertex2iv",
+			    "glVertex2s",
+			    "glVertex2sv",
+			    "glVertex3d",
+			    "glVertex3dv",
+			    "glVertex3f",
+			    "glVertex3fv",
+			    "glVertex3i",
+			    "glVertex3iv",
+			    "glVertex3s",
+			    "glVertex3sv",
+			    "glVertex4d",
+			    "glVertex4dv",
+			    "glVertex4f",
+			    "glVertex4fv",
+			    "glVertex4i",
+			    "glVertex4iv",
+			    "glVertex4s",
+			    "glVertex4sv",
+			    "glVertexPointer",
+			    "glViewport"
+			};
+
+			size_t size = GRAPHIC_ARRAYSIZE(methodsNames);
+
+			m_swapchain_methods.clear();
+			m_swapchain_methods.reserve(size);
+
+			for (int i = 0; i < size; i++)
+			{
+				FARPROC proc = ::GetProcAddress(libOpenGL32, methodsNames[i]);
+
+				if (proc)
+				{
+					m_swapchain_methods[i] = reinterpret_cast<uintptr_t>(proc);
+				}
+			}
         }
 
         return eInitializationStatus::FAILED;
