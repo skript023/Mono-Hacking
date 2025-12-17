@@ -117,7 +117,6 @@ namespace js::command
 			{
 				JSValue ret = JS_Call(ctx, js_onTick, js_this, 0, nullptr);
 				JS_FreeValue(ctx, ret);
-				run_pending(JS_GetRuntime(ctx));
 			}
 			JS_FreeValue(ctx, js_onTick);
 		}
@@ -188,7 +187,7 @@ namespace js::command
 			const char* desc = JS_ToCString(ctx, argv[2]);
 			bool def = (argc >= 4) ? JS_ToBool(ctx, argv[3]) : false;
 
-			JSValue obj = JS_NewObjectClass(ctx, bool_command_class_id);
+			JSValue obj = JS_NewObjectProtoClass(ctx, JS_GetPrototype(ctx, new_target), bool_command_class_id);
 			js_bool_command* native = new js_bool_command(ctx, name, label, desc, def, obj);
 			JS_SetOpaque(obj, native);
 
@@ -227,6 +226,11 @@ namespace js::command
 			native->tick();
 			return JS_UNDEFINED;
 		}, "tick", 0));
+
+		JS_SetPropertyStr(ctx, proto, "onTick", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
+			// dummy, do nothing
+			return JS_UNDEFINED;
+		}, "onTick", 0));
 
 		JS_SetPropertyStr(ctx, proto, "set_state", JS_NewCFunction(ctx, js_set_state, "set_state", 1));
 		JS_SetPropertyStr(ctx, proto, "get_state", JS_NewCFunction(ctx, js_get_state, "get_state", 0));
