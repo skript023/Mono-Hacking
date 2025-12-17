@@ -61,4 +61,28 @@ namespace memory
 			throw std::runtime_error("Failed to find some patterns.");
 		}
 	}
+	void pattern_batch::run_fullscan()
+	{
+		bool all_found = true;
+
+		for (auto& entry : m_entries)
+		{
+			auto result = range::fullscan(entry.m_pattern);
+
+			if (result)
+			{
+				std::invoke(entry.m_callback, result);
+			}
+			else
+			{
+				LOG(big::CRITICAL) << "Pattern not found: " << entry.m_name;
+				all_found = false;
+			}
+		}
+
+		m_entries.clear();
+
+		if (!all_found)
+			throw std::runtime_error("Some patterns not found");
+	}
 }

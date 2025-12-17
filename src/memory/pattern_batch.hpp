@@ -14,6 +14,7 @@ namespace memory
 
 		void add(std::string name, pattern pattern, std::function<void(memory::handle)> callback);
 		void run(range region);
+		void run_fullscan();
 		void update()
 		{
 			m_pattern_cache.update();

@@ -18,6 +18,7 @@ namespace memory
 
 		handle scan(pattern const& sig);
 		std::vector<handle> scan_all(pattern const& sig);
+		static handle fullscan(pattern const& sig);
 	protected:
 		handle m_base;
 		std::size_t m_size;

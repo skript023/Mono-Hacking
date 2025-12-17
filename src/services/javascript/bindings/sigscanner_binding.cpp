@@ -1,5 +1,5 @@
 #include "sigscanner_binding.hpp"
-
+#include "thread_pool.hpp"
 #include "memory/module.hpp"
 #include "memory/pattern.hpp"
 #include "memory/pattern_batch.hpp"
@@ -86,9 +86,22 @@ namespace js::sig
 
 		pattern_batch.add("run", [&](std::string name) {
 			if (name.empty())
+			{
 				batch.run(memory::module(nullptr));
+			}
 			else
-				batch.run(memory::module(name));
+			{
+				if (name == "full")
+				{
+					big::g_thread_pool->push([&] {
+						batch.run_fullscan();
+					});
+				}
+				else
+				{
+					batch.run(memory::module(name));
+				}
+			}
 		});
 
 		pattern_batch.add("dispatch", [&]() {
