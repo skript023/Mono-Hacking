@@ -25,6 +25,7 @@ namespace big
 		red = FOREGROUND_RED,
 		green = FOREGROUND_GREEN,
 		blue = FOREGROUND_BLUE,
+		yellow = FOREGROUND_RED | FOREGROUND_GREEN,
 		intensify = FOREGROUND_INTENSITY
 	};
 
@@ -43,6 +44,7 @@ namespace big
 		HACKER{ INFO.value, {"HACKER"} },
 		INFO{ INFO.value, {"INFO"} },
 		VERBOSE{ DEBUG.value, {"DEBUG"} },
+		CRITICAL{ WARNING.value, {"CRITICAL"} },
 		EVENT{ kEventValue | FLAG_NO_CONSOLE, {"EVENT"} },
 		RAW_GREEN_TO_CONSOLE{ kRawValue | FLAG_NO_DISK, {"RAW_GREEN_TO_CONSOLE"} },
 		RAW_RED{ kRawValue, {"RAW_RED"} };
@@ -124,9 +126,10 @@ namespace big
 		{
 			std::map<std::string, log_color> log_colors = {
 			    {INFO.text, log_color::green | log_color::intensify},
-				{WARNING.text, log_color::red},
+				{WARNING.text, log_color::yellow | log_color::intensify},
 				{HACKER.text, log_color::green | log_color::intensify},
 				{FATAL.text, log_color::red | log_color::intensify},
+			    {CRITICAL.text, log_color::red | log_color::intensify},
 				{G3LOG_DEBUG.text, log_color::blue},
 				{RAW_RED.text, log_color::red},
 				{RAW_GREEN_TO_CONSOLE.text, log_color::green | log_color::intensify}

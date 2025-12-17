@@ -197,8 +197,8 @@ namespace js::command
 			bool def = (argc >= 4) ? JS_ToBool(ctx, argv[3]) : false;
 
 			JSValue obj = JS_NewObjectProtoClass(ctx, JS_GetPrototype(ctx, new_target), bool_command_class_id);
-			js_bool_command native = js_bool_command(ctx, name, label, desc, def, obj);
-			JS_SetOpaque(obj, &native);
+			js_bool_command* native = new js_bool_command(ctx, name, label, desc, def, obj);
+			JS_SetOpaque(obj, native);
 
 			JS_SetPropertyStr(ctx, obj, "get_state", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
 				js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, bool_command_class_id);
@@ -247,18 +247,6 @@ namespace js::command
 		JS_NewClass(JS_GetRuntime(ctx), looped_command_class_id, &def);
 
 		JSValue proto = JS_NewObject(ctx);
-		JS_SetPropertyStr(ctx, proto, "tick", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
-			js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, looped_command_class_id);
-			if (!native)
-				return JS_ThrowTypeError(ctx, "tick invalid");
-			native->tick();
-			return JS_UNDEFINED;
-		}, "tick", 0));
-
-		JS_SetPropertyStr(ctx, proto, "onTick", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
-			// dummy, do nothing
-			return JS_UNDEFINED;
-		}, "onTick", 0));
 
 		JS_SetPropertyStr(ctx, proto, "set_state", JS_NewCFunction(ctx, js_set_state, "set_state", 1));
 		JS_SetPropertyStr(ctx, proto, "get_state", JS_NewCFunction(ctx, js_get_state, "get_state", 0));
@@ -271,26 +259,11 @@ namespace js::command
 			const char* desc = JS_ToCString(ctx, argv[2]);
 
 			JSValue obj = JS_NewObjectProtoClass(ctx, JS_GetPrototype(ctx, new_target), looped_command_class_id);
-			js_looped_command native = js_looped_command(ctx, name, label, desc, obj);
-			JS_SetOpaque(obj, &native);
+			js_looped_command* native = new js_looped_command(ctx, name, label, desc, obj);
+			JS_SetOpaque(obj, native);
 
 			JS_SetPropertyStr(ctx, obj, "set_state", JS_NewCFunction(ctx, js_set_state, "set_state", 1));
 			JS_SetPropertyStr(ctx, obj, "get_state", JS_NewCFunction(ctx, js_get_state, "get_state", 0));
-
-			JS_SetPropertyStr(ctx, obj, "onTick", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
-				// dummy, do nothing
-				return JS_UNDEFINED;
-			}, "onTick", 0));
-
-			JSValue proto = JS_GetPrototype(ctx, obj);
-			JSValue proto_onTick = JS_GetPropertyStr(ctx, proto, "onTick");
-			if (JS_IsFunction(ctx, proto_onTick))
-			{
-				// buat function bound
-				JSValue bound = JS_Call(ctx, proto_onTick, obj, 0, nullptr);
-				JS_SetPropertyStr(ctx, obj, "onTick", proto_onTick); // set ke instance
-			}
-			JS_FreeValue(ctx, proto_onTick);
 
 			JS_FreeCString(ctx, name);
 			JS_FreeCString(ctx, label);

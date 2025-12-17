@@ -60,6 +60,28 @@ namespace big
 		LOG(INFO) << std::format("[JS] {}", out.str());
 	}
 
+	static void js_console_warn(const qjs::rest<std::string>& args)
+	{
+		std::stringstream out;
+		for (const auto& message : args)
+		{
+			out << " " << message;
+		}
+
+		LOG(WARNING) << std::format("[JS] {}", out.str());
+	}
+
+	static void js_console_error(const qjs::rest<std::string>& args)
+	{
+		std::stringstream out;
+		for (const auto& message : args)
+		{
+			out << " " << message;
+		}
+
+		LOG(CRITICAL) << std::format("[JS] {}", out.str());
+	}
+
 	static double js_get_local_player()
 	{
 		return (double)(uintptr_t)unity::get_local_player();
@@ -94,6 +116,8 @@ namespace big
 		
 		auto console = ctx.newObject();
 		console.add<&js_console_log>("log");
+		console.add<&js_console_warn>("warn");
+		console.add<&js_console_error>("error");
 
 		global["console"] = console;
 		global["unity"] = unity;
