@@ -91,17 +91,14 @@ namespace js::sig
 			}
 			else
 			{
-				if (name == "full")
-				{
-					big::g_thread_pool->push([&] {
-						batch.run_fullscan();
-					});
-				}
-				else
-				{
-					batch.run(memory::module(name));
-				}
+				batch.run(memory::module(name));
 			}
+		});
+
+		pattern_batch.add("fullscan_run", [&]() {
+			big::g_thread_pool->push([&] {
+				batch.run_fullscan();
+			});
 		});
 
 		pattern_batch.add("dispatch", [&]() {
