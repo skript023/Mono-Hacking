@@ -177,6 +177,26 @@ struct js_traits<double>
     }
 };
 
+/** Conversion traits for float.
+ */
+template <>
+struct js_traits<float>
+{
+    /// @throws exception
+	static float unwrap(JSContext* ctx, JSValueConst v)
+    {
+        double r;
+        if(JS_ToFloat64(ctx, &r, v))
+            throw exception{ctx};
+		return static_cast<float>(r);
+    }
+
+    static JSValue wrap(JSContext* ctx, float i) noexcept
+    {
+        return JS_NewFloat64(ctx, static_cast<double>(i));
+    }
+};
+
 namespace detail {
 /** Fake std::string_view which frees the string on destruction.
 */

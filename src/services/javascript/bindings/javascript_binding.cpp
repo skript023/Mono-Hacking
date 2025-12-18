@@ -119,6 +119,12 @@ namespace big
 		console.add<&js_console_warn>("warn");
 		console.add<&js_console_error>("error");
 
+		auto& vec3 = ctx.addModule("Vector");
+		vec3.class_<Vector3>("Vector3")
+		    .fun<&Vector3::x>("x")
+		    .fun<&Vector3::y>("y")
+		    .fun<&Vector3::z>("z");
+
 		global["console"] = console;
 		global["unity"] = unity;
 		global["logger"] = logger;
