@@ -405,9 +405,15 @@ namespace big
 				opt->get_max_float());
 		}
 
-		draw_side_panel_window("test", g_settings.window.m_width + (g_settings.window.m_pos.x + 30.f), m_draw_base_y + (m_submenu_bar_height / 2.f) - 5.f, g_settings.window.m_width, m_option_height * (sub->get_num_option() > g_settings.window.m_option_per_page ? g_settings.window.m_option_per_page : sub->get_num_option()), [] {
-		
-		});
+		if (opt->get_flag(OptionFlag::SidePanel))
+		{
+			draw_side_panel_window(sub->get_name(), g_settings.window.m_width + (g_settings.window.m_pos.x + 30.f), 
+				m_draw_base_y + (m_submenu_bar_height / 2.f) - 5.f, 
+				g_settings.window.m_width, m_option_height * (sub->get_num_option() > g_settings.window.m_option_per_page ? g_settings.window.m_option_per_page : sub->get_num_option()), 
+				[=] {
+				opt->draw_side_panel();
+			});
+		}
 
 		m_draw_base_y += m_option_height;
 	}

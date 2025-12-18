@@ -13,6 +13,7 @@ enum class OptionFlag
 	Toggle = (1 << 2),
 	BoolSliderInt = (1 << 3),
 	BoolSliderFloat = (1 << 4),
+	SidePanel = (1 << 5),
 };
 
 class abstract_option
@@ -31,6 +32,7 @@ public:
 	virtual const char* get_description() = 0;
 	virtual void handle_action(OptionAction action) = 0;
 	virtual bool get_flag(OptionFlag flag) = 0;
+	virtual void draw_side_panel() = 0;
 protected:
 	explicit abstract_option() = default;
 
