@@ -83,16 +83,23 @@ namespace js::sig
 			    });
 		});
 
-
-		pattern_batch.add("run", [&](std::string name) {
-			if (name.empty())
+		pattern_batch.add("run", [&](qjs::Value name) {
+			if (name.isUndefined() || name.isNull())
 			{
 				batch.run(memory::module(nullptr));
+				return;
 			}
+
+			// pastikan string
+			if (!name.isString())
+				throw std::runtime_error("run(name): name must be string or null");
+
+			std::string mod = name.as<std::string>();
+
+			if (mod.empty())
+				batch.run(memory::module(nullptr));
 			else
-			{
-				batch.run(memory::module(name));
-			}
+				batch.run(memory::module(mod));
 		});
 
 		pattern_batch.add("fullscan_run", [&]() {
