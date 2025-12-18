@@ -53,7 +53,7 @@ namespace big
 								g_settings.window.m_option_selected_background_color);
 						}
 
-						draw_option(sub->get_option(i), i == sub->get_selected_option());
+						draw_option(sub, sub->get_option(i), i == sub->get_selected_option());
 					}
 					draw_scrollbar(sub->get_selected_option(), sub->get_num_option(), g_settings.window.m_option_per_page);
 				}
@@ -328,7 +328,7 @@ namespace big
 		m_draw_base_y += m_submenu_bar_height;
 	}
 
-	void canvas::draw_option(abstract_option* opt, bool selected)
+	void canvas::draw_option(abstract_submenu* sub, abstract_option* opt, bool selected)
 	{
 		if (opt->get_flag(OptionFlag::BoolSliderInt))
 		{
@@ -404,6 +404,10 @@ namespace big
 				opt->get_min_float(), 
 				opt->get_max_float());
 		}
+
+		draw_side_panel_window("test", g_settings.window.m_width + (g_settings.window.m_pos.x + 30.f), m_draw_base_y + (m_submenu_bar_height / 2.f) - 5.f, g_settings.window.m_width, m_option_height * (sub->get_num_option() > g_settings.window.m_option_per_page ? g_settings.window.m_option_per_page : sub->get_num_option()), [] {
+		
+		});
 
 		m_draw_base_y += m_option_height;
 	}
@@ -557,6 +561,34 @@ namespace big
 			g_settings.window.description_text_color, g_renderer->m_font);
 
 		m_draw_base_y += description_height;
+	}
+
+	void canvas::draw_side_panel_window(const char* id, float x, float y, float width, float height, std::function<void()> content)
+	{
+		ImVec2 pos{x, y};
+
+		ImGui::SetNextWindowPos(pos);
+
+		// WIDTH fixed, HEIGHT auto
+		ImGui::SetNextWindowSize({width, height}, ImGuiCond_Always);
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {10.f, 10.f});
+
+		auto bgcol = g_settings.window.m_option_unselected_background_color;
+
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(bgcol.r, bgcol.g, bgcol.b, bgcol.a));
+		ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(bgcol.r, bgcol.g, bgcol.b, bgcol.a));
+
+		if (ImGui::Begin(id, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			content();
+		}
+
+		ImGui::End();
+
+		ImGui::PopStyleColor(2);
+		ImGui::PopStyleVar(2);
 	}
 
 	void canvas::draw_rect(float x, float y, float width, float height, Color color, ImDrawList* draw_list)

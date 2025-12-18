@@ -203,13 +203,13 @@ namespace big
 		void draw_header();
 		void draw_tabs(abstract_submenu* sub);
 		void draw_submenu_bar(abstract_submenu* sub);
-		void draw_option(abstract_option* opt, bool selected);
+		void draw_option(abstract_submenu* sub, abstract_option* opt, bool selected);
 		void draw_slider(float x, float y, float current_value, float min_value, float max_value);
 		void draw_scrollbar(int selected_option, int total_options, int options_per_page);
 		void draw_checkbox(float x, float y, float size, bool is_checked);
 		void draw_footer();
 		void draw_description();
-
+		void draw_side_panel_window(const char* id, float x, float y, float width, float height, std::function<void()> content);
 		void draw_rect(float x, float y, float width, float height, Color color, ImDrawList* draw_list = ImGui::GetBackgroundDrawList());
 		void draw_sprite(ID3D11ShaderResourceView* image, float x, float y, float width, float height, Color color, ImDrawList* drawlist = ImGui::GetBackgroundDrawList());
 		void draw_sprite(D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle, float x, float y, float width, float height, Color color, ImDrawList* drawlist = ImGui::GetBackgroundDrawList());
