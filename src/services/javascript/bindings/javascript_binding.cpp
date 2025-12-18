@@ -119,11 +119,21 @@ namespace big
 		console.add<&js_console_warn>("warn");
 		console.add<&js_console_error>("error");
 
-		auto& vec3 = ctx.addModule("Vector");
-		vec3.class_<Vector3>("Vector3")
-		    .fun<&Vector3::x>("x")
-		    .fun<&Vector3::y>("y")
-		    .fun<&Vector3::z>("z");
+		auto vec = ctx.newObject();
+
+		vec.add<&Vector3::x>("x");
+		vec.add<&Vector3::y>("y");
+		vec.add<&Vector3::z>("z");
+		
+		auto dctor = ctx.newValue(qjs::ctor_wrapper<Vector3>{});
+		JS_SetConstructor(ctx.ctx, dctor.v, vec.v);
+		global["Vector3"] = dctor;
+		
+		auto ctor = ctx.newValue(qjs::ctor_wrapper<Vector3, float, float, float>{"Vector3"});
+		JS_SetConstructor(ctx.ctx, ctor.v, vec.v);
+		global["Vector3"] = ctor;
+
+		ctx.registerClass<Vector3>("Vector3", std::move(vec));
 
 		global["console"] = console;
 		global["unity"] = unity;

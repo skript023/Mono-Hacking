@@ -3,7 +3,7 @@
 namespace process
 {
 	inline std::uint32_t pid{};
-	inline std::string name{ "ScarletNexus-Win64-Shipping.exe" };
+	inline std::string name{ "Valheim.exe" };
 
 	static bool is_process_running()
 	{
