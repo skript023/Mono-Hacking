@@ -72,7 +72,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		javascript_manager::init();
 		LOG(HACKER) << "Service registered.";
 
-		//auto server_instance = std::make_unique<server_module>();
+		auto server_instance = std::make_unique<server_module>();
 		LOG(HACKER) << "Server initialized.";
 
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
@@ -99,7 +99,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		g_script_mgr.remove_all_scripts();
 		LOG(HACKER) << "Scripts unregistered.";
 
-		//server_instance.reset();
+		server_instance.reset();
 		LOG(HACKER) << "Server unregistered.";
 		
 		LOG(HACKER) << "Service unregistered.";

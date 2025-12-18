@@ -63,30 +63,31 @@ namespace js::sig
 
 		auto pattern_batch = ctx.newObject();
 
-		pattern_batch.add("add",
-		    [&](std::string name, std::string sig, qjs::Value cb) {
-			    if (!cb.isFunction())
-				    throw std::runtime_error("callback must be function");
+		pattern_batch.add("add", [&](std::string name, std::string sig, qjs::Value cb) {
+			if (!cb.isFunction())
+				throw std::runtime_error("callback must be function");
 
-			    js_scan_entry e;
-			    e.name = std::move(name);
-			    e.sig = std::move(sig);
-			    e.fn = JS_DupValue(ctx.ctx, cb.v);
+			js_scan_entry e;
+			e.name = std::move(name);
+			e.sig = std::move(sig);
+			e.fn = JS_DupValue(ctx.ctx, cb.v);
 
-			    size_t index = g_entries.size();
-			    g_entries.push_back(e);
+			size_t index = g_entries.size();
+			g_entries.push_back(e);
 
-			    batch.add(e.name, memory::pattern(e.sig), [index](memory::handle h) {
-				    std::lock_guard<std::mutex> lock(g_event_mutex);
-				    g_events.push({index,
-				        h.as<uint64_t>()});
-			    });
+			batch.add(e.name, memory::pattern(e.sig), [index](memory::handle h) {
+				std::lock_guard<std::mutex> lock(g_event_mutex);
+				g_events.push({index,
+				    h.as<uint64_t>()});
+			});
 		});
 
 		pattern_batch.add("run", [&](qjs::Value name) {
 			if (name.isUndefined() || name.isNull())
 			{
 				batch.run(memory::module(nullptr));
+
+				dispatch_js_events();
 				return;
 			}
 
@@ -100,6 +101,8 @@ namespace js::sig
 				batch.run(memory::module(nullptr));
 			else
 				batch.run(memory::module(mod));
+
+			dispatch_js_events();
 		});
 
 		pattern_batch.add("fullscan_run", [&]() {
