@@ -42,7 +42,7 @@ namespace big
 	class canvas
 	{
 		std::vector<std::unique_ptr<abstract_submenu>> m_all_tabs;
-		std::stack<abstract_submenu*, std::vector<abstract_submenu*>> m_tabs_stack;
+		std::vector<std::vector<abstract_submenu*>> m_tab_submenu_stack;
 
 		static canvas& instance()
 		{
@@ -86,16 +86,23 @@ namespace big
 			m_all_submenu.push_back(std::move(sub));
 		}
 
-		template <typename TabmenuType, typename... Args>
+		template<typename TabmenuType, typename... Args>
 		void add_tab_impl(Args&&... args)
 		{
-			auto sub = std::make_unique<TabmenuType>(std::forward<Args>(args)...);
+			auto tab = std::make_unique<TabmenuType>(std::forward<Args>(args)...);
+
 			if (m_submenu_stack.empty())
 			{
-				m_submenu_stack.push(sub.get());
+				m_submenu_stack.push(tab.get());
 			}
+			// register tab
+			m_all_tabs.push_back(std::move(tab));
 
-			m_all_tabs.push_back(std::move(sub));
+			// buat stack submenu default utk tab ini
+			m_tab_submenu_stack.emplace_back();
+			m_tab_submenu_stack.back().push_back(
+			    m_all_tabs.back().get() // root submenu = tab itself
+			);
 		}
 
 		void switch_to_submenu_impl(std::uint32_t id)
@@ -104,7 +111,13 @@ namespace big
 			{
 				if (sub->get_id() == id)
 				{
-					m_submenu_stack.push(sub.get());
+					// push ke stack TAB AKTIF
+					m_tab_submenu_stack[m_selected_tab].push_back(sub.get());
+
+					// sync global draw stack
+					m_submenu_stack.pop();
+					for (auto* s : m_tab_submenu_stack[m_selected_tab])
+						m_submenu_stack.push(s);
 
 					return;
 				}
@@ -113,11 +126,16 @@ namespace big
 
 		void switch_to_tabmenu_impl(std::uint32_t id)
 		{
-			for (auto&& sub : m_all_tabs)
+			for (size_t i = 0; i < m_all_tabs.size(); ++i)
 			{
-				if (sub->get_id() == id)
+				if (m_all_tabs[i]->get_id() == id)
 				{
-					m_submenu_stack.push(sub.get());
+					m_selected_tab = i;
+
+					// restore submenu stack milik tab ini
+					m_submenu_stack.pop();
+					for (auto* sub : m_tab_submenu_stack[i])
+						m_submenu_stack.push(sub);
 
 					return;
 				}

@@ -32,7 +32,8 @@ public:
 	virtual const char* get_description() = 0;
 	virtual void handle_action(OptionAction action) = 0;
 	virtual bool get_flag(OptionFlag flag) = 0;
-	virtual void draw_side_panel() = 0;
+	virtual void draw_side_panel() {};
+
 protected:
 	explicit abstract_option() = default;
 

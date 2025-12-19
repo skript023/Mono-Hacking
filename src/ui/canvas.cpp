@@ -237,6 +237,34 @@ namespace big
 		const int max_visible_tabs = 3;
 		const float lerp_speed = 0.15f;
 
+		// =================================
+		// Calculate visible window
+		// =================================
+		static size_t start_index = 0;
+
+		if (total_tabs > max_visible_tabs)
+		{
+			if (m_selected_tab < start_index)
+				start_index = m_selected_tab;
+			else if (m_selected_tab >= start_index + max_visible_tabs)
+				start_index = m_selected_tab - (max_visible_tabs - 1);
+
+			if (start_index + max_visible_tabs > total_tabs)
+				start_index = total_tabs - max_visible_tabs;
+		}
+		else
+		{
+			start_index = 0;
+		}
+
+		const size_t end_index =
+		    std::min(start_index + max_visible_tabs, total_tabs);
+
+		const size_t visible_count = end_index - start_index;
+
+		// =================================
+		// Layout (ALWAYS 3 slots)
+		// =================================
 		const float total_width = g_settings.window.m_width;
 		const float base_width = total_width / max_visible_tabs;
 
@@ -244,40 +272,52 @@ namespace big
 		const float normal_width_target =
 		    (total_width - selected_width_target) / (max_visible_tabs - 1);
 
+		// =================================
+		// Animation state (per visible slot)
+		// =================================
 		static std::vector<float> anim_w;
-		if (anim_w.size() != total_tabs)
-			anim_w.assign(total_tabs, base_width);
+		if (anim_w.size() != visible_count)
+			anim_w.assign(visible_count, base_width);
 
+		// =================================
+		// Draw tabs
+		// =================================
 		float x = g_settings.window.m_pos.x;
 		float y = m_draw_base_y + (m_submenu_bar_height / 2) - 5.f;
 
-		for (size_t i = 0; i < total_tabs; ++i)
+		for (size_t v = 0; v < visible_count; ++v)
 		{
-			bool is_selected = (i == m_selected_tab);
+			const size_t i = start_index + v;
+			const bool is_selected = (i == m_selected_tab);
 
-			float target_w = is_selected ? selected_width_target : normal_width_target;
+			const float target_w =
+			    is_selected ? selected_width_target : normal_width_target;
 
-			anim_w[i] = lerp(anim_w[i], target_w, lerp_speed);
+			anim_w[v] = lerp(anim_w[v], target_w, lerp_speed);
 
 			draw_rect(
 			    x,
 			    y,
-			    anim_w[i],
+			    anim_w[v],
 			    m_submenu_bar_height,
 			    is_selected ? g_settings.window.m_tab_selected_color : g_settings.window.m_tab_unselected_color);
 
-			const char* title = (is_selected && sub != nullptr) ? sub->get_name() : m_all_tabs[i]->get_name();
+			const char* title =
+			    (is_selected && sub != nullptr) ? sub->get_name() : m_all_tabs[i]->get_name();
 
 			draw_centered_text(
 			    title,
-			    x + anim_w[i] / 2.f,
+			    x + anim_w[v] / 2.f,
 			    m_draw_base_y + (m_submenu_bar_height / 2) + 11.f,
 			    is_selected ? g_settings.window.m_tab_selected_text_color : g_settings.window.m_tab_unselected_text_color,
 			    g_renderer->m_font);
 
-			x += anim_w[i];
+			x += anim_w[v];
 		}
 
+		// =================================
+		// Bottom separator
+		// =================================
 		draw_rect(
 		    g_settings.window.m_pos.x,
 		    m_draw_base_y + m_submenu_bar_height + 19.f,
