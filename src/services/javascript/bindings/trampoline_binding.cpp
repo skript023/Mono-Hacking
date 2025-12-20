@@ -143,6 +143,48 @@ namespace js::trampoline
 
 		return JS_NewFloat64(ctx, (double)*w->ptr);
 	}
+	struct MonoString
+	{
+		void* klass;
+		void* monitor;
+		int32_t length;
+		char16_t chars[1];
+	};
+
+	static JSValue js_arg_as_mono_string(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+	{
+		auto* w = (ArgWrapper*)JS_GetOpaque(this_val, g_arg_wrapper_class);
+		if (!w || !w->ptr)
+			return JS_EXCEPTION;
+
+		auto* ms = (MonoString*)*w->ptr;
+		if (!ms || ms->length < 0 || ms->length > 0x2000)
+			return JS_NULL;
+
+		int len = WideCharToMultiByte(
+		    CP_UTF8,
+		    0,
+		    (wchar_t*)ms->chars,
+		    ms->length,
+		    nullptr,
+		    0,
+		    nullptr,
+		    nullptr);
+
+		std::string out(len, '\0');
+
+		WideCharToMultiByte(
+		    CP_UTF8,
+		    0,
+		    (wchar_t*)ms->chars,
+		    ms->length,
+		    out.data(),
+		    len,
+		    nullptr,
+		    nullptr);
+
+		return JS_NewStringLen(ctx, out.data(), out.size());
+	}
 
 	static void register_ctx_class(JSContext* ctx)
 	{
@@ -151,9 +193,11 @@ namespace js::trampoline
 
 		JSValue arg_proto = JS_NewObject(ctx);
 		JS_SetPropertyStr(ctx, arg_proto, "string", JS_NewCFunction(ctx, js_arg_as_string, "string", 0));
+		JS_SetPropertyStr(ctx, arg_proto, "monoString", JS_NewCFunction(ctx, js_arg_as_mono_string, "monoString", 0));
 		JS_SetPropertyStr(ctx, arg_proto, "number", JS_NewCFunction(ctx, js_arg_as_number, "number", 0));
 		// Opsional: override valueOf agar bisa langsung dipakai di operasi math
 		JS_SetPropertyStr(ctx, arg_proto, "valueOf", JS_NewCFunction(ctx, js_arg_as_number, "valueOf", 0));
+
 		JS_SetClassProto(ctx, g_arg_wrapper_class, arg_proto);
 
 		JS_NewClassID(&g_ctx_class);
