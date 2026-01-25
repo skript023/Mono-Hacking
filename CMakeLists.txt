@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
+include(scripts/cross-compile.cmake)
+
 project(Valheim CXX)
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 set(OPENSSL_ROOT_DIR "${PROJECT_SOURCE_DIR}/openssl")
 set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")   # opsional
@@ -73,7 +75,7 @@ target_include_directories(Valheim PRIVATE
 )
 
 target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(Valheim PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32)
+target_link_libraries(Valheim PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
 
 # Warnings as errors
 #set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)
@@ -94,4 +96,6 @@ target_compile_options(Valheim PRIVATE
     $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-extern-c-compat>
 )
 
-add_subdirectory(injector)
+if (NOT ${CROSSCOMPILE})
+    add_subdirectory(injector)
+endif()
