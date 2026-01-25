@@ -24,14 +24,14 @@ jobs:
         run: cmake --build ./build --config RelWithDebInfo --target Valheim --
 
       - name: Check if DLL got built
-        run: if (-Not (Test-Path -path "build/Valheim.dll")) {throw 1}
+        run: if (-Not (Test-Path -path "build/version.dll")) {throw 1}
 
-      - name: Rename DLL to Valheim-dev-{GITHUB_SHA}.dll
+      - name: Rename DLL to version-dev-{GITHUB_SHA}.dll
         run: |
-          del Valheim-dev-*.dll
-          del Valheim-dev-*.pdb
-          ren Valheim.dll Valheim-dev-${{github.sha}}.dll
-          ren Valheim.pdb Valheim-dev-${{github.sha}}.pdb
+          del version-dev-*.dll
+          del version-dev-*.pdb
+          ren version.dll version-dev-${{github.sha}}.dll
+          ren version.pdb version-dev-${{github.sha}}.pdb
         working-directory: build/
 
       - name: Upload Artifact
@@ -39,8 +39,8 @@ jobs:
         with:
           name: RelWithDebInfo-Native-Clang
           path: |
-            build/Valheim-dev-*.dll
-            build/Valheim-dev-*.pdb
+            build/version-dev-*.dll
+            build/version-dev-*.pdb
 
   cross-compilation:
     runs-on: ubuntu-latest
