@@ -1,5 +1,4 @@
 #pragma once
-#include <corecrt_math_defines.h>
 
 namespace big
 {
