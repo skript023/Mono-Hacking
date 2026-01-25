@@ -24,7 +24,7 @@ namespace memory
 				if (offset.has_value())
 				{
 					std::invoke(entry.m_callback, handle(region.begin().as<DWORD64>() + offset.value()));
-					LOG(big::INFO_TO_FILE) << "Using cached pattern [" << entry.m_name << "] : [" << HEX_TO_UPPER(region.begin().as<DWORD64>() + offset.value()) << "]";
+					LOG(INFO) << "Using cached pattern [" << entry.m_name << "] : [" << HEX_TO_UPPER(region.begin().as<DWORD64>() + offset.value()) << "]";
 					
 					continue;
 				}
@@ -35,7 +35,7 @@ namespace memory
 				if (entry.m_callback)
 				{
 					std::invoke(std::move(entry.m_callback), result);
-					LOG(big::INFO_TO_FILE) << "Found '" << entry.m_name << std::format("' {}+", GAME) << HEX_TO_UPPER(result.as<DWORD64>() - region.begin().as<DWORD64>());
+					LOG(INFO) << "Found '" << entry.m_name << std::format("' {}+", GAME) << HEX_TO_UPPER(result.as<DWORD64>() - region.begin().as<DWORD64>());
 
 					if (m_pattern_cache.is_initialized())
 					{
@@ -45,13 +45,13 @@ namespace memory
 				else
 				{
 					all_found = false;
-					LOG(big::CRITICAL) << "Failed to find '" << entry.m_name << "'.";
+					LOG(FATAL) << "Failed to find '" << entry.m_name << "'.";
 				}
 			}
 			else
 			{
 				all_found = false;
-				LOG(big::CRITICAL) << "Failed to find '" << entry.m_name << "'.";
+				LOG(FATAL) << "Failed to find '" << entry.m_name << "'.";
 			}
 		}
 
@@ -75,7 +75,7 @@ namespace memory
 			}
 			else
 			{
-				LOG(big::CRITICAL) << "Pattern not found: " << entry.m_name;
+				LOG(FATAL) << "Pattern not found: " << entry.m_name;
 				all_found = false;
 			}
 		}

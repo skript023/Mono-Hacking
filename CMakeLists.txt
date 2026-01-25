@@ -69,10 +69,11 @@ target_include_directories(ScarletNexus PRIVATE
     "${discord_SOURCE_DIR}/include"
     "${quickjs_SOURCE_DIR}/src"
     "${OPENSSL_INCLUDE_DIR}"
+    "${minhook_SOURCE_DIR}/src/hde"
 )
 
 target_precompile_headers(ScarletNexus PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(ScarletNexus PRIVATE minhook quickjs imgui g3log discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32)
+target_link_libraries(ScarletNexus PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32)
 
 # Warnings as errors
 #set_property(TARGET ScarletNexus PROPERTY COMPILE_WARNING_AS_ERROR ON)
@@ -84,5 +85,13 @@ add_compile_definitions(ScarletNexus
 )
 
 set_target_properties(ScarletNexus PROPERTIES OUTPUT_NAME "version")
+
+target_compile_options(ScarletNexus PRIVATE
+    # Do not warn about non-reproducible code
+    $<$<COMPILE_LANG_AND_ID:C,Clang>:-Wno-date-time>
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-date-time>
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-microsoft-cast>
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-extern-c-compat>
+)
 
 add_subdirectory(injector)

@@ -10,7 +10,7 @@ namespace big
 	class bool_option : public base_option<bool_option<BoolType>>
 	{
 	public:
-		explicit bool_option(const char* text, const char* description, BoolType* b00l, std::function<void()> action = [] {}) :
+		explicit bool_option(std::string_view text, const char* description, BoolType* b00l, std::function<void()> action = [] {}) :
 			m_bool(b00l)
 		{
 			Base::set_left_text(text);

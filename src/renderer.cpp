@@ -1,5 +1,4 @@
 #include "gui.hpp"
-#include "logger.hpp"
 #include "pointers.hpp"
 #include "renderer.hpp"
 #include "file_manager.hpp"
@@ -97,7 +96,7 @@ namespace big
 		this->imgui_init();
 
 		this->m_init = true;
-		LOG(HACKER) << "Swapchain initialized.";
+		LOG(INFO) << "Swapchain initialized.";
 		g_gui.script_init();
 
 		return true;

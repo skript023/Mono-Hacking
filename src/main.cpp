@@ -1,5 +1,4 @@
 ﻿#include "gui.hpp"
-#include "logger.hpp"
 #include "hooking.hpp"
 #include "pointers.hpp"
 #include "renderer.hpp"
@@ -9,6 +8,7 @@
 #include "file_manager.hpp"
 
 #include "mono/mono.hpp"
+#include "logger/logger.hpp"
 #include "plugins/plugins.hpp"
 #include "settings/settings.hpp"
 #include "server/server_module.hpp"
@@ -31,11 +31,11 @@ DWORD APIENTRY main_thread(LPVOID)
 
 	file_manager::init(base_dir);
 
-	auto logger_instance = std::make_unique<logger>(WINDOW_NAME, file_manager::get_project_file(std::format("./{}.log", LOG_NAME)));
+	g_logger.initialize("Scarlet Nexus Trainer", file_manager::get_project_file("./logs/log.txt"), true);
 
 	try
 	{
-		LOG(RAW_GREEN_TO_CONSOLE) << R"kek(
+		LOG(INFO) << R"kek(
  __  __                   _    _            _    _             
 |  \/  |                 | |  | |          | |  (_)            
 | \  / | ___  _ __   ___ | |__| | __ _  ___| | ___ _ __   __ _ 
@@ -47,39 +47,39 @@ DWORD APIENTRY main_thread(LPVOID)
 )kek";
 		settings::initialize(file_manager::get_project_file("./settings.json"));
 		g_settings.load();
-		LOG(HACKER) << "Settings initialized.";
+		LOG(INFO) << "Settings initialized.";
 		
 		auto pointers_instance = std::make_unique<pointers>();
-		LOG(HACKER) << "Pointers initialized.";
+		LOG(INFO) << "Pointers initialized.";
 
 		auto renderer_instance = std::make_unique<renderer>();
-		LOG(HACKER) << "Renderer initialized.";
+		LOG(INFO) << "Renderer initialized.";
 
 		auto fiber_pool_instance = std::make_unique<fiber_pool>(10);
-		LOG(HACKER) << "Fiber pool initialized.";
+		LOG(INFO) << "Fiber pool initialized.";
 
 		auto thread_pool_instance = std::make_unique<thread_pool>();
-		LOG(HACKER) << "Thread Pool initialized.";
+		LOG(INFO) << "Thread Pool initialized.";
 
 		mono::init();
-		LOG(HACKER) << "Mono initialized.";
+		LOG(INFO) << "Mono initialized.";
 
 		auto hooking_instance = std::make_unique<hooking>();
-		LOG(HACKER) << "Hooking initialized.";
+		LOG(INFO) << "Hooking initialized.";
 
 		g_pointers->update();
 
 		javascript_manager::init();
-		LOG(HACKER) << "Service registered.";
+		LOG(INFO) << "Service registered.";
 
 		//auto server_instance = std::make_unique<server_module>();
-		LOG(HACKER) << "Server initialized.";
+		LOG(INFO) << "Server initialized.";
 
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
-		LOG(HACKER) << "Scripts registered.";
+		LOG(INFO) << "Scripts registered.";
 
 		g_hooking->enable();
-		LOG(HACKER) << "Hooking enabled.";
+		LOG(INFO) << "Hooking enabled.";
 
 		initialization_benchmark.get_runtime();
 		initialization_benchmark.reset();
@@ -92,38 +92,38 @@ DWORD APIENTRY main_thread(LPVOID)
 		}
 
 		g_hooking->disable();
-		LOG(HACKER) << "Hooking disabled.";
+		LOG(INFO) << "Hooking disabled.";
 
 		std::this_thread::sleep_for(1000ms);
 
 		g_script_mgr.remove_all_scripts();
-		LOG(HACKER) << "Scripts unregistered.";
+		LOG(INFO) << "Scripts unregistered.";
 
 		//server_instance.reset();
-		LOG(HACKER) << "Server unregistered.";
+		LOG(INFO) << "Server unregistered.";
 		
-		LOG(HACKER) << "Service unregistered.";
+		LOG(INFO) << "Service unregistered.";
 
 		hooking_instance.reset();
-		LOG(HACKER) << "Hooking uninitialized.";
+		LOG(INFO) << "Hooking uninitialized.";
 
 		fiber_pool_instance.reset();
-		LOG(HACKER) << "Fiber pool uninitialized.";
+		LOG(INFO) << "Fiber pool uninitialized.";
 
 		g_thread_pool->destroy();
-		LOG(HACKER) << "Destroyed thread pool.";
+		LOG(INFO) << "Destroyed thread pool.";
 
 		thread_pool_instance.reset();
-		LOG(HACKER) << "Thread Pool uninitialized.";
+		LOG(INFO) << "Thread Pool uninitialized.";
 
 		renderer_instance.reset();
-		LOG(HACKER) << "Renderer uninitialized.";
+		LOG(INFO) << "Renderer uninitialized.";
 
 		pointers_instance.reset();
-		LOG(HACKER) << "Pointers uninitialized.";
+		LOG(INFO) << "Pointers uninitialized.";
 
 		g_settings.attempt_save();
-		LOG(HACKER) << "Settings saved and uninitialized.";
+		LOG(INFO) << "Settings saved and uninitialized.";
 	}
 	catch (std::exception const& ex)
 	{
@@ -131,8 +131,8 @@ DWORD APIENTRY main_thread(LPVOID)
 		MessageBoxA(nullptr, ex.what(), nullptr, MB_OK | MB_ICONEXCLAMATION);
 	}
 
-	LOG(HACKER) << "Farewell!";
-	logger_instance.reset();
+	LOG(INFO) << "Farewell!";
+	g_logger.destroy();
 
 	CloseHandle(g_main_thread);
 	FreeLibraryAndExitThread(g_hmodule, 0);

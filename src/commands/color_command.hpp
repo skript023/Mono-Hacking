@@ -1,5 +1,5 @@
 #pragma once
-#include "Command.hpp"
+#include "command.hpp"
 #include "imgui.h"
 
 namespace big

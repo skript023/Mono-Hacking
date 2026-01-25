@@ -61,7 +61,7 @@
 #include <nlohmann/json.hpp>
 
 #include "menu_settings.hpp"
-#include "logger.hpp"
+#include "logger/logger.hpp"
 
 #pragma comment(lib, "Xinput.lib")
 

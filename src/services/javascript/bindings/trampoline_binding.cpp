@@ -9,6 +9,22 @@ namespace js::trampoline
 
 	static JSClassID g_arg_wrapper_class;
 
+	static std::unordered_map<std::string, detour_hook*> g_hooks;
+
+	static JSClassID g_ctx_class;
+
+	static JSClassDef ctx_class_def{"NativeContext"};
+
+	static JSClassDef arg_wrapper_def{"ArgWrapper"};
+
+	struct MonoString
+	{
+		void* klass;
+		void* monitor;
+		int32_t length;
+		char16_t chars[1];
+	};
+
 	struct ArgWrapper
 	{
 		uintptr_t* ptr; // Menunjuk ke c->args[idx]
@@ -20,10 +36,6 @@ namespace js::trampoline
 		uintptr_t ret;
 		void* original;
 	};
-
-	static std::unordered_map<std::string, detour_hook*> g_hooks;
-
-	static JSClassID g_ctx_class;
 
 	// =========================================================
 	// JS <-> C++ helpers
@@ -120,10 +132,6 @@ namespace js::trampoline
 		return JS_NewFloat64(ctx, (double)c->ret);
 	}
 
-	static JSClassDef ctx_class_def{"NativeContext"};
-
-	static JSClassDef arg_wrapper_def{"ArgWrapper"};
-
 	static JSValue js_arg_as_string(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
 		auto* w = (ArgWrapper*)JS_GetOpaque(this_val, g_arg_wrapper_class);
@@ -143,14 +151,7 @@ namespace js::trampoline
 
 		return JS_NewFloat64(ctx, (double)*w->ptr);
 	}
-	struct MonoString
-	{
-		void* klass;
-		void* monitor;
-		int32_t length;
-		char16_t chars[1];
-	};
-
+	
 	static JSValue js_arg_as_mono_string(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
 		auto* w = (ArgWrapper*)JS_GetOpaque(this_val, g_arg_wrapper_class);

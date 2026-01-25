@@ -55,9 +55,9 @@ namespace big
 		catch (qjs::exception&)
 		{
 			auto exc = m_context.getException();
-			LOG(CRITICAL) << "[JS Error] " << (std::string)exc;
+			LOG(FATAL) << "[JS Error] " << (std::string)exc;
 			if ((bool)exc["stack"])
-				LOG(CRITICAL) << (std::string)exc["stack"];
+				LOG(FATAL) << (std::string)exc["stack"];
 		}
 	}
 

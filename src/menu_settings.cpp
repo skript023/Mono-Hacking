@@ -33,7 +33,7 @@ namespace big
         }
         catch (const std::exception&)
         {
-            LOG(HACKER) << "Detected corrupt settings, writing default config...";
+            LOG(INFO) << "Detected corrupt settings, writing default config...";
 
             this->write_default_config();
 
@@ -46,7 +46,7 @@ namespace big
 
         if (should_save)
         {
-            LOG(HACKER) << "Updating settings...";
+            LOG(INFO) << "Updating settings...";
             save();
         }
 

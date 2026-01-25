@@ -175,7 +175,7 @@ namespace memory
 
 			range mem(r.base, regions.size());
 
-			LOG(big::VERBOSE) << "Base: " << mem.begin().as<void*>() << " Size: " << std::hex << mem.end().as<void*>();
+			LOG(VERBOSE) << "Base: " << mem.begin().as<void*>() << " Size: " << std::hex << mem.end().as<void*>();
 
 			if (auto h = mem.scan(sig))
 				return h;

@@ -1,6 +1,5 @@
 #include "common.hpp"
 #include "function_types.hpp"
-#include "logger.hpp"
 #include "ui/canvas.hpp"
 #include "hooking.hpp"
 #include "memory/module.hpp"

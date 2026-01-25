@@ -60,7 +60,7 @@ namespace big
 		}
 
 	protected:
-		static inline std::vector<std::unique_ptr<byte_patch>> m_patches;
+		static std::vector<std::unique_ptr<byte_patch>> m_patches;
 
 	private:
 		void* m_address;

@@ -2,6 +2,8 @@
 
 namespace big
 {
+	std::vector<std::unique_ptr<byte_patch>> byte_patch::m_patches;
+
 	byte_patch::~byte_patch()
 	{
 		restore();

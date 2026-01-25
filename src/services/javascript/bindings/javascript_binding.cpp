@@ -79,7 +79,7 @@ namespace big
 			out << " " << message;
 		}
 
-		LOG(CRITICAL) << std::format("[JS] {}", out.str());
+		LOG(FATAL) << std::format("[JS] {}", out.str());
 	}
 
 	static double js_get_local_player()

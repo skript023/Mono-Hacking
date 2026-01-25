@@ -1,5 +1,4 @@
 #include "common.hpp"
-#include "logger.hpp"
 #include "pointers.hpp"
 
 namespace big
