@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(ScarletNexus CXX)
+project(Valheim CXX)
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
@@ -33,8 +33,8 @@ include(scripts/websocket.cmake)
 include(scripts/discord.cmake)
 include(scripts/quickjs.cmake)
 
-# ScarletNexus
-message(STATUS "ScarletNexus")
+# Valheim
+message(STATUS "Valheim")
 file(GLOB_RECURSE SRC_MAIN
     "${SRC_DIR}/**.hpp"
     "${SRC_DIR}/**.h"
@@ -50,14 +50,14 @@ else ()
   add_compile_options(-Wa,-mbig-obj)
 endif ()
 
-add_library(ScarletNexus MODULE "${SRC_MAIN}")
+add_library(Valheim MODULE "${SRC_MAIN}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(TARGET ScarletNexus PROPERTY CXX_STANDARD 23) # 23 Because std::format is not avalible in std:c++20 for some reason. Maybe it's because i use v142 toolset.
+set_property(TARGET Valheim PROPERTY CXX_STANDARD 23) # 23 Because std::format is not avalible in std:c++20 for some reason. Maybe it's because i use v142 toolset.
 
 source_group(TREE ${SRC_DIR} PREFIX "src" FILES ${SRC_MAIN})
 
-target_include_directories(ScarletNexus PRIVATE 
+target_include_directories(Valheim PRIVATE 
     "${SRC_DIR}"
     "${SRC_DIR}/unreal_engine"
     "${SRC_DIR}/services"
@@ -72,21 +72,21 @@ target_include_directories(ScarletNexus PRIVATE
     "${minhook_SOURCE_DIR}/src/hde"
 )
 
-target_precompile_headers(ScarletNexus PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(ScarletNexus PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32)
+target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
+target_link_libraries(Valheim PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32)
 
 # Warnings as errors
-#set_property(TARGET ScarletNexus PROPERTY COMPILE_WARNING_AS_ERROR ON)
+#set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
-add_compile_definitions(ScarletNexus 
+add_compile_definitions(Valheim 
     "_CRT_SECURE_NO_WARNINGS"
     "NOMINMAX"
     "WIN32_LEAN_AND_MEAN"
 )
 
-set_target_properties(ScarletNexus PROPERTIES OUTPUT_NAME "version")
+set_target_properties(Valheim PROPERTIES OUTPUT_NAME "version")
 
-target_compile_options(ScarletNexus PRIVATE
+target_compile_options(Valheim PRIVATE
     # Do not warn about non-reproducible code
     $<$<COMPILE_LANG_AND_ID:C,Clang>:-Wno-date-time>
     $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-date-time>
