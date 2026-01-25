@@ -63,12 +63,12 @@ jobs:
         run: cmake --build ./build --config RelWithDebInfo --target Valheim --
 
       - name: Check if DLL got built
-        run: if [ ! -f build/libValheim.dll ]; then exit 1; fi
+        run: if [ ! -f build/version.dll ]; then exit 1; fi
 
       - name: Rename DLL to libValheim-dev-{GITHUB_SHA}.dll
         run: |
-          mv libValheim.dll libValheim-dev-${{github.sha}}.dll
-          mv libValheim.pdb libValheim-dev-${{github.sha}}.pdb
+          mv version.dll libValheim-dev-${{github.sha}}.dll
+          mv version.pdb libValheim-dev-${{github.sha}}.pdb
         working-directory: build/
 
       - name: Upload Artifact

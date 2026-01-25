@@ -20,6 +20,8 @@ namespace big
             return "No Render Type";
         case eGraphicsAPI::directx9:
             return "DirectX 9";
+        case eGraphicsAPI::directx10:
+            return "DirectX 10";
         case eGraphicsAPI::directx11:
             return "DirectX 11";
         case eGraphicsAPI::directx12:

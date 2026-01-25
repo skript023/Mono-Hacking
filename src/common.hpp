@@ -5,15 +5,14 @@
 
 #pragma warning(disable:4369 4129)
 
-#include <SDKDDKVer.h>
-#include <Windows.h>
-#include <Xinput.h>
+#include <windows.h>
+#include <xinput.h>
 #include <d3d9.h>
-#include <D3D11.h>
-#include <D3D12.h>
+#include <d3d11.h>
+#include <d3d12.h>
 #include <dxgi1_4.h>
 #include <wrl/client.h>
-#include <Psapi.h>
+#include <psapi.h>
 
 #include <cinttypes>
 #include <cstddef>

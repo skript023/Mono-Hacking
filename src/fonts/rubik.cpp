@@ -1,4 +1,3 @@
-#pragma once
 #include "font_list.hpp"
 
 const unsigned char font_rubik[]
