@@ -52,11 +52,27 @@ namespace big
 		logger() = default;
 		virtual ~logger() = default;
 
-		void initialize(const std::string_view console_title, file file, bool attach_console = true);
-		void destroy();
+		static void initialize(const std::string_view console_title, file file, bool attach_console = true)
+		{
+			get().initialize_impl(console_title, file, attach_console);
+		}
 
-		void toggle_external_console(bool toggle);
+		static void destroy()
+		{
+			get().destroy_impl();
+		}
 
+		static void toggle_external_console(bool toggle)
+		{
+			get().toggle_external_console_impl(toggle);
+		}
+	private:
+		static logger& get(){ static logger i{}; return i; }
+		
+		void initialize_impl(const std::string_view console_title, file file, bool attach_console = true);
+		void destroy_impl();
+
+		void toggle_external_console_impl(bool toggle);
 	private:
 		void create_backup();
 
@@ -65,6 +81,4 @@ namespace big
 		void format_file(const LogMessagePtr msg);
 
 	};
-
-	inline logger g_logger{};
 }

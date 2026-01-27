@@ -12,7 +12,7 @@ namespace big
 		return system_clock::to_time_t(sctp);
 	}
 
-	void logger::initialize(const std::string_view console_title, file file, bool attach_console)
+	void logger::initialize_impl(const std::string_view console_title, file file, bool attach_console)
 	{
 		m_console_title = console_title;
 		m_file = file;
@@ -36,14 +36,14 @@ namespace big
 		toggle_external_console(attach_console);
 	}
 
-	void logger::destroy()
+	void logger::destroy_impl()
 	{
 		Logger::Destroy();
 		m_file_out.close();
 		toggle_external_console(false);
 	}
 
-	void logger::toggle_external_console(bool toggle)
+	void logger::toggle_external_console_impl(bool toggle)
 	{
 		if (m_is_console_open == toggle)
 		{
@@ -115,7 +115,7 @@ namespace big
 
 	const char* get_level_string(const eLogLevel level)
 	{
-		constexpr std::array<const char*, 5> levelStrings = { {{"DEBUG"}, {"INFO"}, {"WARN"}, {"FATAL"}, {""}} };
+		constexpr std::array<const char*, 5> levelStrings = { "DEBUG", "INFO", "WARN", "FATAL", "RAW" };
 
 		return levelStrings[level];
 	}
@@ -165,17 +165,12 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		if ((int)level == 5) {
-			m_console_out << ADD_COLOR_TO_STREAM(color) << msg->Message() << RESET_STREAM_COLOR << std::flush;
-			return;
-		}
-
 		if (stream)
 			m_console_out << "[" << timestamp << "][" << stream->get()->Name() << "]"
-			"[" << get_level_string(level) << "][" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 		else
 			m_console_out << "[" << timestamp << "]"
-			"[" << get_level_string(level) << "][" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 	}
 
 	void logger::format_file(const LogMessagePtr msg)
@@ -190,16 +185,11 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		if ((int)level == 5) {
-			m_file_out << msg->Message() << RESET_STREAM_COLOR << std::flush;
-			return;
-		}
-
 		if (stream)
 			m_file_out << "[" << timestamp << "][" << stream->get()->Name() << "]"
-			"[" << get_level_string(level) << "][" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 		else
 			m_file_out << "[" << timestamp << "]"
-			"[" << get_level_string(level) << "][" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 	}
 }

@@ -22,7 +22,7 @@ DWORD APIENTRY main_thread(LPVOID)
 	using namespace big;
 
 	while (!FindWindow(WINDOW_CLASS, WINDOW_NAME))
-		std::this_thread::sleep_for(2s);
+		std::this_thread::sleep_for(5s);
 
 	benchmark initialization_benchmark("Initialization");
 
@@ -31,7 +31,7 @@ DWORD APIENTRY main_thread(LPVOID)
 
 	file_manager::init(base_dir);
 
-	g_logger.initialize("Scarlet Nexus Trainer", file_manager::get_project_file("./logs/log.txt"), true);
+	logger::initialize(WINDOW_NAME, file_manager::get_project_file("./logs/log.txt"), true);
 
 	try
 	{
@@ -132,7 +132,7 @@ DWORD APIENTRY main_thread(LPVOID)
 	}
 
 	LOG(INFO) << "Farewell!";
-	g_logger.destroy();
+	logger::destroy();
 
 	CloseHandle(g_main_thread);
 	FreeLibraryAndExitThread(g_hmodule, 0);
