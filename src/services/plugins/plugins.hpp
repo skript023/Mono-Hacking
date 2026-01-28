@@ -53,7 +53,7 @@ namespace big
 
 			if (!klass)
 			{
-				LOG(WARNING) << "Preloader class not found", "loader";
+				LOG(WARNING) << "Preloader class not found";
 
 				return;
 			}

@@ -165,6 +165,11 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
+		if ((int)level == 5) {
+			m_console_out << msg->Message() << std::flush;
+			return;
+		}
+
 		if (stream)
 			m_console_out << "[" << timestamp << "][" << stream->get()->Name() << "]"
 			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
@@ -184,6 +189,10 @@ namespace big
 		const auto stream = msg->Stream();
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
+
+		if ((int)level == 5) {
+			return;
+		}
 
 		if (stream)
 			m_file_out << "[" << timestamp << "][" << stream->get()->Name() << "]"

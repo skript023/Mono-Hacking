@@ -35,7 +35,7 @@ DWORD APIENTRY main_thread(LPVOID)
 
 	try
 	{
-		LOG(INFO) << R"kek(
+		LOG(static_cast<eLogLevel>(5)) << R"kek(
  __  __                   _    _            _    _             
 |  \/  |                 | |  | |          | |  (_)            
 | \  / | ___  _ __   ___ | |__| | __ _  ___| | ___ _ __   __ _ 
