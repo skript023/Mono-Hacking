@@ -9,7 +9,7 @@ namespace big
 
 	float hooks::get_body_armor(MonoObject* player)
 	{
-		if (true)
+		if (_max_body_armor.get_state())
 		{
 			return _num_body_armor.get_state();
 		}
