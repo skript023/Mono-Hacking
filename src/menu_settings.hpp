@@ -15,6 +15,7 @@ namespace big
 		void attempt_save();
 
 		bool load();
+		void* m_camera_obj = nullptr;
 	private:
 		const char* settings_location = "\\Scarlet Nexus Trainer\\menu_settings.json";
 

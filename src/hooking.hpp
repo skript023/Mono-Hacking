@@ -40,6 +40,7 @@ namespace big
 		static float get_body_armor(MonoObject* player);
 		static bool have_empty_slot(MonoObject* inventory);
 		static bool allowed_command(MonoObject* ConsoleCommand, MonoObject* Terminal, bool Boolean);
+		static void camera_render(MonoObject* Camera);
 	};
 
 	struct minhook_keepalive

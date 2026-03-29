@@ -330,7 +330,7 @@ namespace big::unity
 		if (!camera)
 			return false;
 
-		int eye = 2; // 🔥 Mono
+		int eye = 2;
 
 		void* args[2];
 		args[0] = (void*)&world;
