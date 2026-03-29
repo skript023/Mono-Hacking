@@ -24,7 +24,7 @@ namespace big::features
 			auto m_stamina = mono::get_field(klass, "m_stamina");
 			auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
 
-			if (!klass)
+			if (!klass || !m_stamina || !m_baseStamina)
 			{
 				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
 

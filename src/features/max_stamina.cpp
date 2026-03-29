@@ -25,7 +25,7 @@ namespace big::features
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
 
-			if (!method || !klass)
+			if (!method || !klass || !m_baseStamina)
 			{
 				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
 

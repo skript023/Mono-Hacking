@@ -16,7 +16,7 @@ namespace big::features
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_maxCarryWeight = mono::get_field(klass, "m_maxCarryWeight");
 
-			if (!klass)
+			if (!klass || !m_maxCarryWeight)
 			{
 				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
 
@@ -31,7 +31,7 @@ namespace big::features
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_maxCarryWeight = mono::get_field(klass, "m_maxCarryWeight");
 
-			if (!klass)
+			if (!klass || !m_maxCarryWeight)
 			{
 				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
 

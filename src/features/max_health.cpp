@@ -25,7 +25,7 @@ namespace big::features
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_baseHP = mono::get_field(klass, "m_baseHP");
 
-			if (!method || !klass)
+			if (!method || !klass || !m_baseHP)
 			{
 				LOG(WARNING) << "Failed to find method Player::SetMaxHealth";
 

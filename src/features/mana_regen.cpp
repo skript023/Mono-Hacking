@@ -16,7 +16,7 @@ namespace big::features
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_eiterRegen = mono::get_field(klass, "m_eiterRegen");
 
-			if (!klass)
+			if (!klass || !m_eiterRegen)
 			{
 				return;
 			}
@@ -29,7 +29,7 @@ namespace big::features
 			auto klass = mono::get_class("Player", "assembly_valheim");
 			auto m_eiterRegen = mono::get_field(klass, "m_eiterRegen");
 
-			if (!klass)
+			if (!klass || !m_eiterRegen)
 			{
 				return;
 			}
