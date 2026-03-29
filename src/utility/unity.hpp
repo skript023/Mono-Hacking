@@ -116,6 +116,21 @@ namespace big::unity
 		return out;
 	}
 
+	inline Vector3 get_transform(void* player)
+	{
+		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		static MonoMethod* get_position = mono::get_method("Transform", "get_position", 0, "UnityEngine.CoreModule", "UnityEngine");
+
+		if (!method || !player || !get_position)
+			return Vector3();
+
+		auto transform = mono::invoke_method(method, player, nullptr);
+
+    	auto obj = mono::invoke_method(get_position, transform, nullptr);
+
+		return *(Vector3*)mono::object_unbox(obj);
+	}
+
 	inline Vector3 get_teleport_from()
 	{
 		Vector3 pos{};
@@ -124,15 +139,17 @@ namespace big::unity
 		if (!player)
 			return pos;
 
-		MonoClass* playerClass = mono::get_class("Player", "assembly_valheim");
-		if (!playerClass)
-			return pos;
+		// MonoClass* playerClass = mono::get_class("Player", "assembly_valheim");
+		// if (!playerClass)
+		// 	return pos;
 
-		auto teleportField = mono::get_field(playerClass, "m_lastDistCheck");
-		if (!teleportField)
-			return pos;
+		// auto teleportField = mono::get_field(playerClass, "m_lastDistCheck");
+		// if (!teleportField)
+		// 	return pos;
 
-		mono::get_field_value(player, teleportField, &pos);
+		// mono::get_field_value(player, teleportField, &pos);
+
+		pos = get_transform(player);
 
 		LOG(VERBOSE) << std::format("Player m_teleportFromPos = {:.3f}, {:.3f}, {:.3f}",
 		    pos.x,

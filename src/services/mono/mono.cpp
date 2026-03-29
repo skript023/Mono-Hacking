@@ -116,7 +116,7 @@ namespace big
 		MonoClass* klass = mono_class_from_name(image, nameSpace, className);
 		if (klass == nullptr)
 		{
-			LOG(WARNING) << "Failed to get class: " << klass;
+			LOG(WARNING) << "Failed to get class: " << className << " from assembly: " << assemblyName;
 
 			return nullptr;
 		}

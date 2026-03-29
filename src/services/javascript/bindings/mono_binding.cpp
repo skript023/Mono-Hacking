@@ -227,7 +227,23 @@ namespace js::mono
 
 		return (double)(uintptr_t)data;
 	}
+	static JSValue js_mono_unbox_vec3(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+	{
+		uint64_t obj_ptr = js_to_u64(ctx, argv[0]);
 
+		auto obj = (MonoObject*)(uintptr_t)obj_ptr;
+		if (!obj)
+			return JS_NULL;
+
+		big::Vector3* v = (big::Vector3*)big::mono::object_unbox(obj);
+
+		JSValue out = JS_NewObject(ctx);
+		JS_SetPropertyStr(ctx, out, "x", JS_NewFloat64(ctx, v->x));
+		JS_SetPropertyStr(ctx, out, "y", JS_NewFloat64(ctx, v->y));
+		JS_SetPropertyStr(ctx, out, "z", JS_NewFloat64(ctx, v->z));
+
+		return out;
+	}
 	static MonoObject* list_get(MonoObject* list, int index)
 	{
 		MonoClass* klass = mono_object_get_class(list);
@@ -246,7 +262,7 @@ namespace js::mono
 
 	/* ----------------- REGISTER helpers ----------------- */
 
-#define MONO_SET_FUNC2(target_obj, name, fn, argc) \
+#define MONO_SET_FUNC2(ctx, target_obj, name, fn, argc) \
 	JS_SetPropertyStr(ctx, target_obj, name, JS_NewCFunction(ctx, fn, name, argc))
 
 	// Register as actual ES module 'mono' so import * as m from 'mono' works.
@@ -300,6 +316,8 @@ namespace js::mono
 		
 		auto mono_object = context.newObject();
 		auto global = context.global();
+
+		MONO_SET_FUNC2(ctx, mono_object.v, "unbox_vec3", js_mono_unbox_vec3, 1);
 
 		// Getters Class/Method/Field
 		mono_object.add<&js_mono_get_class>("get_class");
