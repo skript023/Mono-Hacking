@@ -181,7 +181,7 @@ namespace big::unity
 			mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 
 		static auto get_euler =
-			mono::get_method("Transform", "get_eulerAngles", 0, "UnityEngine.CoreModule");
+			mono::get_method("Transform", "get_eulerAngles", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_transform || !get_euler)
 			return euler;
@@ -320,8 +320,8 @@ namespace big::unity
 
 	inline bool world_to_screen(Vector3 const& world, Vector3& out)
 	{
-		static MonoMethod* get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule");
-		static MonoMethod* w2s_method = mono::get_method("Camera", "WorldToScreenPoint", 2, "UnityEngine.CoreModule");
+		static MonoMethod* get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static MonoMethod* w2s_method = mono::get_method("Camera", "WorldToScreenPoint", 2, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_main || !w2s_method)
 			return false;
@@ -355,22 +355,40 @@ namespace big::unity
 		return true;
 	}
 
-	inline mono_list<void*>* get_all_characters()
+	inline std::vector<MonoObject*> get_all_characters()
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
 
 		if (!method)
-			return nullptr;
+			return {};
 
 		MonoObject* result = mono::invoke_method(method, nullptr);
 
-		MonoClass* klass = mono::object_get_class(result);
-		const char* class_name = mono::class_get_name(klass);
-		const char* namespace_name = mono::class_get_namespace(klass);
+		// MonoClass* klass = mono::object_get_class(result);
+		// const char* class_name = mono::class_get_name(klass);
+		// const char* namespace_name = mono::class_get_namespace(klass);
 
 		// LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
 
-		return reinterpret_cast<mono_list<void*>*>(result);
+		return list_to_vector(result);
+	}
+
+	inline std::vector<MonoObject*> get_all_players()
+	{
+		static MonoMethod* method = mono::get_method("Player", "GetAllPlayers", 0, "assembly_valheim");
+
+		if (!method)
+			return {};
+
+		MonoObject* result = mono::invoke_method(method, nullptr);
+
+		// MonoClass* klass = mono::object_get_class(result);
+		// const char* class_name = mono::class_get_name(klass);
+		// const char* namespace_name = mono::class_get_namespace(klass);
+
+		// LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
+
+		return list_to_vector(result);
 	}
 
 	inline bool is_int(const std::string& s, int64_t& out)

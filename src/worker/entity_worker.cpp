@@ -56,7 +56,7 @@ namespace big
 			LOG(INFO) << "[" << i << "] Element class: "
 					<< mono::class_get_namespace(elem_class)
 					<< "::"
-					<< mono::class_get_name(elem_class);
+					<< mono::class_get_name(elem_class) << " at address " << item << " local player is " << unity::get_local_player();
 
 			if (!fn(item, i))
 				continue;
@@ -73,24 +73,32 @@ namespace big
 
 				auto list = unity::get_all_characters();
 
-				mono_list_for_each<void*>(list, [&](void* character, int i)
+				for (auto player : list)
 				{
-					// LOG(INFO) << "Found character at index " << i << " with address " << character;
+					if (!player || (uintptr_t)player < 0x10000)
+						continue;
 
-					Vector3 pos = get_pos(character);
+					MonoClass* elem_class = mono::object_get_class(player);
 
-					Vector3 screen_pos{};
+					// LOG(INFO) << "Element class: "
+					// 	<< mono::class_get_namespace(elem_class)
+					// 	<< "::"
+					// 	<< mono::class_get_name(elem_class) << " at address " << player << " local player is " << unity::get_local_player();
 
-					if (!unity::world_to_screen(pos, screen_pos))
-						return false;
+					Vector3 pos = unity::get_position(player);
+
+					if (pos.x == 0.f && pos.y == 0.f && pos.z == 0.f)
+						continue;
+
+					Vector3 screen;
+					if (!unity::world_to_screen(pos, screen))
+						continue;
 
 					esp_data data{};
 					data.location = pos;
-					data.screen = screen_pos;
+					data.screen = screen;
 					back.push_back(data);
-
-					return true;
-				});
+				}
 
 				g_esp_data.publish();
 			} 
