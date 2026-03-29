@@ -32,8 +32,8 @@ namespace big::features
             auto inventory = mono::get_class("Inventory", "assembly_valheim");
             auto m_height = mono::get_field(inventory, "m_height");
             auto m_width = mono::get_field(inventory, "m_width");
-            mono::set_field_value(ret, m_height, &_inventory_width.get_state());
-            mono::set_field_value(ret, m_width, &_inventory_height.get_state());
+            mono::set_field_value(ret, m_height, &_inventory_height.get_state());
+            mono::set_field_value(ret, m_width, &_inventory_width.get_state());
 		}
 
 		virtual void on_disable() override

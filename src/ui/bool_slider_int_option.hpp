@@ -14,6 +14,8 @@ namespace big
 	public:
 		explicit bool_slider_int_option(const char* text, const char* description, bool* b00l, int* number, int min, int max, int step = 1, std::size_t precision = 3, bool actionOnHorizontal = true, std::function<void()> action = [] {}) :
 			m_bool(b00l),
+			m_bool_command(nullptr),
+			m_int_command(nullptr),
 			m_action_on_horizontal(actionOnHorizontal),
 			m_number(number),
 			m_min(min),
@@ -140,9 +142,9 @@ namespace big
 			if (flag == OptionFlag::BoolSliderInt)
 			{
 				if (m_bool_command)
-					canvas::set_bool_slider_float(m_bool_command->get_state());
+					canvas::set_bool_slider_int(m_bool_command->get_state());
 				else
-					canvas::set_bool_slider_float(*m_bool);
+					canvas::set_bool_slider_int(*m_bool);
 
 				return true;
 			}

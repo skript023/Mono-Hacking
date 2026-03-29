@@ -25,16 +25,23 @@ namespace big
 			sub->add_option<reguler_option>("Add Category", nullptr, [] {
 				g_input_service.show("Input Category Name", [](std::string const& input) {
 					teleport_location new_location;
-					Vector3 coords = unity::get_teleport_from(); //player::get_player_coords();
-					//auto rotator = player::get_player_rotation();
+
+					auto player = unity::get_local_player();
+
+					if (!player)
+						return;
+
+					auto coords = unity::get_position(player);
+					auto rotator = unity::get_rotation(player);
 
 					new_location.name = input;
 					new_location.x = coords.x;
 					new_location.y = coords.y;
-					new_location.z = coords.z;/*
-					new_location.yaw = rotator.Yaw;
-					new_location.pitch = rotator.Pitch;
-					new_location.roll = rotator.Roll;*/
+					new_location.z = coords.z;
+					new_location.rot_x = rotator.x;
+					new_location.rot_y = rotator.y;
+					new_location.rot_z = rotator.z;
+					new_location.rot_w = rotator.w;
 
 					g_custom_teleport_service.save_new_location(input, new_location);
 				});
@@ -53,16 +60,23 @@ namespace big
 					sub->add_option<reguler_option>("Add Teleport", nullptr, [l] {
 						g_input_service.show("Input Location Name", [](std::string const& input) {
 							teleport_location new_location;
-							Vector3 coords = unity::get_teleport_from();
-							//auto rotator = player::get_player_rotation();
+
+							auto player = unity::get_local_player();
+
+							if (!player)
+								return;
+
+							auto coords = unity::get_position(player);
+							auto rotator = unity::get_rotation(player);
 
 							new_location.name = input;
 							new_location.x = coords.x;
 							new_location.y = coords.y;
-							new_location.z = coords.z;/*
-							new_location.yaw = rotator.Yaw;
-							new_location.pitch = rotator.Pitch;
-							new_location.roll = rotator.Roll;*/
+							new_location.z = coords.z;
+							new_location.rot_x = rotator.x;
+							new_location.rot_y = rotator.y;
+							new_location.rot_z = rotator.z;
+							new_location.rot_w = rotator.w;
 
 							g_custom_teleport_service.save_new_location(category, new_location);
 						});
@@ -72,7 +86,7 @@ namespace big
 					{
 						sub->add_option<reguler_option>(location.name.c_str(), nullptr, [=] {
 							g_fiber_pool->queue_job([=] {
-								unity::teleport_to(Vector3(location.x, location.y, location.z + 100.f), Vector4(0.f, 0.f, 0.f, 0.f), true);
+								unity::teleport_to(Vector3(location.x, location.y, location.z + 100.f), Vector4(location.rot_x, location.rot_y, location.rot_z, location.rot_w), true);
 							});
 						});
 					}

@@ -116,7 +116,7 @@ namespace big::unity
 		return out;
 	}
 
-	inline Vector3 get_transform(void* player)
+	inline Vector3 get_position(void* player)
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 		static MonoMethod* get_position = mono::get_method("Transform", "get_position", 0, "UnityEngine.CoreModule", "UnityEngine");
@@ -131,6 +131,58 @@ namespace big::unity
 		return *(Vector3*)mono::object_unbox(obj);
 	}
 
+	inline Vector4 get_rotation(void* player)
+	{
+		Vector4 rot{0.f, 0.f, 0.f, 1.f}; // default identity
+
+		if (!player)
+			return rot;
+
+		static MonoMethod* get_transform =
+			mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+
+		static MonoMethod* get_rotation_method =
+			mono::get_method("Transform", "get_rotation", 0, "UnityEngine.CoreModule", "UnityEngine");
+
+		if (!get_transform || !get_rotation_method)
+			return rot;
+
+		auto transform = mono::invoke_method(get_transform, player, nullptr);
+		if (!transform)
+			return rot;
+
+		auto obj = mono::invoke_method(get_rotation_method, transform, nullptr);
+		if (!obj)
+			return rot;
+
+		return *(Vector4*)mono::object_unbox(obj); // Quaternion (x,y,z,w)
+	}
+	inline Vector3 get_euler_angles(void* player)
+	{
+		Vector3 euler{};
+
+		if (!player)
+			return euler;
+
+		static auto get_transform =
+			mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+
+		static auto get_euler =
+			mono::get_method("Transform", "get_eulerAngles", 0, "UnityEngine.CoreModule");
+
+		if (!get_transform || !get_euler)
+			return euler;
+
+		auto transform = mono::invoke_method(get_transform, player, nullptr);
+		if (!transform)
+			return euler;
+
+		auto obj = mono::invoke_method(get_euler, transform, nullptr);
+		if (!obj)
+			return euler;
+
+		return *(Vector3*)mono::object_unbox(obj);
+	}
 	inline Vector3 get_zdo_vec3(void* player, int hash_name)
 	{
 		Vector3 result{};
@@ -183,7 +235,24 @@ namespace big::unity
 		// 5. unbox
 		return *(Vector3*)mono::object_unbox(obj);
 	}
+	inline Vector3 get_center_point(void* player)
+	{
+		Vector3 pos{};
 
+		if (!player)
+			return pos;
+
+		static auto method = mono::get_method("Character", "GetCenterPoint", 0, "assembly_valheim");
+
+		if (!method)
+			return pos;
+
+		auto obj = mono::invoke_method(method, player, nullptr);
+		if (!obj)
+			return pos;
+
+		return *(Vector3*)mono::object_unbox(obj);
+	}
 	inline Vector3 get_teleport_from()
 	{
 		Vector3 pos{};
@@ -192,7 +261,7 @@ namespace big::unity
 		if (!player)
 			return pos;
 			
-		pos = get_transform(player);
+		pos = get_center_point(player);
 
 		LOG(VERBOSE) << std::format("Player m_teleportFromPos = {:.3f}, {:.3f}, {:.3f}",
 		    pos.x,

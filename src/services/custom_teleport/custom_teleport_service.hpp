@@ -6,10 +6,10 @@ namespace big
 	{
 		std::string name;
 		float x, y, z;
-		float yaw = 0.0f, pitch = 0.0f, roll = 0.0f;
+		float rot_x = 0.0f, rot_y = 0.0f, rot_z = 0.0f, rot_w = 1.0f; // default identity rotation
 	};
 
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(teleport_location, name, x, y, z, yaw, pitch, roll)
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(teleport_location, name, x, y, z, rot_x, rot_y, rot_z, rot_w)
 
 	class custom_teleport_service
 	{
