@@ -306,14 +306,14 @@ namespace big::unity
 
 	inline int get_screen_width()
 	{
-		static MonoMethod* method = mono::get_method("Screen", "get_width", 0, "UnityEngine.CoreModule");
+		static MonoMethod* method = mono::get_method("Screen", "get_width", 0, "UnityEngine.CoreModule", "UnityEngine");
 		auto result = mono::invoke_method(method, nullptr, nullptr);
 		return *(int*)mono::object_unbox(result);
 	}
 
 	inline int get_screen_height()
 	{
-		static MonoMethod* method = mono::get_method("Screen", "get_height", 0, "UnityEngine.CoreModule");
+		static MonoMethod* method = mono::get_method("Screen", "get_height", 0, "UnityEngine.CoreModule", "UnityEngine");
 		auto result = mono::invoke_method(method, nullptr, nullptr);
 		return *(int*)mono::object_unbox(result);
 	}

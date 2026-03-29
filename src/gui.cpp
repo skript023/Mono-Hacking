@@ -14,7 +14,7 @@
 #include "javascript/bindings/gui_binding.hpp"
 
 #include "menu/view.hpp"
-//#include "menu/esp/esp.h"
+#include "menu/esp/esp.h"
 
 //#include <input/input_service.hpp>
 #include "notification/notification_service.hpp"
@@ -50,7 +50,7 @@ namespace big
 
 	void gui::init()
 	{
-		//this->add_dx_callback(esp::draw_esp, eRenderPriority::ESP);
+		this->add_dx_callback(esp::draw_esp, eRenderPriority::ESP);
 		this->add_dx_callback(view::draw_input, eRenderPriority::INPUT);
 		this->add_dx_callback(view::notifications, eRenderPriority::NOTIFICATIONS);
 		//this->add_dx_callback(view::draw_overlay, eRenderPriority::INFO_OVERLAY);

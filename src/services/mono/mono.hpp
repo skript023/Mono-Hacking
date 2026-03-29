@@ -8,7 +8,7 @@ namespace big
 	{
 		void init_impl();
 		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params) const;
-		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName) const;
+		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
         MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
         MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
         MonoClass* get_class_from_method_impl(MonoMethod* method) const;
@@ -36,9 +36,9 @@ namespace big
         {
             return get_instance().invoke_method_impl(method, obj, params);
 		};
-        static void* get_compile_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp")
+        static void* get_compile_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
         {
-            return get_instance().get_compile_method_impl(className, methodName, param_count, assemblyName);
+            return get_instance().get_compile_method_impl(className, methodName, param_count, assemblyName, nameSpace);
 		};
         static MonoMethod* get_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
         {

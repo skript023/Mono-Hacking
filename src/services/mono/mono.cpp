@@ -45,7 +45,7 @@ namespace big
 
 		return mono_runtime_invoke(method, obj, params, &execution);
 	}
-	void* mono::get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName) const
+	void* mono::get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoDomain* domain = mono_get_root_domain();
 		if (domain == nullptr)
@@ -71,10 +71,10 @@ namespace big
 			return nullptr;
 		}
 
-		MonoClass* klass = mono_class_from_name(image, "", className);
+		MonoClass* klass = mono_class_from_name(image, nameSpace, className);
 		if (klass == nullptr)
 		{
-			LOG(WARNING) << "Failed to get class: " << klass;
+			LOG(WARNING) << "Failed to get class: " << className << "method name: " << methodName << " from assembly: " << assemblyName;
 
 			return nullptr;
 		}
