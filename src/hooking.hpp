@@ -39,6 +39,7 @@ namespace big
 		static bool take_input(MonoObject* player_controller, bool look);
 		static float get_body_armor(MonoObject* player);
 		static bool have_empty_slot(MonoObject* inventory);
+		static bool allowed_command(MonoObject* ConsoleCommand, MonoObject* Terminal, bool Boolean);
 	};
 
 	struct minhook_keepalive

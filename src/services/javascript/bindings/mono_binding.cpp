@@ -216,12 +216,23 @@ namespace js::mono
 		return (double)(uintptr_t)compile_method;
 	}
 
+	static double js_mono_unbox(double obj_ptr)
+	{
+		auto obj = reinterpret_cast<MonoObject*>((uintptr_t)obj_ptr);
+
+		if (!obj)
+			return 0.0;
+
+		void* data = big::mono::object_unbox(obj);
+
+		return (double)(uintptr_t)data;
+	}
+
 	static MonoObject* list_get(MonoObject* list, int index)
 	{
 		MonoClass* klass = mono_object_get_class(list);
 
-		MonoMethod* getItem =
-		    mono_class_get_method_from_name(klass, "get_Item", 1);
+		MonoMethod* getItem = mono_class_get_method_from_name(klass, "get_Item", 1);
 
 		if (!getItem)
 			return nullptr;
@@ -314,6 +325,7 @@ namespace js::mono
 		mono_object.add<&js_mono_get_vtable>("get_vtable");
 		mono_object.add<&js_mono_get_class_from_method>("get_class_from_method");
 		mono_object.add<&js_mono_get_compile_method>("get_compile_method");
+		mono_object.add<&js_mono_unbox>("unbox");
 
 		global["mono"] = mono_object;
 

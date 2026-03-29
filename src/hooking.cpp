@@ -14,28 +14,29 @@ namespace big
 {
 	hooking::hooking()
 	{
-		detour_base::add<hooks::swapchain_present>(new detour_hook("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index), hooks::swapchain_present));
-		detour_base::add<hooks::swapchain_resizebuffers>(new detour_hook("SwapChainResizeBuffers", graphic_manager::get_method_table(hooks::swapchain_resizebuffers_index), hooks::swapchain_resizebuffers));
+		detour_hook::add<hooks::swapchain_present>("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index));
+		detour_hook::add<hooks::swapchain_resizebuffers>("SwapChainResizeBuffers", graphic_manager::get_method_table(hooks::swapchain_resizebuffers_index));
 
-		detour_base::add<hooks::set_cursor_pos>(new detour_hook("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>(), hooks::set_cursor_pos));
-		detour_base::add<hooks::convert_thread_to_fiber>(new detour_hook("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>(), hooks::convert_thread_to_fiber));
+		detour_hook::add<hooks::set_cursor_pos>("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>());
+		detour_hook::add<hooks::convert_thread_to_fiber>("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>());
 		
-		detour_base::add<hooks::is_teleportable>(new detour_hook("Humanoid::IsTeleportable", mono::get_compile_method("Humanoid", "IsTeleportable", 0, "assembly_valheim"), hooks::is_teleportable));
-		detour_base::add<hooks::update>(new detour_hook("Player::Update", mono::get_compile_method("Player", "Update", 0, "assembly_valheim"), hooks::update));
-		detour_base::add<hooks::create_tomb_stone>(new detour_hook("Player::CreateTombStone", mono::get_compile_method("Player", "CreateTombStone", 0, "assembly_valheim"), hooks::create_tomb_stone));
-		detour_base::add<hooks::is_debug_flying>(new detour_hook("Player::IsDebugFlying", mono::get_compile_method("Player", "IsDebugFlying", 0, "assembly_valheim"), hooks::is_debug_flying));
-		detour_base::add<hooks::update_guardian_power>(new detour_hook("Player::UpdateGuardianPower", mono::get_compile_method("Player", "UpdateGuardianPower", 1, "assembly_valheim"), hooks::update_guardian_power));
-		detour_base::add<hooks::is_under_roof>(new detour_hook("Cover::IsUnderRoof", mono::get_compile_method("Cover", "IsUnderRoof", 1, "assembly_utils"), hooks::is_under_roof));
-		detour_base::add<hooks::update_water>(new detour_hook("Character::UpdateWater", mono::get_compile_method("Character", "UpdateWater", 1, "assembly_valheim"), hooks::update_water));
-		detour_base::add<hooks::on_selected_item>(new detour_hook("InventoryGui::OnSelectedItem", mono::get_compile_method("InventoryGui", "OnSelectedItem", 4, "assembly_valheim"), hooks::on_selected_item));
-		detour_base::add<hooks::get_weight>(new detour_hook("ItemDrop::ItemData::GetWeight", mono::get_compile_method("ItemDrop/ItemData", "GetWeight", 1, "assembly_valheim"), hooks::get_weight));
-		detour_base::add<hooks::set_alerted>(new detour_hook("AnimalAI::SetAlerted", mono::get_compile_method("AnimalAI", "SetAlerted", 1, "assembly_valheim"), hooks::set_alerted));
-		detour_base::add<hooks::is_wind_controll_active>(new detour_hook("Ship::IsWindControllActive", mono::get_compile_method("Ship", "IsWindControllActive", 0, "assembly_valheim"), hooks::is_wind_controll_active));
-		detour_base::add<hooks::is_out_of_water>(new detour_hook("Fish::IsOutOfWater", mono::get_compile_method("Fish", "IsOutOfWater", 0, "assembly_valheim"), hooks::is_out_of_water));
-		detour_base::add<hooks::raise_skill>(new detour_hook("Player::RaiseSkill", mono::get_compile_method("Player", "RaiseSkill", 2, "assembly_valheim"), hooks::raise_skill));
-		detour_base::add<hooks::take_input>(new detour_hook("PlayerController::TakeInput", mono::get_compile_method("PlayerController", "TakeInput", 1, "assembly_valheim"), hooks::take_input));
-		detour_base::add<hooks::get_body_armor>(new detour_hook("Player::GetBodyArmor", mono::get_compile_method("Player", "GetBodyArmor", 0, "assembly_valheim"), hooks::get_body_armor));
-		detour_base::add<hooks::have_empty_slot>(new detour_hook("Inventory::HaveEmptySlot", mono::get_compile_method("Inventory", "HaveEmptySlot", 0, "assembly_valheim"), hooks::have_empty_slot));
+		detour_hook::add<hooks::is_teleportable>("Humanoid::IsTeleportable", mono::get_compile_method("Humanoid", "IsTeleportable", 0, "assembly_valheim"));
+		detour_hook::add<hooks::update>("Player::Update", mono::get_compile_method("Player", "Update", 0, "assembly_valheim"));
+		detour_hook::add<hooks::create_tomb_stone>("Player::CreateTombStone", mono::get_compile_method("Player", "CreateTombStone", 0, "assembly_valheim"));
+		detour_hook::add<hooks::is_debug_flying>("Player::IsDebugFlying", mono::get_compile_method("Player", "IsDebugFlying", 0, "assembly_valheim"));
+		detour_hook::add<hooks::update_guardian_power>("Player::UpdateGuardianPower", mono::get_compile_method("Player", "UpdateGuardianPower", 1, "assembly_valheim"));
+		detour_hook::add<hooks::is_under_roof>("Cover::IsUnderRoof", mono::get_compile_method("Cover", "IsUnderRoof", 1, "assembly_utils"));
+		detour_hook::add<hooks::update_water>("Character::UpdateWater", mono::get_compile_method("Character", "UpdateWater", 1, "assembly_valheim"));
+		detour_hook::add<hooks::on_selected_item>("InventoryGui::OnSelectedItem", mono::get_compile_method("InventoryGui", "OnSelectedItem", 4, "assembly_valheim"));
+		detour_hook::add<hooks::get_weight>("ItemDrop::ItemData::GetWeight", mono::get_compile_method("ItemDrop/ItemData", "GetWeight", 1, "assembly_valheim"));
+		detour_hook::add<hooks::set_alerted>("AnimalAI::SetAlerted", mono::get_compile_method("AnimalAI", "SetAlerted", 1, "assembly_valheim"));
+		detour_hook::add<hooks::is_wind_controll_active>("Ship::IsWindControllActive", mono::get_compile_method("Ship", "IsWindControllActive", 0, "assembly_valheim"));
+		detour_hook::add<hooks::is_out_of_water>("Fish::IsOutOfWater", mono::get_compile_method("Fish", "IsOutOfWater", 0, "assembly_valheim"));
+		detour_hook::add<hooks::raise_skill>("Player::RaiseSkill", mono::get_compile_method("Player", "RaiseSkill", 2, "assembly_valheim"));
+		detour_hook::add<hooks::take_input>("PlayerController::TakeInput", mono::get_compile_method("PlayerController", "TakeInput", 1, "assembly_valheim"));
+		detour_hook::add<hooks::get_body_armor>("Player::GetBodyArmor", mono::get_compile_method("Player", "GetBodyArmor", 0, "assembly_valheim"));
+		detour_hook::add<hooks::have_empty_slot>("Inventory::HaveEmptySlot", mono::get_compile_method("Inventory", "HaveEmptySlot", 0, "assembly_valheim"));
+		detour_hook::add<hooks::allowed_command>("Terminal::ConsoleCommand::IsValid", mono::get_compile_method("Terminal/ConsoleCommand", "IsValid", 2, "assembly_valheim"));
 
 		g_hooking = this;
 	}

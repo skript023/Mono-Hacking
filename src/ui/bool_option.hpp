@@ -10,8 +10,9 @@ namespace big
 	class bool_option : public base_option<bool_option<BoolType>>
 	{
 	public:
-		explicit bool_option(std::string_view text, const char* description, BoolType* b00l, std::function<void()> action = [] {}) :
-			m_bool(b00l)
+		explicit bool_option(const char* text, const char* description, BoolType* b00l, std::function<void()> action = [] {}) :
+			m_bool(b00l),
+			m_command(nullptr)
 		{
 			Base::set_left_text(text);
 			if (description)
@@ -19,16 +20,9 @@ namespace big
 			Base::set_action(std::move(action));
 		}
 		explicit bool_option(uint32_t id, std::function<void()> action = [] {}) :
-			m_command(commands::get_command<bool_command>(id)),
-			m_bool(nullptr)
+			m_bool(nullptr),
+			m_command(commands::get_command<bool_command>(id))
 		{
-			if (!m_command)
-			{
-				LOG(FATAL) << "Command not found.";
-
-				return;
-			}
-			m_bool = &m_command->get_state();
 			auto description = m_command->get_description().c_str();
 			auto text = m_command->get_label().c_str();
 
@@ -50,7 +44,7 @@ namespace big
 			{
 				if (m_command)
 				{
-					m_command->set_state(!*m_bool);
+					m_command->set_state(!m_command->get_state());
 				}
 				else
 				{
@@ -65,7 +59,11 @@ namespace big
 		{
 			if (flag == OptionFlag::Toggle)
 			{
-				canvas::set_bool_option(m_bool);
+				if (m_command)
+					canvas::set_bool_option(m_command->get_state());
+				else
+					canvas::set_bool_option(*m_bool);
+
 				return true;
 			}
 

@@ -24,7 +24,7 @@ namespace big
 		if (ImGui::Begin("Input", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10.f, 15.f});
-			ImGui::Text(g_input_service.m_title);
+			ImGui::Text("%s", g_input_service.m_title);
 			// set focus by default on input box
 			ImGui::SetKeyboardFocusHere(0);
 			ImGui::SetNextItemWidth((screen_x * 0.5f) - 30.f);

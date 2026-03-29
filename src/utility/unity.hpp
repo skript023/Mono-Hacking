@@ -141,14 +141,15 @@ namespace big::unity
 
 		return pos;
 	}
+
 	inline void teleport_to(Vector3 const& position, Vector4 const& rotation, bool distantTeleport)
 	{
-		MonoObject* player = unity::get_local_player();
+		static MonoObject* player = unity::get_local_player();
 
 		if (!player)
 			return;
 
-		MonoMethod* method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
+		static MonoMethod* method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
 
 		bool flashBar = true;
 
@@ -159,8 +160,59 @@ namespace big::unity
 		void* args[3] = {&pos, &rot, &distant};
 
 		MonoObject* ret = mono::invoke_method(method, player, args);
-
 	}
+
+	inline int get_screen_width()
+	{
+		static MonoMethod* method = mono::get_method("Screen", "get_width", 0, "UnityEngine.CoreModule");
+		auto result = mono::invoke_method(method, nullptr, nullptr);
+		return *(int*)mono::object_unbox(result);
+	}
+
+	inline int get_screen_height()
+	{
+		static MonoMethod* method = mono::get_method("Screen", "get_height", 0, "UnityEngine.CoreModule");
+		auto result = mono::invoke_method(method, nullptr, nullptr);
+		return *(int*)mono::object_unbox(result);
+	}
+
+	inline bool world_to_screen(Vector3 const& world, Vector3& out)
+	{
+		static MonoMethod* get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule");
+		static MonoMethod* w2s_method = mono::get_method("Camera", "WorldToScreenPoint", 2, "UnityEngine.CoreModule");
+
+		if (!get_main || !w2s_method)
+			return false;
+
+		auto camera = mono::invoke_method(get_main, nullptr, nullptr);
+		if (!camera)
+			return false;
+
+		int eye = 2; // 🔥 Mono
+
+		void* args[2];
+		args[0] = (void*)&world;
+		args[1] = (void*)&eye;
+
+		auto result_obj = mono::invoke_method(w2s_method, camera, args);
+		if (!result_obj)
+			return false;
+
+		Vector3 result = *(Vector3*)mono::object_unbox(result_obj);
+
+		if (result.z <= 0.1f)
+			return false;
+
+		float screen_width = unity::get_screen_width();
+		float screen_height = unity::get_screen_height();
+
+		out.x = result.x;
+		out.y = screen_height - result.y;
+		out.z = result.z;
+
+		return true;
+	}
+
 	inline bool is_int(const std::string& s, int64_t& out)
 	{
 		char* end{};
