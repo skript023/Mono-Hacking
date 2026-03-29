@@ -24,6 +24,7 @@ namespace big
         for (const auto& data : *view)
         {
             canvas::draw_line(width, 0, data.screen.x, data.screen.y, white, 1.f);
+            canvas::draw_stroke_text(data.screen.x, data.screen.y, white, data.name);
         }
 	}
 }

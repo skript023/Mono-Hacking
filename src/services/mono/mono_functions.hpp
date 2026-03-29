@@ -5,6 +5,13 @@
 
 namespace big
 {
+	struct MonoString
+	{
+		void* klass;
+		void* monitor;
+		int32_t length;
+		char16_t chars[1];
+	};
 	// --- Fungsi Runtime dan Domain ---
 
 	using mono_thread_attach_t = MonoThread * (*)(MonoDomain* domain);

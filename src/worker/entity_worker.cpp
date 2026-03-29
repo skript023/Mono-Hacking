@@ -90,6 +90,8 @@ namespace big
 					if (pos.x == 0.f && pos.y == 0.f && pos.z == 0.f)
 						continue;
 
+					auto name = unity::get_hover_name(player);
+
 					Vector3 screen;
 					if (!unity::world_to_screen(pos, screen))
 						continue;
@@ -97,6 +99,7 @@ namespace big
 					esp_data data{};
 					data.location = pos;
 					data.screen = screen;
+					data.name = name;
 					back.push_back(data);
 				}
 

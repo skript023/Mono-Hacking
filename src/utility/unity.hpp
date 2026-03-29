@@ -391,6 +391,61 @@ namespace big::unity
 		return list_to_vector(result);
 	}
 
+	inline std::string get_name(void* obj)
+	{
+		static MonoMethod* get_go = mono::get_method(
+			"Component",
+			"get_gameObject",
+			0,
+			"UnityEngine.CoreModule",
+			"UnityEngine"
+		);
+
+		static MonoMethod* get_name = mono::get_method(
+			"Object",
+			"get_name",
+			0,
+			"UnityEngine.CoreModule",
+			"UnityEngine"
+		);
+
+		if (!obj || !get_go || !get_name)
+			return "unknown";
+
+		auto go = mono::invoke_method(get_go, obj, nullptr);
+		if (!go)
+			return "unknown";
+
+		auto name_obj = mono::invoke_method(get_name, go, nullptr);
+		if (!name_obj)
+			return "unknown";
+
+		std::string str = mono::from_mono_string((MonoString*)name_obj);
+		
+		return str;
+	}
+
+	inline std::string get_hover_name(void* character)
+	{
+		static MonoMethod* method = mono::get_method(
+			"Character",
+			"GetHoverName",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !character)
+			return "unknown";
+
+		auto name_obj = mono::invoke_method(method, character, nullptr);
+		if (!name_obj)
+			return "unknown";
+
+		std::string result = mono::from_mono_string((MonoString*)name_obj);
+
+		return result;
+	}
+
 	inline bool is_int(const std::string& s, int64_t& out)
 	{
 		char* end{};

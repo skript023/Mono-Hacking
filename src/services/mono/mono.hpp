@@ -24,6 +24,7 @@ namespace big
 		void* mono_object_unbox_impl(MonoObject* obj);
 		MonoThread* mono_thread_attach_impl(MonoDomain* domain) const;
 		MonoDomain* get_root_domain_impl() const;
+		std::string from_mono_string_impl(MonoString* monoStr) const;
 		std::filesystem::path get_assembly_path(const char* assemblyName) const;
         static mono& get_instance()
         {
@@ -32,6 +33,7 @@ namespace big
 		}
 	public:
         static void init() { get_instance().init_impl(); };
+		static std::string from_mono_string(MonoString* monoStr) { return get_instance().from_mono_string_impl(monoStr); };
         static MonoObject* invoke_method(MonoMethod* method, void* obj = nullptr, void** params = nullptr)
         {
             return get_instance().invoke_method_impl(method, obj, params);

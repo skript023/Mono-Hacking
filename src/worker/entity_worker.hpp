@@ -9,8 +9,7 @@ namespace big
         Vector3 screen;
         float distance;
 
-        std::string display_classname;
-        std::string display_text;
+        std::string name;
     };
 
 	inline DoubleBuffer<esp_data> g_esp_data;

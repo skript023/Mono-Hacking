@@ -247,6 +247,35 @@ namespace big
 	{
 		return mono_get_root_domain();
 	}
+	std::string mono::from_mono_string_impl(MonoString* monoStr) const
+	{
+		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
+			return {};
+
+		int len = WideCharToMultiByte(
+		    CP_UTF8,
+		    0,
+		    (wchar_t*)monoStr->chars,
+		    monoStr->length,
+		    nullptr,
+		    0,
+		    nullptr,
+		    nullptr);
+
+		std::string out(len, '\0');
+
+		WideCharToMultiByte(
+		    CP_UTF8,
+		    0,
+		    (wchar_t*)monoStr->chars,
+		    monoStr->length,
+		    out.data(),
+		    len,
+		    nullptr,
+		    nullptr);
+
+		return out;
+	}
 	std::filesystem::path mono::get_assembly_path(const char* assemblyName) const
 	{
 		return std::filesystem::current_path() / std::filesystem::path(std::format("./Valheim_Data/Managed/{}.dll", assemblyName));
