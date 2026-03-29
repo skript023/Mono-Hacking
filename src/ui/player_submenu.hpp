@@ -24,7 +24,7 @@ namespace big
 
 		const char* get_name() override
 		{
-			// return g_pointers->m_get_player_name(*m_selected_player);
+			return "Player";
 		}
 	private:
 		std::uint32_t* m_selected_player;

@@ -1,9 +1,12 @@
 #pragma once
 #include "base_option.hpp"
 #include "canvas.hpp"
+#include "fiber_pool.hpp"
+
+#include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
 #include "commands/float_command.hpp"
-#include "commands/commands.hpp"
+
 
 namespace big
 {
@@ -20,11 +23,11 @@ namespace big
 			m_precision(precision)
 		{
 			Base::set_left_text(text);
-			if (!description)
+			if (description)
 				Base::set_description(description);
 			Base::set_action(std::move(action));
 		}
-		explicit bool_slider_float_option(uint32_t id_bool, uint32_t id_float, float step = 1.f, std::size_t precision = 3, bool actionOnHorizontal = true) :
+		explicit bool_slider_float_option(uint32_t id_bool, uint32_t id_float, float step = 1.f, std::size_t precision = 3, bool actionOnHorizontal = true, std::function<void()> action = [] {}) :
 			m_bool_command(commands::get_command<bool_command>(id_bool)),
 			m_float_command(commands::get_command<float_command>(id_float)),
 			m_action_on_horizontal(actionOnHorizontal),
@@ -33,19 +36,21 @@ namespace big
 		{
 			if (!m_bool_command || !m_float_command)
 			{
-				LOG(FATAL) << "Command not found.";
+				LOG(FATAL) << "Command " << id_bool << " or " << id_float << " not found.";
 
 				return;
 			}
-			m_bool = &m_bool_command->get_state();
-			m_number = &m_float_command->get_state();
-			m_min = m_float_command->get_minimum();
-			m_max = m_float_command->get_maximum();
 
-			Base::set_left_text(m_bool_command->get_label().c_str());
-			if (m_bool_command->get_description().c_str())
-				Base::set_description(m_bool_command->get_description().c_str());
-			Base::set_action([this] { m_bool_command->initialize(); });
+			m_min = m_float_command->get_maximum();
+			m_max = m_float_command->get_minimum();
+
+			auto& description = m_bool_command->get_description();
+			auto& text = m_bool_command->get_label();
+
+			Base::set_left_text(text.c_str());
+			if (!description.empty())
+				Base::set_description(description.c_str());
+			Base::set_action(std::move(action));
 		}
 
 		~bool_slider_float_option() noexcept = default;
@@ -56,17 +61,20 @@ namespace big
 
 		float get_float() override
 		{
-			return *m_number;
+			if (m_float_command)
+				return m_float_command->get_state();
+
+			return 0.f;
 		}
 
 		float get_min_float() override
 		{
-			return m_min;
+			return m_float_command->get_minimum();
 		}
 
 		float get_max_float() override
 		{
-			return m_max;
+			return m_float_command->get_maximum();
 		}
 
 		void handle_action(OptionAction action) override
@@ -74,27 +82,56 @@ namespace big
 			if (action == OptionAction::EnterPress)
 			{
 				if (m_bool_command)
-					m_bool_command->set_state(!*m_bool);
+					m_bool_command->set_state(!m_bool_command->get_state());
 				else
 					*m_bool = !*m_bool;
-
+				
 			}
 			else if (action == OptionAction::LeftPress)
 			{
-				if (*m_number - m_step < m_min)
-					*m_number = m_max;
-				else
-					*m_number -= m_step;
+				if (m_float_command)
+				{
+					auto min = m_float_command->get_minimum();
+					auto max = m_float_command->get_maximum();
 
-				if (m_action_on_horizontal && Base::m_action)
-					std::invoke(Base::m_action);
+					if (m_float_command->get_state() - m_step < min)
+						m_float_command->set_state(max);
+					else
+						m_float_command->set_state(m_float_command->get_state() - m_step);
+
+					if (m_action_on_horizontal && Base::m_action)
+						std::invoke(Base::m_action);
+				}
+				else
+				{
+					if (*m_number - m_step < m_min)
+						*m_number = m_max;
+					else
+						*m_number -= m_step;
+
+					if (m_action_on_horizontal && Base::m_action)
+						std::invoke(Base::m_action);
+				}
 			}
 			else if (action == OptionAction::RightPress)
 			{
-				if (*m_number + m_step > m_max)
-					*m_number = m_min;
+				if (m_float_command)
+				{
+					auto min = m_float_command->get_minimum();
+					auto max = m_float_command->get_maximum();
+
+					if (m_float_command->get_state() + m_step > max)
+						m_float_command->set_state(min);
+					else
+						m_float_command->set_state(m_float_command->get_state() + m_step);
+				}
 				else
-					*m_number += m_step;
+				{
+					if (*m_number + m_step > m_max)
+						*m_number = m_min;
+					else
+						*m_number += m_step;
+				}
 
 				if (m_action_on_horizontal && Base::m_action)
 					std::invoke(Base::m_action);
@@ -107,7 +144,10 @@ namespace big
 		{
 			if (flag == OptionFlag::BoolSliderFloat)
 			{
-				canvas::set_bool_slider_float(m_bool);
+				if (m_bool_command)
+					canvas::set_bool_slider_float(m_bool_command->get_state());
+				else
+					canvas::set_bool_slider_float(*m_bool);
 
 				return true;
 			}

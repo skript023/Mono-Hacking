@@ -58,9 +58,9 @@ namespace big
 		static void add_submenu(TArgs&&... args) { instance().add_submenu_impl<SubmenuType>(std::forward<TArgs>(args)...); }
 		template <typename TabmenuType, typename... Args>
 		static void add_tab(Args&&... args) { instance().add_tab_impl<TabmenuType>(std::forward<Args>(args)...); }
-		static void set_bool_option(bool* v) { instance().m_bool_option = *v; }
-		static void set_bool_slider_float(bool* v) { instance().m_bool_slider_float_option = *v; }
-		static void set_bool_slider_int(bool* v) { instance().m_bool_slider_int_option = *v; }
+		static void set_bool_option(bool v) { instance().m_bool_option = v; }
+		static void set_bool_slider_float(bool v) { instance().m_bool_slider_float_option = v; }
+		static void set_bool_slider_int(bool v) { instance().m_bool_slider_int_option = v; }
 		static void switch_to_submenu(std::uint32_t id) { instance().switch_to_submenu_impl(id); }
 		static void switch_to_tabmenu(std::uint32_t id) { instance().switch_to_tabmenu_impl(id); }
 		static bool is_opened() { return instance().m_opened; }

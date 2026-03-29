@@ -20,6 +20,7 @@ namespace big
             sub->add_option<bool_option<bool>>("Forsaken Power Always Ready", nullptr, &g_settings.self.forsaken_power_always_ready);
             sub->add_option<bool_option<bool>>("open_all_recepies"_hash);
             sub->add_option<bool_option<bool>>("infinite_stamina"_hash);
+            sub->add_option<bool_slider_int_option>("inventory_size"_hash, "inventory_height"_hash, 1);
             sub->add_option<bool_slider_float_option>("enable_raise_skill"_hash, "raise_skill"_hash, 1.f);
             sub->add_option<bool_slider_float_option>("max_food_health"_hash, "food_hp"_hash, 1000.f);
             sub->add_option<bool_slider_float_option>("max_body_armor"_hash, "num_body_armor"_hash, 10.f);

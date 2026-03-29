@@ -25,7 +25,7 @@ namespace big
 	{
 	}
 
-	int int_command::get_state()
+	int& int_command::get_state()
 	{
 		return m_state;
 	}
