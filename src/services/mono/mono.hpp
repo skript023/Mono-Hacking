@@ -125,6 +125,14 @@ namespace big
 		{
 			return get_instance().mono_class_from_name(image, name_space, name);
 		}
+		static const char* class_get_name(MonoClass* klass)
+		{
+			return get_instance().mono_class_get_name(klass);
+		}
+		static const char* class_get_namespace(MonoClass* klass)
+		{
+			return get_instance().mono_class_get_namespace(klass);
+		}
 	private:
         // --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
 
@@ -148,5 +156,7 @@ namespace big
         mono_class_vtable_t mono_class_vtable = nullptr;
         mono_vtable_get_static_field_data_t mono_vtable_get_static_field_data = nullptr;
         mono_field_get_offset_t mono_field_get_offset = nullptr;
+		mono_class_get_name_t mono_class_get_name = nullptr;
+		mono_class_get_namespace_t mono_class_get_namespace = nullptr;
 	};
 }

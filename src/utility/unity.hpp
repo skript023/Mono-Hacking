@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "mono/mono.hpp"
 #include <pointers.hpp>
+#include "class/mono_list.hpp"
 
 namespace big::unity
 {
@@ -114,6 +115,18 @@ namespace big::unity
 		}
 
 		return out;
+	}
+
+	inline MonoObject* get_transform(void* player)
+	{
+		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+
+		if (!method || !player)
+			return nullptr;
+
+		auto transform = mono::invoke_method(method, player, nullptr);
+
+		return transform;
 	}
 
 	inline Vector3 get_position(void* player)
@@ -340,6 +353,24 @@ namespace big::unity
 		out.z = result.z;
 
 		return true;
+	}
+
+	inline mono_list<void*>* get_all_characters()
+	{
+		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
+
+		if (!method)
+			return nullptr;
+
+		MonoObject* result = mono::invoke_method(method, nullptr);
+
+		MonoClass* klass = mono::object_get_class(result);
+		const char* class_name = mono::class_get_name(klass);
+		const char* namespace_name = mono::class_get_namespace(klass);
+
+		// LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
+
+		return reinterpret_cast<mono_list<void*>*>(result);
 	}
 
 	inline bool is_int(const std::string& s, int64_t& out)

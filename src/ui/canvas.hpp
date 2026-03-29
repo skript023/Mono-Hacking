@@ -64,6 +64,16 @@ namespace big
 		static void switch_to_submenu(std::uint32_t id) { instance().switch_to_submenu_impl(id); }
 		static void switch_to_tabmenu(std::uint32_t id) { instance().switch_to_tabmenu_impl(id); }
 		static bool is_opened() { return instance().m_opened; }
+		static void draw_line(float x1, float y1, float x2, float y2, Color color, float thickness) { instance().draw_line_impl(x1, y1, x2, y2, color, thickness); }
+		static void draw_stroke_text(float x, float y, Color color, std::string_view str) { instance().draw_stroke_text_impl(x, y, color, str); }
+		static void draw_filled_rect(float x, float y, float w, float h, Color color) { instance().draw_filled_rect_impl(x, y, w, h, color); }
+		static void draw_circle_filled(float x, float y, float radius, Color color) { instance().draw_circle_filled_impl(x, y, radius, color); }
+		static void draw_circle(float x, float y, float radius, Color color, int segments) { instance().draw_circle_impl(x, y, radius, color, segments); }
+		static void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, Color color, float thickness) { instance().draw_triangle_impl(x1, y1, x2, y2, x3, y3, color, thickness); }
+		static void draw_triangle_filled(float x1, float y1, float x2, float y2, float x3, float y3, Color color) { instance().draw_triangle_filled_impl(x1, y1, x2, y2, x3, y3, color); }
+		static void draw_corner_box(float x, float y, float w, float h, float borderPx, Color color) { instance().draw_corner_box_impl(x, y, w, h, borderPx, color); }
+		static void draw_cube(ImVec2 const& screen_location, float yaw, ImVec2 const& size, Color colour) { instance().draw_cube_impl(screen_location, yaw, size, colour); }
+		static ImVec2 rotate_point_2d(const ImVec2& point, const ImVec2& center, float yaw) { return instance().rotate_point_2d_impl(point, center, yaw); }
 	private:
 		explicit canvas() = default;
 		~canvas() noexcept = default;

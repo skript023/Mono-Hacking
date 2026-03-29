@@ -8,8 +8,8 @@ namespace big
 		TRY_CLAUSE
 		{
 			if (g_running)
-			g_script_mgr.tick();
-
+				g_script_mgr.tick();
+				
 			return detour_base::get_original<update>()(player);
 		} EXCEPT_CLAUSE
 	}

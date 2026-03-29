@@ -13,6 +13,7 @@
 #include "settings/settings.hpp"
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
+#include "worker/entity_worker.hpp"
 #include "javascript/javascript_manager.hpp"
 
 #include "services/notification/notification_service.hpp"
@@ -76,6 +77,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		LOG(INFO) << "Server initialized.";
 
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
+		// g_script_mgr.add_script(std::make_unique<script>(&entity_worker::run));
 		LOG(INFO) << "Scripts registered.";
 
 		g_hooking->enable();

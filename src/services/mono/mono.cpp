@@ -25,6 +25,8 @@ namespace big
 		mono_class_vtable = module.get_export("mono_class_vtable").as<mono_class_vtable_t>();
 		mono_vtable_get_static_field_data = module.get_export("mono_vtable_get_static_field_data").as<mono_vtable_get_static_field_data_t>();
 		mono_field_get_offset = module.get_export("mono_field_get_offset").as<mono_field_get_offset_t>();
+		mono_class_get_name = module.get_export("mono_class_get_name").as<mono_class_get_name_t>();
+		mono_class_get_namespace = module.get_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
 
 		// Attach thread to prevent crashes
 		mono_thread_attach = module.get_export("mono_thread_attach").as<mono_thread_attach_t>();
