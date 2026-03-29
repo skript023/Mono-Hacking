@@ -216,9 +216,9 @@ namespace big
 
 		return mono_vtable_get_static_field_data(vtable);
 	}
-	void* mono::get_static_field_value_impl(const char* className, const char* fieldName)
+	void* mono::get_static_field_value_impl(const char* className, const char* fieldName, const char* assemblyName, const char* nameSpace) const
 	{
-		MonoClass* klass = get_class_impl(className);
+		MonoClass* klass = get_class_impl(className, assemblyName, nameSpace);
 		if (klass == nullptr)
 			return nullptr;
 

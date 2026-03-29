@@ -131,6 +131,59 @@ namespace big::unity
 		return *(Vector3*)mono::object_unbox(obj);
 	}
 
+	inline Vector3 get_zdo_vec3(void* player, int hash_name)
+	{
+		Vector3 result{};
+
+		if (!player || !hash_name)
+			return result;
+
+		// 🔥 cache semua
+		static MonoClass* character_class = mono::get_class("Character", "assembly_valheim");
+		static MonoClass* znetview_class  = mono::get_class("ZNetView", "assembly_valheim");
+		static MonoClass* zdo_class       = mono::get_class("ZDO", "assembly_valheim");
+
+		static MonoClassField* m_nview_field =
+			mono::get_field(character_class, "m_nview");
+
+		static MonoMethod* get_zdo_method =
+			mono::get_method("ZNetView", "GetZDO", 0, "assembly_valheim");
+
+		static MonoMethod* get_vec3_method =
+			mono::get_method("ZDO", "GetVec3", 2, "assembly_valheim");
+
+		if (!m_nview_field || !get_zdo_method || !get_vec3_method)
+			return result;
+
+		// 1. ambil m_nview
+		void* nview = nullptr;
+		mono::get_field_value(player, m_nview_field, &nview);
+
+		if (!nview)
+			return result;
+
+		// 2. ambil ZDO
+		void* zdo = mono::invoke_method(get_zdo_method, nview, nullptr);
+		if (!zdo)
+			return result;
+
+		// 3. prepare arg
+		int key_str = hash_name;
+		Vector3 default_val{};
+
+		void* args[2];
+		args[0] = &key_str;
+		args[1] = &default_val;
+
+		// 4. invoke
+		auto obj = mono::invoke_method(get_vec3_method, zdo, args);
+		if (!obj)
+			return result;
+
+		// 5. unbox
+		return *(Vector3*)mono::object_unbox(obj);
+	}
+
 	inline Vector3 get_teleport_from()
 	{
 		Vector3 pos{};
@@ -138,17 +191,7 @@ namespace big::unity
 		MonoObject* player = unity::get_local_player();
 		if (!player)
 			return pos;
-
-		// MonoClass* playerClass = mono::get_class("Player", "assembly_valheim");
-		// if (!playerClass)
-		// 	return pos;
-
-		// auto teleportField = mono::get_field(playerClass, "m_lastDistCheck");
-		// if (!teleportField)
-		// 	return pos;
-
-		// mono::get_field_value(player, teleportField, &pos);
-
+			
 		pos = get_transform(player);
 
 		LOG(VERBOSE) << std::format("Player m_teleportFromPos = {:.3f}, {:.3f}, {:.3f}",

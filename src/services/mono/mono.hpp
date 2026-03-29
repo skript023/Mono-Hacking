@@ -20,7 +20,7 @@ namespace big
 		MonoVTable* get_vtable_impl(MonoClass* pKlass) const;
         void* get_static_field_data_impl(MonoVTable* pVTable) const;
         void* get_static_field_data_impl(MonoClass* pKlass) const;
-		void* get_static_field_value_impl(const char* className, const char* fieldName);
+		void* get_static_field_value_impl(const char* className, const char* fieldName, const char* assemblyName, const char* nameSpace) const;
 		void* mono_object_unbox_impl(MonoObject* obj);
 		MonoThread* mono_thread_attach_impl(MonoDomain* domain) const;
 		MonoDomain* get_root_domain_impl() const;
@@ -84,9 +84,9 @@ namespace big
 		{
 			return get_instance().get_static_field_data_impl(pKlass);
 		};
-		static void* get_static_field_value(const char* className, const char* fieldName)
+		static void* get_static_field_value(const char* className, const char* fieldName, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
 		{
-			return get_instance().get_static_field_value_impl(className, fieldName);
+			return get_instance().get_static_field_value_impl(className, fieldName, assemblyName, nameSpace);
 		};
 		static MonoThread* thread_attach(MonoDomain* domain)
 		{

@@ -5,9 +5,12 @@ namespace big
 {
 	void hooks::update(MonoObject* player)
 	{
-		if (g_running)
+		TRY_CLAUSE
+		{
+			if (g_running)
 			g_script_mgr.tick();
 
-		return detour_base::get_original<update>()(player);
+			return detour_base::get_original<update>()(player);
+		} EXCEPT_CLAUSE
 	}
 }
