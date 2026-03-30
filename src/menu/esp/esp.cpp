@@ -6,50 +6,6 @@
 
 namespace big
 {
-    struct screen_box
-    {
-        float x, y, w, h;
-    };
-
-    inline bool build_screen_box(const Vector3& min, const Vector3& max, screen_box& out)
-    {
-        Vector3 points[8] = {
-            {min.x, min.y, min.z},
-            {min.x, min.y, max.z},
-            {min.x, max.y, min.z},
-            {min.x, max.y, max.z},
-            {max.x, min.y, min.z},
-            {max.x, min.y, max.z},
-            {max.x, max.y, min.z},
-            {max.x, max.y, max.z},
-        };
-
-        float min_x = FLT_MAX, min_y = FLT_MAX;
-        float max_x = -FLT_MAX, max_y = -FLT_MAX;
-
-        for (int i = 0; i < 8; i++)
-        {
-            Vector3 screen;
-            if (!unity::world_to_screen(points[i], screen))
-                continue;
-
-            min_x = std::min(min_x, screen.x);
-            max_x = std::max(max_x, screen.x);
-            min_y = std::min(min_y, screen.y);
-            max_y = std::max(max_y, screen.y);
-        }
-
-        if (min_x >= max_x || min_y >= max_y)
-            return false;
-
-        out.x = min_x;
-        out.y = min_y;
-        out.w = max_x - min_x;
-        out.h = max_y - min_y;
-
-        return true;
-    }
-
     inline void draw_box(Vector3 const& top, Vector3 const& bottom)
     {
         Vector3 top_s, bottom_s;
@@ -79,7 +35,6 @@ namespace big
         if (!unity::world_to_screen(bottom, bottom_s))
             return;
 
-        // 🔥 pastikan urutan bener
         float y_top = std::min(top_s.y, bottom_s.y);
         float y_bottom = std::max(top_s.y, bottom_s.y);
 
@@ -91,17 +46,13 @@ namespace big
         float x = top_s.x - w / 2.f;
         float y = y_top;
 
-        // 🔥 health ratio
         float ratio = std::clamp(hp / max_hp, 0.f, 1.f);
         float filled = h * ratio;
 
-        // posisi health bar (kiri box)
         float hx = x - 6.f;
 
-        // background
         canvas::draw_line(hx, y, hx, y + h, {0, 0, 0, 255}, 2.f);
 
-        // warna gradient
         Color col{
             (uint8_t)((1.f - ratio) * 255),
             (uint8_t)(ratio * 255),
@@ -109,7 +60,6 @@ namespace big
             255
         };
 
-        // health fill
         canvas::draw_line(
             hx,
             y + h - filled,
@@ -120,6 +70,19 @@ namespace big
         );
     }
 
+    inline void draw_fov_circle(float fov_deg)
+    {
+        float screen_w = g_pointers->m_resolution->x;
+        float screen_h = g_pointers->m_resolution->y;
+
+        float cx = screen_w * 0.5f;
+        float cy = screen_h * 0.5f;
+
+        float radius = (fov_deg / 90.f) * (screen_w * 0.5f);
+
+        canvas::draw_circle(cx, cy, radius, { 255, 255, 255, 255 }, 64);
+    }
+    
     void esp::draw_esp()
 	{
         float width = static_cast<float>(g_pointers->m_resolution->x / 2);
@@ -135,6 +98,8 @@ namespace big
 
             return;
         }
+
+        draw_fov_circle(90.f);
 
         for (const auto& data : *view)
         {

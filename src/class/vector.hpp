@@ -1,4 +1,5 @@
 #pragma once
+#include <numbers>
 
 namespace big
 {
@@ -81,6 +82,48 @@ namespace big
 		bool is_zero() const
 		{
 			return x == 0.f && y == 0.f && z == 0.f;
+		}
+
+		Vector3 normalize( ) const noexcept
+		{
+			float length = sqrtf(x * x + y * y + z * z);
+			if (length == 0.f)
+				return Vector3{};
+
+			return Vector3{ x / length, y / length, z / length };
+		}
+
+		void to_directions( Vector3* forward, Vector3* right, Vector3* up ) const noexcept
+		{
+			constexpr auto deg_to_rad = std::numbers::pi_v<float> / 180.0f;
+
+			const auto sp = std::sinf( x * deg_to_rad );
+			const auto cp = std::cosf( x * deg_to_rad );
+			const auto sy = std::sinf( y * deg_to_rad );
+			const auto cy = std::cosf( y * deg_to_rad );
+			const auto sr = std::sinf( z * deg_to_rad );
+			const auto cr = std::cosf( z * deg_to_rad );
+
+			if ( forward )
+			{
+				forward->x = cp * cy;
+				forward->y = cp * sy;
+				forward->z = -sp;
+			}
+
+			if ( right )
+			{
+				right->x = -1.0f * sr * sp * cy + -1.0f * cr * -sy;
+				right->y = -1.0f * sr * sp * sy + -1.0f * cr * cy;
+				right->z = -1.0f * sr * cp;
+			}
+
+			if ( up )
+			{
+				up->x = cr * sp * cy + -sr * -sy;
+				up->y = cr * sp * sy + -sr * cy;
+				up->z = cr * cp;
+			}
 		}
 
 		Vector3 operator-(const Vector3 vec3) const { return { vec3.x - x, vec3.y - y, vec3.z - z }; }

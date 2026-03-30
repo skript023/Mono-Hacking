@@ -129,6 +129,18 @@ namespace big::unity
 		return transform;
 	}
 
+	inline Vector3 get_head_point(void* player)
+	{
+		static MonoMethod* method = mono::get_method("Character", "GetHeadPoint", 0, "assembly_valheim");
+
+		if (!method || !player)
+			return Vector3();
+
+		auto obj = mono::invoke_method(method, player, nullptr);
+
+		return *(Vector3*)mono::object_unbox(obj);
+	}
+
 	inline Vector3 get_position(void* player)
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
@@ -195,6 +207,51 @@ namespace big::unity
 			return euler;
 
 		return *(Vector3*)mono::object_unbox(obj);
+	}
+	inline Vector3 get_camera_forward()
+	{
+		static MonoMethod* get_main = mono::get_method(
+			"Camera",
+			"get_main",
+			0,
+			"UnityEngine.CoreModule",
+			"UnityEngine"
+		);
+
+		static MonoMethod* get_transform = mono::get_method(
+			"Component",
+			"get_transform",
+			0,
+			"UnityEngine.CoreModule",
+			"UnityEngine"
+		);
+
+		static MonoMethod* get_forward = mono::get_method(
+			"Transform",
+			"get_forward",
+			0,
+			"UnityEngine.CoreModule",
+			"UnityEngine"
+		);
+
+		if (!get_main || !get_transform || !get_forward)
+			return {0, 0, 1};
+
+		auto camera = mono::invoke_method(get_main, nullptr, nullptr);
+		if (!camera)
+			return {0, 0, 1};
+
+		auto transform = mono::invoke_method(get_transform, camera, nullptr);
+		if (!transform)
+			return {0, 0, 1};
+
+		auto forward_obj = mono::invoke_method(get_forward, transform, nullptr);
+		if (!forward_obj)
+			return {0, 0, 1};
+
+		Vector3 forward = *(Vector3*)mono::object_unbox(forward_obj);
+
+		return forward.normalize();
 	}
 	inline Vector3 get_zdo_vec3(void* player, int hash_name)
 	{
@@ -462,6 +519,24 @@ namespace big::unity
 			return 0.f;
 
 		return *(float*)mono::object_unbox(obj);
+	}
+	inline bool is_dead(void* character)
+	{
+		static MonoMethod* method = mono::get_method(
+			"Character",
+			"IsDead",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !character)
+			return false;
+
+		auto obj = mono::invoke_method(method, character, nullptr);
+		if (!obj)
+			return false;
+
+		return *(bool*)mono::object_unbox(obj);
 	}
 	inline float get_max_health(void* character)
 	{
