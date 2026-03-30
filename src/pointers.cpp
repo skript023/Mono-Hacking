@@ -3,7 +3,7 @@
 
 namespace big
 {
-	pointers::pointers() : main_batch("pointer_cache"), discord_batch("discord"), m_resolution(new iVector2(1920, 1080))
+	pointers::pointers() : main_batch("pointer_cache"), discord_batch("discord"), m_resolution(1920, 1080)
 	{
 		main_batch.add("Return Address", "FF 23", [this](memory::handle ptr)
 		{

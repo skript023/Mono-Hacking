@@ -14,8 +14,8 @@ namespace big
 			return;
 		}
 
-		float screen_x = (float)g_pointers->m_resolution->x;
-		float screen_y = (float)g_pointers->m_resolution->y;
+		float screen_x = (float)g_pointers->m_resolution.x;
+		float screen_y = (float)g_pointers->m_resolution.y;
 
 		ImGui::SetNextWindowPos(ImVec2(screen_x * 0.25f, screen_y * 0.2f), ImGuiCond_Always);
 		ImGui::SetNextWindowBgAlpha(0.65f);

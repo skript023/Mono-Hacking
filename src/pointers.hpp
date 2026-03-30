@@ -21,7 +21,7 @@ namespace big
 		void** m_present;
 		void** m_resizebuffer;
 
-		iVector2* m_resolution{};
+		iVector2 m_resolution{};
 		void* m_battle_points_handle;
 		void* m_credits_handle;
 		void* m_items_handle;

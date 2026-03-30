@@ -700,8 +700,8 @@ namespace big
 
 	Vector2 canvas::get_sprite_scale(float size)
 	{
-		int x = g_pointers->m_resolution->x;
-		int y = g_pointers->m_resolution->y;
+		int x = g_pointers->m_resolution.x;
+		int y = g_pointers->m_resolution.y;
 
 		Vector2 sz = { (static_cast<float>(y) / static_cast<float>(x)) * size, size };
 

@@ -41,7 +41,7 @@ namespace big
 		static bool have_empty_slot(MonoObject* inventory);
 		static bool allowed_command(MonoObject* ConsoleCommand, MonoObject* Terminal, bool Boolean);
 		static void camera_render(MonoObject* Camera);
-		static bool start_attack(MonoObject* humanoid, MonoObject* character, bool secondary);
+		static void get_projectile_spawn_point(MonoObject* attack, Vector3* spawnPoint, Vector3* aimDir);
 	};
 
 	struct minhook_keepalive

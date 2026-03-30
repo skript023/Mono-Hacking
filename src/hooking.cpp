@@ -38,7 +38,7 @@ namespace big
 		detour_hook::add<hooks::have_empty_slot>("Inventory::HaveEmptySlot", mono::get_compile_method("Inventory", "HaveEmptySlot", 0, "assembly_valheim"));
 		detour_hook::add<hooks::allowed_command>("Terminal::ConsoleCommand::IsValid", mono::get_compile_method("Terminal/ConsoleCommand", "IsValid", 2, "assembly_valheim"));
 		detour_hook::add<hooks::camera_render>("Camera::Render", mono::get_compile_method("Camera", "Render", 0, "UnityEngine.CoreModule", "UnityEngine"));
-		detour_hook::add<hooks::start_attack>("Humanoid::StartAttack", mono::get_compile_method("Humanoid", "StartAttack", 2, "assembly_valheim"));
+		detour_hook::add<hooks::get_projectile_spawn_point>("Attack::GetProjectileSpawnPoint", mono::get_compile_method("Attack", "GetProjectileSpawnPoint", 2, "assembly_valheim"));
 
 		g_hooking = this;
 	}

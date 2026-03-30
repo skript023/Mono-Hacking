@@ -141,6 +141,18 @@ namespace big::unity
 		return *(Vector3*)mono::object_unbox(obj);
 	}
 
+	inline Vector3 get_velocity(void* player)
+	{
+		static MonoMethod* method = mono::get_method("Character", "GetVelocity", 0, "assembly_valheim");
+
+		if (!method || !player)
+			return Vector3();
+
+		auto obj = mono::invoke_method(method, player, nullptr);
+
+		return *(Vector3*)mono::object_unbox(obj);
+	}
+
 	inline Vector3 get_position(void* player)
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");

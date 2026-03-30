@@ -9,6 +9,13 @@ namespace big
     {
         canvas::add_tab<regular_submenu>("Player", SubmenuPlayer, [](regular_submenu* sub)
         {
+            sub->add_option<sub_option>("Self", nullptr, "SubmenuSelf"_hash);
+            sub->add_option<sub_option>("ESP", nullptr, "SubmenuESP"_hash);
+            sub->add_option<sub_option>("Aimbot", nullptr, "SubmenuAimbot"_hash);
+        });
+
+        canvas::add_submenu<regular_submenu>("Self", "SubmenuSelf"_hash, [](regular_submenu* sub)
+        {
             sub->add_option<bool_option<bool>>("Flying", nullptr, &g_settings.self.flying);
             sub->add_option<bool_option<bool>>("No Alert Animal", nullptr, &g_settings.self.no_animal_alert);
             sub->add_option<bool_option<bool>>("Allow Teleporting with Any Items", nullptr, &g_settings.self.is_teleportable);
@@ -31,6 +38,27 @@ namespace big
             sub->add_option<bool_slider_float_option>("eitr"_hash, "eitr_amount"_hash, 5.f);
             sub->add_option<bool_slider_float_option>("stamina_regen"_hash, "stamina_regen_amount"_hash, 5.f);
             sub->add_option<bool_slider_float_option>("eitr_regen"_hash, "eitr_regen_amount"_hash, 5.f);
+        });
+
+        canvas::add_submenu<regular_submenu>("ESP", "SubmenuESP"_hash, [](regular_submenu* sub)
+        {
+            sub->add_option<bool_option<bool>>("esp_activate"_hash);
+            sub->add_option<bool_option<bool>>("draw_anim"_hash);
+            sub->add_option<bool_option<bool>>("draw_line"_hash);
+            sub->add_option<bool_option<bool>>("draw_name"_hash);
+            sub->add_option<bool_option<bool>>("draw_health"_hash);
+            sub->add_option<bool_option<bool>>("draw_box"_hash);
+        });
+
+        canvas::add_submenu<regular_submenu>("Aimbot", "SubmenuAimbot"_hash, [](regular_submenu* sub)
+        {
+            sub->add_option<bool_option<bool>>("aimbot"_hash);
+            sub->add_option<bool_option<bool>>("draw_fov"_hash);
+            sub->add_option<number_option<float>>("aimbot_fov"_hash);
+            sub->add_option<number_option<float>>("aimbot_smooth"_hash);
+            sub->add_option<number_option<int>>("aimbot_trigger"_hash);
+            sub->add_option<bool_option<bool>>("triggerbot"_hash);
+            sub->add_option<number_option<float>>("trigger_fov"_hash);
         });
     }
 }

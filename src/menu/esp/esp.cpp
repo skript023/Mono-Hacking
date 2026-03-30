@@ -2,6 +2,7 @@
 #include "pointers.hpp"
 #include "ui/canvas.hpp"
 #include "utility/unity.hpp"
+#include "features/features.hpp"
 #include "worker/entity_worker.hpp"
 
 namespace big
@@ -72,8 +73,8 @@ namespace big
 
     inline void draw_fov_circle(float fov_deg)
     {
-        float screen_w = g_pointers->m_resolution->x;
-        float screen_h = g_pointers->m_resolution->y;
+        float screen_w = g_pointers->m_resolution.x;
+        float screen_h = g_pointers->m_resolution.y;
 
         float cx = screen_w * 0.5f;
         float cy = screen_h * 0.5f;
@@ -85,10 +86,17 @@ namespace big
     
     void esp::draw_esp()
 	{
-        float width = static_cast<float>(g_pointers->m_resolution->x / 2);
-        float height = static_cast<float>(g_pointers->m_resolution->y / 2);
+        using namespace features;
+
+        float width = static_cast<float>(g_pointers->m_resolution.x / 2);
+        float height = static_cast<float>(g_pointers->m_resolution.y / 2);
 
         static const Color white = { 255, 255, 255, 255 };
+
+        if (!_esp_enabled.get_state())
+        {
+            return;
+        }
 
         const auto view = g_esp_data.view();
 
@@ -99,14 +107,29 @@ namespace big
             return;
         }
 
-        draw_fov_circle(90.f);
+        if (_draw_fov.get_state())
+        {
+            draw_fov_circle(_aimbot_fov.get_state());
+        }
 
         for (const auto& data : *view)
         {
-            draw_health(data.top, data.location, data.health, data.max_health);
-            draw_box(data.top, data.location);
-            canvas::draw_line(width, 0, data.screen.x, data.screen.y, white, 1.f);
-            canvas::draw_stroke_text(data.screen.x, data.screen.y, white, data.name);
+            if (_draw_health.get_state())
+            {
+                draw_health(data.top, data.location, data.health, data.max_health);
+            }
+            if (_draw_box.get_state())
+            {
+                draw_box(data.top, data.location);
+            }
+            if (_draw_line.get_state())
+            {
+                canvas::draw_line(width, 0, data.screen.x, data.screen.y, white, 1.f);
+            }
+            if (_draw_name.get_state())
+            {
+                canvas::draw_stroke_text(data.screen.x, data.screen.y, white, data.name);
+            }
         }
 	}
 }

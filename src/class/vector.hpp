@@ -70,6 +70,11 @@ namespace big
 			return x * vec3.x + y * vec3.y + z * vec3.z;
 		}
 
+		float length() const
+		{
+			return sqrtf(x * x + y * y + z * z);
+		}
+
 		float distance(Vector3 v) const
 		{
 			float x = this->x - v.x;
