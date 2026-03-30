@@ -127,9 +127,9 @@ namespace big
 
                 return;
             }
-
+#ifdef _DEBUG
             LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
-
+#endif
             Vector3 dir = shooter - target_pos;
 
             float len = dir.length();
