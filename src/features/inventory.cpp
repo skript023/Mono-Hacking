@@ -38,19 +38,28 @@ namespace big::features
 
 		virtual void on_disable() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_maxCarryWeight = mono::get_field(klass, "m_maxCarryWeight");
+			auto method = mono::get_method("Humanoid", "GetInventory", 0, "assembly_valheim");
+            auto player = unity::get_local_player();
 
-			if (!klass || !m_maxCarryWeight)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
+            if (!method || !player) 
+            {
+                LOG(WARNING) << "Failed to find method Humanoid::GetInventory or local player";
+                return;
+            }
 
-				return;
-			}
+            auto ret = mono::invoke_method(method, player);
 
-			float default_stamina_regen = 0.f;
+            if (ret == 0)
+                return;
 
-			mono::set_field_value(unity::get_local_player(), m_maxCarryWeight, &default_stamina_regen);
+			int height = 4;
+			int width = 8;
+
+            auto inventory = mono::get_class("Inventory", "assembly_valheim");
+            auto m_height = mono::get_field(inventory, "m_height");
+            auto m_width = mono::get_field(inventory, "m_width");
+            mono::set_field_value(ret, m_height, &height);
+            mono::set_field_value(ret, m_width, &width);
 		}
 	};
 

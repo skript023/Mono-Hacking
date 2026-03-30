@@ -75,10 +75,11 @@ namespace big
 
 				for (auto player : list)
 				{
-					if (!player || (uintptr_t)player < 0x10000)
+					auto local_player = unity::get_local_player();
+					if (!player || (uintptr_t)player < 0x10000 || player == local_player)
 						continue;
 
-					MonoClass* elem_class = mono::object_get_class(player);
+					//MonoClass* elem_class = mono::object_get_class(player);
 
 					// LOG(INFO) << "Element class: "
 					// 	<< mono::class_get_namespace(elem_class)
@@ -86,20 +87,38 @@ namespace big
 					// 	<< mono::class_get_name(elem_class) << " at address " << player << " local player is " << unity::get_local_player();
 
 					Vector3 pos = unity::get_position(player);
+					auto local_player_pos = unity::get_position(local_player);
 
 					if (pos.x == 0.f && pos.y == 0.f && pos.z == 0.f)
 						continue;
 
+					Vector3 top{};
+					Vector3 bottom{};
+
 					auto name = unity::get_hover_name(player);
+					auto health = unity::get_health(player);
+					auto max_health = unity::get_max_health(player);
+					auto distance = local_player_pos.distance(pos);
+					
+					if (!unity::get_bounds(player, top, bottom))
+						continue;
 
 					Vector3 screen;
 					if (!unity::world_to_screen(pos, screen))
 						continue;
 
+					char buffer[256];
+					snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
+
 					esp_data data{};
 					data.location = pos;
 					data.screen = screen;
-					data.name = name;
+					data.name = buffer;
+					data.health = health;
+					data.max_health = max_health;
+					data.distance = distance;
+					data.top = top;
+					data.bottom = bottom;
 					back.push_back(data);
 				}
 

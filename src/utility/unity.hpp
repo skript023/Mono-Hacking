@@ -445,7 +445,75 @@ namespace big::unity
 
 		return result;
 	}
+	inline float get_health(void* character)
+	{
+		static MonoMethod* method = mono::get_method(
+			"Character",
+			"GetHealth",
+			0,
+			"assembly_valheim"
+		);
 
+		if (!method || !character)
+			return 0.f;
+
+		auto obj = mono::invoke_method(method, character, nullptr);
+		if (!obj)
+			return 0.f;
+
+		return *(float*)mono::object_unbox(obj);
+	}
+	inline float get_max_health(void* character)
+	{
+		static MonoMethod* method = mono::get_method(
+			"Character",
+			"GetMaxHealth",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !character)
+			return 0.f;
+
+		auto obj = mono::invoke_method(method, character, nullptr);
+		if (!obj)
+			return 0.f;
+
+		return *(float*)mono::object_unbox(obj);
+	}
+	inline bool get_bounds(void* character, Vector3& top, Vector3& bottom)
+	{
+		static MonoMethod* get_top = mono::get_method(
+			"Character",
+			"GetTopPoint",
+			0,
+			"assembly_valheim"
+		);
+
+		static MonoMethod* get_center = mono::get_method(
+			"Character",
+			"GetCenterPoint",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!character || !get_top || !get_center)
+			return false;
+
+		auto top_obj = mono::invoke_method(get_top, character, nullptr);
+		auto center_obj = mono::invoke_method(get_center, character, nullptr);
+
+		if (!top_obj || !center_obj)
+			return false;
+
+		top = *(Vector3*)mono::object_unbox(top_obj);
+		Vector3 center = *(Vector3*)mono::object_unbox(center_obj);
+
+		// 🔥 bottom = mirror dari center
+		bottom = center - (top - center);
+
+		return true;
+	}
 	inline bool is_int(const std::string& s, int64_t& out)
 	{
 		char* end{};

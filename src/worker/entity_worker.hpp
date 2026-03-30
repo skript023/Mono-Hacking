@@ -10,6 +10,10 @@ namespace big
         float distance;
 
         std::string name;
+		float health;
+		float max_health;
+		Vector3 top;
+		Vector3 bottom;
     };
 
 	inline DoubleBuffer<esp_data> g_esp_data;
