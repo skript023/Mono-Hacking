@@ -121,7 +121,12 @@ namespace big
             Vector3 target_pos = unity::get_top_point(best);
             Vector3 velocity   = unity::get_velocity(best);
 
-            float projectile_vel = unity::get_field_value<float>(attack, "Attack", "m_attackType");
+            if (_teleport_projectile.get_state())
+            {
+                *spawnPoint = target_pos;
+
+                return;
+            }
 
             LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
 
@@ -134,10 +139,6 @@ namespace big
             dir = dir / len;
 
             *aimDir = dir;
-            
-            if (_teleport_projectile.get_state())
-                *spawnPoint = target_pos;
-                
         } EXCEPT_CLAUSE
 	}
 }
