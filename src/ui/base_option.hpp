@@ -71,25 +71,13 @@ namespace big
 
 		T& set_left_text(const char* text)
 		{
-			m_left_text = text;
+			std::strncpy(&m_left_text[0], text, sizeof(m_left_text) - 1);
 			return static_cast<T&>(*this);
 		}
 
 		T& set_right_text(const char* text)
 		{
-			m_right_text = text;
-			return static_cast<T&>(*this);
-		}
-
-		T& set_left_text(std::string_view text)
-		{
-			m_left_text = text;
-			return static_cast<T&>(*this);
-		}
-
-		T& set_right_text(std::string_view text)
-		{
-			m_right_text = text;
+			std::strncpy(&m_right_text[0], text, sizeof(m_right_text) - 1);
 			return static_cast<T&>(*this);
 		}
 
@@ -110,14 +98,7 @@ namespace big
 		T& set_description(const char* text)
 		{
 			if (text)
-				m_description = text;
-			return static_cast<T&>(*this);
-		}
-
-		T& set_description(std::string_view text)
-		{
-			if (!text.empty())
-				m_description = text;
+				std::strncpy(&m_description[0], text, sizeof(m_description) - 1);
 			return static_cast<T&>(*this);
 		}
 
@@ -135,9 +116,9 @@ namespace big
 		base_option(base_option&&) = default;
 		base_option& operator=(base_option&&) = default;
 
-		std::string m_left_text{};
-		std::string m_right_text{};
-		std::string m_description{};
+		char m_left_text[64] = {};
+		char m_right_text[64] = {};
+		char m_description[64] = {};
 		int m_integer = { 0 };
 		int m_min_integer = { 0 };
 		int m_max_integer = { 0 };

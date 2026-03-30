@@ -63,7 +63,7 @@ namespace big
 
 		const char* get_right_text() override
 		{
-			MemoryStringStream stream(Base::m_right_text.data(), Base::m_right_text.size());
+			MemoryStringStream stream(Base::m_right_text);
 			
 			if (m_command)
 			{
