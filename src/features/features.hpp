@@ -18,6 +18,7 @@ namespace big::features
 	inline bool_command _draw_anim("draw_anim", "Draw Animation", "Draw animation", false);
 
     inline bool_command _aimbot_enabled("aimbot", "Silent Aimbot", "Silent Aimbot", false);
+    inline bool_command _teleport_projectile("tp", "Teleport Projectile", "Teleport projectile to target", false);
 	inline number_command<int> _aimbot_trigger("aimbot_trigger", "Aimbot Trigger Type", "0=MouseOnly 1=Aiming 2=Hotkey 3=Mouse+Aiming", 0, 3, 0);
 	inline number_command<float> _aimbot_fov("aimbot_fov", "Aimbot FOV", "Max aim angle", 1.f, 180.f, 20.f);
 	inline number_command<float> _aimbot_smooth("aimbot_smooth", "Aimbot Smooth", "Rotation interpolation", 1.f, 100.f, 10.f );

@@ -71,7 +71,7 @@ namespace big
         );
     }
 
-    inline void draw_fov_circle(float fov_deg)
+    inline void draw_fov_circle(float fov_px)
     {
         float screen_w = g_pointers->m_resolution.x;
         float screen_h = g_pointers->m_resolution.y;
@@ -79,9 +79,7 @@ namespace big
         float cx = screen_w * 0.5f;
         float cy = screen_h * 0.5f;
 
-        float radius = (fov_deg / 90.f) * (screen_w * 0.5f);
-
-        canvas::draw_circle(cx, cy, radius, { 255, 255, 255, 255 }, 64);
+        canvas::draw_circle(cx, cy, fov_px, { 255, 255, 255, 255 }, 64);
     }
     
     void esp::draw_esp()

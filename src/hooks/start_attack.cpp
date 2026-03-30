@@ -7,14 +7,24 @@ namespace big
 {
     using namespace features;
 
-    static MonoObject* find_best_target(Vector3 shooter, Vector3 forward)
+    static MonoObject* find_best_target(Vector3 shooter)
     {
-        float best_fov = _aimbot_fov.get_state();
+        float fov_px = _aimbot_fov.get_state(); // pixel radius
+
         MonoObject* best = nullptr;
-        static constexpr double PI = 3.1415926535897932384626433832795;
+        float best_dist = fov_px;
 
         auto characters = unity::get_all_characters();
         auto local_player = unity::get_local_player();
+
+        float screen_w = unity::get_screen_width();
+        float screen_h = unity::get_screen_height();
+
+        Vector3 screen_center = {
+            screen_w * 0.5f,
+            screen_h * 0.5f,
+            0.f
+        };
 
         for (auto c : characters)
         {
@@ -24,15 +34,29 @@ namespace big
             if (unity::is_dead(c))
                 continue;
 
-            Vector3 pos = unity::get_position(c);
-            Vector3 dir = (pos - shooter).normalize();
+            Vector3 world = unity::get_position(c);
 
-            float dot = forward.dot(dir);
-            float angle = acosf(dot) * (180.f / PI);
+            Vector3 screen{};
 
-            if (angle < best_fov)
+            if (!unity::world_to_screen(world, screen))
+                continue;
+            
+            float dx = screen.x - screen_center.x;
+            float dy = screen.y - screen_center.y;
+            
+            float dist = sqrtf(dx * dx + dy * dy);
+            
+            // LOG(INFO) << "screen: " << screen.x << ", " << screen.y << ", " << screen.z << " dist: " << dist;
+
+            if (!std::isfinite(dist))
+                continue;
+
+            if (dist > fov_px)
+                continue;
+
+            if (dist < best_dist)
             {
-                best_fov = angle;
+                best_dist = dist;
                 best = c;
             }
         }
@@ -68,43 +92,52 @@ namespace big
         {
             if (!_aimbot_enabled.get_state())
             {
-                 return detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
+                return detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
             }
 
             detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
 
             if (!spawnPoint || !aimDir)
                 return;
-
+#ifdef _DEBUG
             LOG(INFO) << "Original spawn point: " << spawnPoint->x << ", " << spawnPoint->y << ", " << spawnPoint->z;
             LOG(INFO) << "Original aim dir: " << aimDir->x << ", " << aimDir->y << ", " << aimDir->z;
-
+#endif
             auto local = unity::get_local_player();
             if (!local)
                 return;
 
             Vector3 shooter = *spawnPoint;
+            Vector3 forward = unity::get_forward(local);
 
-            Vector3 forward = unity::get_camera_forward();
+            auto best = find_best_target(shooter);
 
-            auto best = find_best_target(shooter, forward);
             if (!best)
+            {
+                LOG(FATAL) << "No target found within FOV";
                 return;
+            }
 
-            Vector3 target_pos = unity::get_position(best);
+            Vector3 target_pos = unity::get_top_point(best);
             Vector3 velocity   = unity::get_velocity(best);
 
-            Vector3 predicted = predict_arrow(
-                shooter,
-                target_pos,
-                velocity,
-                100.f,
-                9.8f
-            );
+            float projectile_vel = unity::get_field_value<float>(attack, "Attack", "m_attackType");
 
-            Vector3 dir = (predicted - shooter).normalize();
+            LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
+
+            Vector3 dir = shooter - target_pos;
+
+            float len = dir.length();
+            if (len < 0.001f)
+                return;
+
+            dir = dir / len;
 
             *aimDir = dir;
+            
+            if (_teleport_projectile.get_state())
+                *spawnPoint = target_pos;
+                
         } EXCEPT_CLAUSE
 	}
 }

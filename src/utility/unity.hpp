@@ -77,6 +77,16 @@ namespace big::unity
 		return env_man_ptr_instance;
 	}
 
+	template<typename T>
+	inline T get_field_value(MonoObject* obj, const char* classname, const char* fieldName)	
+	{
+		auto klass = mono::get_class(classname, "assembly_valheim");
+		auto field = mono::get_field(klass, fieldName);
+		T out{};
+		mono::get_field_value(obj, field, &out);
+		return out;
+	}
+
 	inline std::vector<MonoObject*> list_to_vector(MonoObject* list)
 	{
 		std::vector<MonoObject*> out;
@@ -132,6 +142,18 @@ namespace big::unity
 	inline Vector3 get_head_point(void* player)
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetHeadPoint", 0, "assembly_valheim");
+
+		if (!method || !player)
+			return Vector3();
+
+		auto obj = mono::invoke_method(method, player, nullptr);
+
+		return *(Vector3*)mono::object_unbox(obj);
+	}
+
+	inline Vector3 get_top_point(void* player)
+	{
+		static MonoMethod* method = mono::get_method("Character", "GetTopPoint", 0, "assembly_valheim");
 
 		if (!method || !player)
 			return Vector3();
@@ -206,6 +228,32 @@ namespace big::unity
 
 		static auto get_euler =
 			mono::get_method("Transform", "get_eulerAngles", 0, "UnityEngine.CoreModule", "UnityEngine");
+
+		if (!get_transform || !get_euler)
+			return euler;
+
+		auto transform = mono::invoke_method(get_transform, player, nullptr);
+		if (!transform)
+			return euler;
+
+		auto obj = mono::invoke_method(get_euler, transform, nullptr);
+		if (!obj)
+			return euler;
+
+		return *(Vector3*)mono::object_unbox(obj);
+	}
+	inline Vector3 get_forward(void* player)
+	{
+		Vector3 euler{};
+
+		if (!player)
+			return euler;
+
+		static auto get_transform =
+			mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+
+		static auto get_euler =
+			mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_transform || !get_euler)
 			return euler;

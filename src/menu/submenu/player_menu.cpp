@@ -53,6 +53,7 @@ namespace big
         canvas::add_submenu<regular_submenu>("Aimbot", "SubmenuAimbot"_hash, [](regular_submenu* sub)
         {
             sub->add_option<bool_option<bool>>("aimbot"_hash);
+            sub->add_option<bool_option<bool>>("tp"_hash);
             sub->add_option<bool_option<bool>>("draw_fov"_hash);
             sub->add_option<number_option<float>>("aimbot_fov"_hash);
             sub->add_option<number_option<float>>("aimbot_smooth"_hash);
