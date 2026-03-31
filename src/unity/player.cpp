@@ -3,14 +3,6 @@
 
 namespace big
 {
-	player::player(MonoObject* player): m_player(player)
-	{
-		
-	}
-	player::~player() noexcept
-	{
-		m_player = nullptr;
-	}
 	void player::set_max_health(float health, bool flash)
 	{
 		auto method = mono::get_method("Player", "SetMaxHealth", 2, "assembly_valheim");
@@ -30,25 +22,25 @@ namespace big
 		args[0] = &max_hp;
 		args[1] = &flashBar;
 
-		mono::invoke_method(method, m_player, args.data());
+		mono::invoke_method(method, m_character, args.data());
 	}
 	void player::set_base_health(float health)
 	{
-		if (!mono::set_field_value(m_player, "Player", "m_baseHP", health))
+		if (!mono::set_field_value(m_character, "Player", "m_baseHP", health))
 		{
 			LOG(FATAL) << "Failed to set base health value";
 		}
 	}
 	void player::set_max_eitr(float eitr)
 	{
-		if (!mono::set_field_value(m_player, "Player", "m_maxEitr", eitr))
+		if (!mono::set_field_value(m_character, "Player", "m_maxEitr", eitr))
 		{
 			LOG(FATAL) << "Failed to set max eitr value";
 		}
 	}
 	void player::set_base_stamina(float stamina)
 	{
-		if (!mono::set_field_value(m_player, "Player", "m_baseStamina", stamina))
+		if (!mono::set_field_value(m_character, "Player", "m_baseStamina", stamina))
 		{
 			LOG(FATAL) << "Failed to set base stamina value";
 		}
@@ -69,25 +61,25 @@ namespace big
 		args[0] = &max_stam;
 		args[1] = &flashBar;
 
-		mono::invoke_method(method, m_player, args.data());
+		mono::invoke_method(method, m_character, args.data());
 	}
 	void player::set_max_carry(float carry)
 	{
-		if (!mono::set_field_value(m_player, "Player", "m_maxCarryWeight", carry))
+		if (!mono::set_field_value(m_character, "Player", "m_maxCarryWeight", carry))
 		{
 			LOG(FATAL) << "Failed to set max carry value";
 		}
 	}
 	void player::set_no_placement_cost(bool cost)
 	{
-		if (!mono::set_field_value(m_player, "Player", "m_noPlacementCost", cost))
+		if (!mono::set_field_value(m_character, "Player", "m_noPlacementCost", cost))
 		{
 			LOG(FATAL) << "Failed to set no placement cost value";
 		}
 	}
 	void player::set_max_food(int food)
 	{
-		if (!mono::set_field_value(m_player, "Player", "m_maxFoods", food))
+		if (!mono::set_field_value(m_character, "Player", "m_maxFoods", food))
 		{
 			LOG(FATAL) << "Failed to set max food value";
 		}
@@ -103,7 +95,7 @@ namespace big
 
 		float amount = eitr;
 		void* args[1] = {&amount};
-		mono::invoke_method(method, m_player, args);
+		mono::invoke_method(method, m_character, args);
 	}
 	std::vector<MonoObject*> player::get_foods()
 	{

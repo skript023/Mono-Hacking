@@ -1,15 +1,14 @@
 #pragma once
 #include "mono/mono.hpp"
+#include "humanoid.hpp"
 
 namespace big
 {
-	class player
+	class player : public humanoid
 	{
-		MonoObject* m_player{};
 	public:
-		player(MonoObject* player);
-		~player() noexcept;
-
+		using humanoid::humanoid;
+		
 		void set_max_health(float health, bool flash);
 		void set_base_health(float health);
 		void set_max_eitr(float eitr);

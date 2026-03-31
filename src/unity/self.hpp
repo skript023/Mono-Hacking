@@ -28,5 +28,13 @@ namespace big
 		{
 			get().set_max_health_impl(health, flash);
 		}
+		static void set_base_health(float health)
+		{
+			get().set_base_health_impl(health);
+		}
+		static void set_max_eitr(float eitr)
+		{
+			get().set_max_eitr_impl(eitr);
+		}
 	};
 }
