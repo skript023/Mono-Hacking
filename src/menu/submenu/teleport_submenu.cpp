@@ -86,7 +86,7 @@ namespace big
 					{
 						sub->add_option<reguler_option>(location.name.c_str(), nullptr, [=] {
 							g_fiber_pool->queue_job([=] {
-								unity::teleport_to(Vector3(location.x, location.y, location.z + 100.f), Vector4(location.rot_x, location.rot_y, location.rot_z, location.rot_w), true);
+								unity::teleport_to(Vector3(location.x, location.y + 3.f, location.z), Vector4(location.rot_x, location.rot_y, location.rot_z, location.rot_w), true);
 							});
 						});
 					}
