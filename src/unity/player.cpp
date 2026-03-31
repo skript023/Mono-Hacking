@@ -71,4 +71,57 @@ namespace big
 
 		mono::invoke_method(method, m_player, args.data());
 	}
+	void player::set_max_carry(float carry)
+	{
+		if (!mono::set_field_value(m_player, "Player", "m_maxCarryWeight", carry))
+		{
+			LOG(FATAL) << "Failed to set max carry value";
+		}
+	}
+	void player::set_no_placement_cost(bool cost)
+	{
+		if (!mono::set_field_value(m_player, "Player", "m_noPlacementCost", cost))
+		{
+			LOG(FATAL) << "Failed to set no placement cost value";
+		}
+	}
+	void player::set_max_food(int food)
+	{
+		if (!mono::set_field_value(m_player, "Player", "m_maxFoods", food))
+		{
+			LOG(FATAL) << "Failed to set max food value";
+		}
+	}
+	void player::add_eitr(float eitr)
+	{
+		auto method = mono::get_method("Player", "AddEitr", 1, "assembly_valheim");
+		if (!method)
+		{
+			LOG(WARNING) << "Failed to find method Player::AddEitr";
+			return;
+		}
+
+		float amount = eitr;
+		void* args[1] = {&amount};
+		mono::invoke_method(method, m_player, args);
+	}
+	std::vector<MonoObject*> player::get_foods()
+	{
+		std::vector<MonoObject*> result;
+		auto player = unity::get_local_player(); // sesuaikan fungsi kamu
+		if (!player)
+			return result;
+
+		// Panggil GetFoods()
+		auto method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
+
+		auto foodsList = mono::invoke_method(method, player);
+		if (!foodsList)
+		{
+			LOG(WARNING) << "Failed to get food list object.";
+			return result;
+		}
+
+		return unity::list_to_vector(foodsList);
+	}
 }
