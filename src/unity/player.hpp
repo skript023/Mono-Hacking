@@ -19,5 +19,6 @@ namespace big
 		void set_max_food(int food);
 		void add_eitr(float eitr);
 		std::vector<MonoObject*> get_foods();
+		std::vector<MonoObject*> get_all_players();
 	};
 }

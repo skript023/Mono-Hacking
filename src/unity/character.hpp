@@ -21,5 +21,6 @@ namespace big
 		Vector3 get_position();
 		Vector4 get_rotation();
 		Vector3 get_euler_angles();
+		std::vector<MonoObject*> get_all_characters();
 	};
 }

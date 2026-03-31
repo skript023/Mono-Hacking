@@ -116,4 +116,22 @@ namespace big
 
 		return unity::list_to_vector(foodsList);
 	}
+
+	std::vector<MonoObject*> player::get_all_players()
+	{
+		static MonoMethod* method = mono::get_method("Player", "GetAllPlayers", 0, "assembly_valheim");
+
+		if (!method)
+			return {};
+
+		MonoObject* result = mono::invoke_method(method, nullptr);
+#ifdef _DEBUG
+		MonoClass* klass = mono::object_get_class(result);
+		const char* class_name = mono::class_get_name(klass);
+		const char* namespace_name = mono::class_get_namespace(klass);
+
+		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
+#endif
+		return unity::list_to_vector(result);
+	}
 }

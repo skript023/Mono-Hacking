@@ -1,5 +1,6 @@
 #include "character.hpp"
 #include "class/vector.hpp"
+#include "utility/unity.hpp"
 
 namespace big
 {
@@ -44,6 +45,63 @@ namespace big
 		auto result = mono::invoke_method(method, m_character, nullptr);
 
 		return *reinterpret_cast<float*>(mono::object_unbox(result));
+	}
+	std::string character::get_hover_name()
+	{
+		static MonoMethod* method = mono::get_method(
+			"Character",
+			"GetHoverName",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !m_character)
+			return "unknown";
+
+		auto name_obj = mono::invoke_method(method, m_character, nullptr);
+
+		if (!name_obj)
+			return "unknown";
+
+		std::string result = mono::from_mono_string(reinterpret_cast<MonoString*>(name_obj));
+
+		return result;
+	}
+	float character::get_health()
+	{
+		static MonoMethod* method = mono::get_method(
+			"Character",
+			"GetHealth",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !m_character)
+			return 0.f;
+
+		auto obj = mono::invoke_method(method, m_character, nullptr);
+		if (!obj)
+			return 0.f;
+
+		return *reinterpret_cast<float*>(mono::object_unbox(obj));
+	}
+	bool character::is_dead()
+	{
+		static MonoMethod* method = mono::get_method(
+			"Character",
+			"IsDead",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !m_character)
+			return false;
+
+		auto obj = mono::invoke_method(method, m_character, nullptr);
+		if (!obj)
+			return false;
+
+		return *reinterpret_cast<bool*>(mono::object_unbox(obj));
 	}
 	Vector3 character::get_center_point()
 	{
@@ -187,5 +245,22 @@ namespace big
 			return euler;
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
+	}
+	std::vector<MonoObject*> character::get_all_characters()
+	{
+		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
+
+		if (!method)
+			return {};
+
+		MonoObject* result = mono::invoke_method(method, nullptr);
+#ifdef _DEBUG
+		MonoClass* klass = mono::object_get_class(result);
+		const char* class_name = mono::class_get_name(klass);
+		const char* namespace_name = mono::class_get_namespace(klass);
+
+		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
+#endif
+		return unity::list_to_vector(result);
 	}
 }
