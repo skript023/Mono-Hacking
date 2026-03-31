@@ -103,6 +103,30 @@ namespace big
 			return get_instance().mono_object_unbox_impl(obj);
 		}
         static bool is_initialized() { return get_instance().initalized; };
+		template<typename T>
+		static T get_field_value(MonoObject* obj, const char* classname, const char* fieldName)
+		{
+			auto klass = get_class(classname, "assembly_valheim");
+			auto field = get_field(klass, fieldName);
+			T out{};
+			get_field_value(obj, field, &out);
+			return out;
+		}
+		template<typename T>
+		static bool set_field_value(MonoObject* obj, const char* classname, const char* fieldName, T&& value)
+		{
+			auto klass = get_class(classname, "assembly_valheim");
+			auto field = get_field(klass, fieldName);
+
+			if (!klass || !field)
+				return false;
+
+			auto temp = std::forward<T>(value);
+			
+			set_field_value(obj, field, &temp);
+
+			return true;
+		}
 	private:
 		bool initalized = false;
 

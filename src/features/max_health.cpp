@@ -34,10 +34,10 @@ namespace big::features
 
 			bool flashBar = true;
 
-			std::vector<void*> args{};
+			std::array<void*, 2> args{};
 
-			args.push_back(&_max_hp.get_state());
-			args.push_back(&flashBar);
+			args[0] = &_max_hp.get_state();
+			args[1] = &flashBar;
 
 			mono::invoke_method(method, unity::get_local_player(), args.data());
 			mono::set_field_value(unity::get_local_player(), m_baseHP, &_max_hp.get_state());
