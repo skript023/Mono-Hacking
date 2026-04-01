@@ -97,7 +97,7 @@ namespace big
 		void* args[1] = {&amount};
 		mono::invoke_method(method, m_character, args);
 	}
-	void player::teleport_to(Vector3 const& position, Vector4 const& rotation, bool distantTeleport)
+	void player::teleport_to(Vector3 const& position, Quaternions const& rotation, bool distantTeleport)
 	{
 		static MonoMethod* method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
 

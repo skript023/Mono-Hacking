@@ -22,6 +22,7 @@ namespace big
 		{
 			TRY_CLAUSE
 			{
+				update();
 				g_pointers->m_resolution.x = unity::get_screen_width();
 				g_pointers->m_resolution.y = unity::get_screen_height();
 

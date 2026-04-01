@@ -28,10 +28,7 @@ namespace big
 		Vector3 get_euler_angles();
 		std::vector<character> get_all_characters();
 
-		bool operator==(const character c) const { return m_character == c.m_character; }
-		operator bool() const
-        {
-            return m_character != nullptr;
-        }
+		bool operator==(character const& c) const { return m_character == c.m_character; }
+		operator bool() const { return m_character != nullptr; }
 	};
 }

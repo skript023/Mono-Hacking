@@ -15,11 +15,11 @@ namespace big
 				auto& back = g_esp_data.back(); back.clear();
 
 				auto characters = self::get_player().get_all_characters();
-				auto local_player = self::get_player();
+				auto player = self::get_player();
 
-				for (auto character : characters)
+				for (auto& character : characters)
 				{
-					if (!character || (uintptr_t)character.get_object() < 0x10000 || character == local_player)
+					if (!character || (uintptr_t)character.get_object() < 0x10000 || character == player)
 						continue;
 #ifdef _DEBUG
 					MonoClass* elem_class = mono::object_get_class(player);
@@ -27,11 +27,11 @@ namespace big
 					LOG(INFO) << "Element class: "
 						<< mono::class_get_namespace(elem_class)
 						<< "::"
-						<< mono::class_get_name(elem_class) << " at address " << player << " local player is " << unity::get_local_player();
+						<< mono::class_get_name(elem_class) << " at address " << player << " local player is " << player;
 #endif
 
 					Vector3 pos = character.get_position();
-					auto local_player_pos = local_player.get_position();
+					auto local_player_pos = player.get_position();
 
 					if (pos.is_zero())
 						continue;

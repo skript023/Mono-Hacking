@@ -185,4 +185,5 @@ namespace big
 
 	using FVector = Vector3;
 	using FVector2D = Vector2;
+	using Quaternions = Vector4;
 }

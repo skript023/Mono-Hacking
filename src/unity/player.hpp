@@ -25,6 +25,6 @@ namespace big
 		std::vector<food> get_foods();
 		std::vector<player> get_all_players();
 
-		bool operator==(const player c) const { return m_character == c.m_character; }
+		bool operator==(player const& c) const { return m_character == c.m_character; }
 	};
 }
