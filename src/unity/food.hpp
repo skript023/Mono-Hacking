@@ -8,6 +8,8 @@ namespace big
         MonoObject* m_food;
     public:
         food(MonoObject* food);
+        ~food() noexcept;
+        
         std::string get_name();
         float get_time();
         float get_health();

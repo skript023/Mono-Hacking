@@ -63,6 +63,13 @@ namespace big
 
 		mono::invoke_method(method, m_character, args.data());
 	}
+	void player::set_stamina_regen(float regen)
+	{
+		if (!mono::set_field_value(m_character, "Player", "m_staminaRegen", regen))
+		{
+			LOG(FATAL) << "Failed to set stamina regen value";
+		}
+	}
 	void player::set_max_carry(float carry)
 	{
 		if (!mono::set_field_value(m_character, "Player", "m_maxCarryWeight", carry))
@@ -97,6 +104,13 @@ namespace big
 		void* args[1] = {&amount};
 		mono::invoke_method(method, m_character, args);
 	}
+	void player::set_eitr_regen(float regen)
+	{
+		if (!mono::set_field_value(m_character, "Player", "m_eiterRegen", regen))
+		{
+			LOG(FATAL) << "Failed to set eitr regen value";
+		}
+	}
 	void player::teleport_to(Vector3 const& position, Quaternions const& rotation, bool distantTeleport)
 	{
 		static MonoMethod* method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
@@ -117,6 +131,30 @@ namespace big
 		std::array<void*, 3> args = {&pos, &rot, &distant};
 
 		mono::invoke_method(method, m_character, args.data());
+	}
+	float player::get_max_carry()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_maxCarryWeight");
+	}
+	float player::get_base_health()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_baseHP");
+	}
+	float player::get_base_stamina()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_baseStamina");
+	}
+	float player::get_max_eitr()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_maxEitr");
+	}
+	float player::get_stamina_regen()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_staminaRegen");
+	}
+	float player::get_eitr_regen()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_eiterRegen");
 	}
 	int player::get_player_id()
 	{

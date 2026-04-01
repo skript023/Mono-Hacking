@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -13,34 +14,16 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_staminaRegen = mono::get_field(klass, "m_staminaRegen");
+			auto player = self::get_player();
 
-			if (!klass || !m_staminaRegen)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
-			}
-
-			mono::set_field_value(unity::get_local_player(), m_staminaRegen, &_stamina_regen_amount.get_state());
+			player.set_stamina_regen(_stamina_regen_amount.get_state());
 		}
 
 		virtual void on_disable() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_staminaRegen = mono::get_field(klass, "m_staminaRegen");
+			auto player = self::get_player();
 
-			if (!klass)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
-			}
-
-			float default_stamina_regen = 5.f;
-
-			mono::set_field_value(unity::get_local_player(), m_staminaRegen, &default_stamina_regen);
+			player.set_stamina_regen(5.f);
 		}
 	};
 

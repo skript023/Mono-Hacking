@@ -14,8 +14,8 @@ namespace big
 			{
 				auto& back = g_esp_data.back(); back.clear();
 
-				auto characters = self::get_player().get_all_characters();
 				auto player = self::get_player();
+				auto characters = self::get_player().get_all_characters();
 
 				for (auto& character : characters)
 				{

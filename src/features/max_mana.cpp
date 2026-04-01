@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -21,34 +22,19 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_maxEitr = mono::get_field(klass, "m_maxEitr");
+			auto player = self::get_player();
 
-			if (!klass || !m_maxEitr)
+			if (player.get_max_eitr() < _eitr_amount.get_state())
 			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
+				player.set_max_eitr(_eitr_amount.get_state());
 			}
-
-			mono::set_field_value(unity::get_local_player(), m_maxEitr, &_eitr_amount.get_state());
 		}
 
 		virtual void on_disable() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_maxEitr = mono::get_field(klass, "m_maxEitr");
+			auto player = self::get_player();
 
-			if (!klass || !m_maxEitr)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
-			}
-
-			float default_stamina_regen = 0.f;
-
-			mono::set_field_value(unity::get_local_player(), m_maxEitr, &default_stamina_regen);
+			player.set_max_eitr(0.f);
 		}
 	};
 

@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -60,22 +61,30 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			MonoObject* player = unity::get_local_player(); // sesuaikan fungsi kamu
-			if (!player)
-				return;
+			// MonoObject* player = unity::get_local_player(); // sesuaikan fungsi kamu
+			// if (!player)
+			// 	return;
 
-			// Panggil GetFoods()
-			MonoMethod* method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
+			// // Panggil GetFoods()
+			// MonoMethod* method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
 
-			MonoObject* foodsList = mono::invoke_method(method, player);
-			if (!foodsList)
+			// MonoObject* foodsList = mono::invoke_method(method, player);
+			// if (!foodsList)
+			// {
+			// 	LOG(WARNING) << "Failed to get food list object.";
+			// 	return;
+			// }
+
+			// // Set health semua Food
+			// set_all_food_health(foodsList, _food_hp.get_state());
+			auto player = self::get_player();
+			
+			auto foods = player.get_foods();
+
+			for (auto& food : foods)
 			{
-				LOG(WARNING) << "Failed to get food list object.";
-				return;
+				food.set_time(_food_hp.get_state());
 			}
-
-			// Set health semua Food
-			set_all_food_health(foodsList, _food_hp.get_state());
 		}
 
 		virtual void on_disable() override

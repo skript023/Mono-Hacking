@@ -15,16 +15,26 @@ namespace big
 		void set_max_eitr(float eitr);
 		void set_base_stamina(float stamina);
 		void set_max_stamina(float stamina, bool flash);
+		void set_stamina_regen(float regen);
 		void set_max_carry(float carry);
 		void set_no_placement_cost(bool cost);
 		void set_max_food(int food);
 		void add_eitr(float eitr);
+		void set_eitr_regen(float regen);
 		void teleport_to(Vector3 const& position, Vector4 const& rotation, bool distantTeleport);
+		float get_max_carry();
+		float get_base_health();
+		float get_base_stamina();
+		float get_max_eitr();
+		float get_stamina_regen();
+		float get_eitr_regen();
 		int get_player_id();
 		std::string get_player_name();
 		std::vector<food> get_foods();
 		std::vector<player> get_all_players();
 
 		bool operator==(player const& c) const { return m_character == c.m_character; }
+
+		;
 	};
 }

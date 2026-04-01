@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -21,45 +22,21 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
+			auto player = self::get_player();
 
-			if (!method || !klass || !m_baseStamina)
+			if (player.get_base_stamina() < _max_stam.get_state())
 			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
+				player.set_base_stamina(_max_stam.get_state());
+				player.set_max_stamina(_max_stam.get_state(), true);
 			}
-
-			bool flashBar = true;
-
-			void* args[2] = { &_max_stam.get_state(), &flashBar};
-			mono::invoke_method(method, unity::get_local_player(), args);
-
-			mono::set_field_value(unity::get_local_player(), m_baseStamina, &_max_stam.get_state());
 		}
 
 		virtual void on_disable() override
 		{
-			auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
+			auto player = self::get_player();
 
-			if (!method || !klass)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
-			}
-
-			bool flashBar = true;
-			float default_max_stam = 50.f;
-
-			void* args[2] = { &default_max_stam, &flashBar };
-			mono::invoke_method(method, unity::get_local_player(), args);
-
-			mono::set_field_value(unity::get_local_player(), m_baseStamina, &default_max_stam);
+			player.set_base_stamina(50.f);
+			player.set_max_stamina(50.f, true);
 		}
 	};
 

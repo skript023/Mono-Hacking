@@ -38,7 +38,7 @@ namespace big::features
 				return;
 			}
 
-			float default_stamina_regen = 0.f;
+			float default_stamina_regen = 300.f;
 
 			mono::set_field_value(unity::get_local_player(), m_maxCarryWeight, &default_stamina_regen);
 		}
