@@ -27,13 +27,7 @@ namespace big
 			return;
 		}
 
-		float max_hp = health;
-
-		std::array<void*, 1> args{};
-
-		args[0] = &max_hp;
-
-		mono::invoke_method(method, m_character, args.data());
+		mono::invoke(method, m_character, health);
 	}
 	float character::get_max_health()
 	{
@@ -46,7 +40,7 @@ namespace big
 			return 0.f;
 		}
 
-		auto result = mono::invoke_method(method, m_character, nullptr);
+		auto result = mono::invoke(method, m_character);
 
 		return *reinterpret_cast<float*>(mono::object_unbox(result));
 	}
@@ -62,7 +56,7 @@ namespace big
 		if (!method || !m_character)
 			return "unknown";
 
-		auto name_obj = mono::invoke_method(method, m_character, nullptr);
+		auto name_obj = mono::invoke(method, m_character);
 
 		if (!name_obj)
 			return "unknown";
@@ -83,7 +77,7 @@ namespace big
 		if (!method || !m_character)
 			return 0.f;
 
-		auto obj = mono::invoke_method(method, m_character, nullptr);
+		auto obj = mono::invoke(method, m_character);
 		if (!obj)
 			return 0.f;
 
@@ -101,7 +95,7 @@ namespace big
 		if (!method || !m_character)
 			return false;
 
-		auto obj = mono::invoke_method(method, m_character, nullptr);
+		auto obj = mono::invoke(method, m_character);
 		if (!obj)
 			return false;
 
@@ -119,7 +113,7 @@ namespace big
 		if (!method)
 			return pos;
 
-		auto obj = mono::invoke_method(method, m_character, nullptr);
+		auto obj = mono::invoke(method, m_character);
 		if (!obj)
 			return pos;
 
@@ -141,11 +135,11 @@ namespace big
 		if (!get_transform || !get_euler)
 			return euler;
 
-		auto transform = mono::invoke_method(get_transform, m_character, nullptr);
+		auto transform = mono::invoke(get_transform, m_character);
 		if (!transform)
 			return euler;
 
-		auto obj = mono::invoke_method(get_euler, transform, nullptr);
+		auto obj = mono::invoke(get_euler, transform);
 		if (!obj)
 			return euler;
 
@@ -158,7 +152,7 @@ namespace big
 		if (!method || !m_character)
 			return Vector3();
 
-		auto obj = mono::invoke_method(method, m_character, nullptr);
+		auto obj = mono::invoke(method, m_character);
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
@@ -170,7 +164,7 @@ namespace big
 		if (!method || !m_character)
 			return Vector3();
 
-		auto obj = mono::invoke_method(method, m_character, nullptr);
+		auto obj = mono::invoke(method, m_character);
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
@@ -182,24 +176,24 @@ namespace big
 		if (!method || !m_character)
 			return Vector3();
 
-		auto obj = mono::invoke_method(method, m_character, nullptr);
+		auto obj = mono::invoke(method, m_character);
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
 
 	Vector3 character::get_position()
 	{
-		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
-		static MonoMethod* get_position = mono::get_method("Transform", "get_position", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		static auto get_position = mono::get_method("Transform", "get_position", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!method || !m_character || !get_position)
 			return Vector3();
 
-		auto transform = mono::invoke_method(method, m_character, nullptr);
+		auto transform = mono::invoke(method, m_character);
 
 		if (!transform) return Vector3();
 
-    	auto obj = mono::invoke_method(get_position, transform, nullptr);
+    	auto obj = mono::invoke(get_position, transform);
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
@@ -211,18 +205,18 @@ namespace big
 		if (!m_character)
 			return rot;
 
-		static MonoMethod* get_transform = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		static auto get_transform = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 
-		static MonoMethod* get_rotation_method = mono::get_method("Transform", "get_rotation", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_rotation_method = mono::get_method("Transform", "get_rotation", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_transform || !get_rotation_method)
 			return rot;
 
-		auto transform = mono::invoke_method(get_transform, m_character, nullptr);
+		auto transform = mono::invoke(get_transform, m_character);
 		if (!transform)
 			return rot;
 
-		auto obj = mono::invoke_method(get_rotation_method, transform, nullptr);
+		auto obj = mono::invoke(get_rotation_method, transform);
 		if (!obj)
 			return rot;
 
@@ -242,11 +236,11 @@ namespace big
 		if (!get_transform || !get_euler)
 			return euler;
 
-		auto transform = mono::invoke_method(get_transform, m_character, nullptr);
+		auto transform = mono::invoke(get_transform, m_character);
 		if (!transform)
 			return euler;
 
-		auto obj = mono::invoke_method(get_euler, transform, nullptr);
+		auto obj = mono::invoke(get_euler, transform);
 		if (!obj)
 			return euler;
 
@@ -259,7 +253,7 @@ namespace big
 		if (!method)
 			return {};
 
-		MonoObject* result = mono::invoke_method(method, nullptr);
+		MonoObject* result = mono::invoke(method, nullptr);
 #ifdef _DEBUG
 		MonoClass* klass = mono::object_get_class(result);
 		const char* class_name = mono::class_get_name(klass);

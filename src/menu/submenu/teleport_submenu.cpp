@@ -2,6 +2,7 @@
 #include "../submenu.hpp"
 #include "fiber_pool.hpp"
 #include "utility/unity.hpp"
+#include "unity/self.hpp"
 #include "input/input_service.hpp"
 #include <custom_teleport/custom_teleport_service.hpp>
 
@@ -26,13 +27,13 @@ namespace big
 				g_input_service.show("Input Category Name", [](std::string const& input) {
 					teleport_location new_location;
 
-					auto player = unity::get_local_player();
+					auto player = self::get_player();
 
 					if (!player)
 						return;
 
-					auto coords = unity::get_position(player);
-					auto rotator = unity::get_rotation(player);
+					auto coords = player.get_position();
+					auto rotator = player.get_rotation();
 
 					new_location.name = input;
 					new_location.x = coords.x;
@@ -61,13 +62,13 @@ namespace big
 						g_input_service.show("Input Location Name", [](std::string const& input) {
 							teleport_location new_location;
 
-							auto player = unity::get_local_player();
+							auto player = self::get_player();
 
 							if (!player)
 								return;
 
-							auto coords = unity::get_position(player);
-							auto rotator = unity::get_rotation(player);
+							auto coords = player.get_position();
+							auto rotator = player.get_rotation();
 
 							new_location.name = input;
 							new_location.x = coords.x;
@@ -86,7 +87,12 @@ namespace big
 					{
 						sub->add_option<reguler_option>(location.name.c_str(), nullptr, [=] {
 							g_fiber_pool->queue_job([=] {
-								unity::teleport_to(Vector3(location.x, location.y + 3.f, location.z), Vector4(location.rot_x, location.rot_y, location.rot_z, location.rot_w), true);
+								auto player = self::get_player();
+
+								if (!player)
+									return;
+
+								player.teleport_to(Vector3(location.x, location.y + 3.f, location.z), Vector4(location.rot_x, location.rot_y, location.rot_z, location.rot_w), true);
 							});
 						});
 					}

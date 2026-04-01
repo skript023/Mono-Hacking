@@ -65,7 +65,7 @@ namespace big
 		if (!method)
 			return false;
 
-		MonoObject* result = mono::invoke_method(method, nullptr);
+		MonoObject* result = mono::invoke_method(method);
 
         return *reinterpret_cast<bool*>(mono::object_unbox(result));
 	}

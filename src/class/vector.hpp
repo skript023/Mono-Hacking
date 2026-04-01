@@ -65,23 +65,26 @@ namespace big
 		float y{};
 		float z{};
 
-		float dot(Vector3 vec3)
+		float dot(Vector3 other)
 		{
-			return x * vec3.x + y * vec3.y + z * vec3.z;
+			return (x * other.x) + (y * other.y) + (z * other.z);
 		}
 
 		float length() const
 		{
-			return sqrtf(x * x + y * y + z * z);
+			return std::sqrt((x * x) + (y * y) + (z * z));
 		}
 
-		float distance(Vector3 v) const
+		float distance(Vector3 const& other) const
 		{
-			float x = this->x - v.x;
-			float y = this->y - v.y;
-			float z = this->z - v.z;
+			Vector3 diff = other - *this;
+	
+			return diff.magnitude();
+		}
 
-			return sqrtf((x * x) + (y * y) + (z * z)) * 0.03048f;
+		float distance_in_meters(const Vector3& other) const
+		{
+			return distance(other) * static_cast<float>(0.01);
 		}
 
 		bool is_zero() const
@@ -89,13 +92,14 @@ namespace big
 			return x == 0.f && y == 0.f && z == 0.f;
 		}
 
-		Vector3 normalize( ) const noexcept
+		Vector3 normalize() const noexcept
 		{
-			float length = sqrtf(x * x + y * y + z * z);
-			if (length == 0.f)
-				return Vector3{};
+			return *this / magnitude();
+		}
 
-			return Vector3{ x / length, y / length, z / length };
+		float magnitude() const
+		{
+			return std::sqrt((x * x) + (y * y) + (z * z));
 		}
 
 		void to_directions( Vector3* forward, Vector3* right, Vector3* up ) const noexcept
@@ -131,12 +135,44 @@ namespace big
 			}
 		}
 
-		Vector3 operator-(const Vector3 vec3) const { return { vec3.x - x, vec3.y - y, vec3.z - z }; }
-		Vector3 operator*(const Vector3& a) const { return { x * a.x, y * a.y, z * a.z }; }
-		Vector3 operator+(const Vector3& vec3) const { return { x + vec3.x, y * vec3.y, z * vec3.z }; }
-		Vector3 operator/(const Vector3& vec3) const { return { vec3.x / x, vec3.y / y, vec3.z / z }; }
-		Vector3 operator/(float scalar) const { return { x / scalar, y / scalar, z / scalar }; }
-		bool operator==(const Vector3 a) const { return x == a.x && y == a.y && z == a.z; }
+		bool operator!=(const Vector3& other) const
+		{
+			return x != other.x || y != other.y || z != other.z;
+		}
+		Vector3 operator*(float scalar) const
+		{
+			return { x * scalar, y * scalar, z * scalar };
+		}
+		Vector3 operator*(const Vector3& other) const
+		{
+			return { x * other.x, y * other.y, z * other.z };
+		}
+		Vector3 operator+(const Vector3& other) const
+		{
+			return { x + other.x, y + other.y, z + other.z };
+		}
+		Vector3 operator-(const Vector3& other) const
+		{
+			return { x - other.x, y - other.y, z - other.z };
+		}
+		Vector3 operator/(float Scalar) const
+		{
+			if (Scalar == 0)
+				return *this;
+
+			return { x / Scalar, y / Scalar, z / Scalar };
+		}
+		Vector3 operator/(const Vector3& other) const
+		{
+			if (other.x == 0 || other.y == 0 || other.z == 0)
+				return *this;
+
+			return { x / other.x, y / other.y, z / other.z };
+		}
+		bool operator==(const Vector3& other) const
+		{
+			return x == other.x && y == other.y && z == other.z;
+		}
 
 		void operator=(nlohmann::json const& data)
 		{
@@ -181,6 +217,12 @@ namespace big
 		}
 
 		Vector4 operator&(const Vector4& v) { return { float((int)v.x & (int)x), float((int)v.y & (int)y), float((int)v.z & (int)z), float((int)v.w & (int)w) }; };
+	};
+
+	struct Bounds
+	{
+		Vector3 center;   // m_Center
+		Vector3 extents;  // m_Extents
 	};
 
 	using FVector = Vector3;

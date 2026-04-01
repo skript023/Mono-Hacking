@@ -14,15 +14,7 @@ namespace big
 			return;
 		}
 
-		bool flashBar = flash;
-		float max_hp = health;
-
-		std::array<void*, 2> args{};
-
-		args[0] = &max_hp;
-		args[1] = &flashBar;
-
-		mono::invoke_method(method, m_character, args.data());
+		mono::invoke(method, m_character, health, flash);
 	}
 	void player::set_base_health(float health)
 	{
@@ -53,15 +45,8 @@ namespace big
 			LOG(WARNING) << "Failed to find method Player::SetMaxStamina";
 			return;
 		}
-		bool flashBar = flash;
-		float max_stam = stamina;
 
-		std::array<void*, 2> args{};
-
-		args[0] = &max_stam;
-		args[1] = &flashBar;
-
-		mono::invoke_method(method, m_character, args.data());
+		mono::invoke(method, m_character, stamina, flash);
 	}
 	void player::set_stamina(float stamina)
 	{
@@ -121,9 +106,7 @@ namespace big
 			return;
 		}
 
-		float amount = eitr;
-		void* args[1] = {&amount};
-		mono::invoke_method(method, m_character, args);
+		mono::invoke(method, m_character, eitr);
 	}
 	void player::set_eitr_regen(float regen)
 	{
@@ -188,7 +171,7 @@ namespace big
 			return 0;
 		}
 
-		auto result = mono::invoke_method(method, m_character, nullptr);
+		auto result = mono::invoke(method, m_character);
 
 		return *reinterpret_cast<int*>(mono::object_unbox(result));
 	}
@@ -202,7 +185,7 @@ namespace big
 			return {};
 		}
 
-		auto result = mono::invoke_method(method, m_character, nullptr);
+		auto result = mono::invoke(method, m_character);
 
 		return mono::from_mono_string(reinterpret_cast<MonoString*>(result));
 	}
@@ -215,7 +198,7 @@ namespace big
 
 		static auto method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
 
-		auto foods = mono::invoke_method(method, m_character);
+		auto foods = mono::invoke(method, m_character);
 
 		if (!foods)
 		{
@@ -233,7 +216,7 @@ namespace big
 		if (!method)
 			return {};
 
-		MonoObject* result = mono::invoke_method(method, nullptr);
+		MonoObject* result = mono::invoke_method(method);
 #ifdef _DEBUG
 		MonoClass* klass = mono::object_get_class(result);
 		const char* class_name = mono::class_get_name(klass);

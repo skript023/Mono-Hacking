@@ -112,11 +112,11 @@ namespace big
 
         for (const auto& data : *view)
         {
-            if (_draw_health.get_state())
+            if (_draw_health.get_state() && data.type == EEntityType::Character)
             {
                 draw_health(data.top, data.location, data.health, data.max_health);
             }
-            if (_draw_box.get_state())
+            if (_draw_box.get_state() && data.type == EEntityType::Character)
             {
                 draw_box(data.top, data.location);
             }

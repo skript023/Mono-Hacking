@@ -26,7 +26,7 @@ namespace big
 		Vector3 get_position();
 		Vector4 get_rotation();
 		Vector3 get_euler_angles();
-		std::vector<character> get_all_characters();
+		static std::vector<character> get_all_characters();
 
 		bool operator==(character const& c) const { return m_character == c.m_character; }
 		operator bool() const { return m_character != nullptr; }

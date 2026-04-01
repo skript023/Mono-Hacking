@@ -36,7 +36,7 @@ namespace big
 		int get_player_id();
 		std::string get_player_name();
 		std::vector<food> get_foods();
-		std::vector<player> get_all_players();
+		static std::vector<player> get_all_players();
 
 		bool operator==(player const& c) const { return m_character == c.m_character; }
 

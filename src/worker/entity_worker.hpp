@@ -1,4 +1,5 @@
 #pragma once
+#include "class/enums.hpp"
 #include "class/double_buffer.hpp"
 
 namespace big
@@ -14,6 +15,8 @@ namespace big
 		float max_health;
 		Vector3 top;
 		Vector3 bottom;
+
+		EEntityType type;
     };
 
 	inline DoubleBuffer<esp_data> g_esp_data;
