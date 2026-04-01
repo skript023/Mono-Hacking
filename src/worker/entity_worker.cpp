@@ -1,9 +1,10 @@
 #include "entity_worker.hpp"
 #include "script.hpp"
 
-#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
+#include "unity/self.hpp"
+#include "unity/item_drop.hpp"
 namespace big
 {
     void entity_worker::run()
@@ -15,7 +16,10 @@ namespace big
 				auto& back = g_esp_data.back(); back.clear();
 
 				auto player = self::get_player();
+
 				auto characters = self::get_player().get_all_characters();
+
+				auto local_player_pos = player.get_position();
 
 				for (auto& character : characters)
 				{
@@ -31,8 +35,7 @@ namespace big
 #endif
 
 					Vector3 pos = character.get_position();
-					auto local_player_pos = player.get_position();
-
+					
 					if (pos.is_zero())
 						continue;
 

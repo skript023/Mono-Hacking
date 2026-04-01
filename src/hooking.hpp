@@ -3,6 +3,9 @@
 #include "mono/mono.hpp"
 #include "mono/enums.hpp"
 
+#include "unity/player.hpp"
+#include "unity/item_drop.hpp"
+
 #include "hooking/vmt_hook.hpp"
 #include "hooking/detour_hook.hpp"
 #include "hooking/swap_pointer_hook.hpp"
@@ -43,6 +46,8 @@ namespace big
 		static void camera_render(MonoObject* Camera);
 		static void get_projectile_spawn_point(MonoObject* attack, Vector3* spawnPoint, Vector3* aimDir);
 		static void on_hit(MonoObject* attack, MonoObject* spawnPoint, Vector3 hitPoint, bool water, Vector3 normal);
+		static bool is_known_material(MonoObject* player, MonoString* name);
+		static MonoObject* drop_item(MonoObject* item, int amount, Vector3 position, Quaternions rotation);
 	};
 
 	struct minhook_keepalive

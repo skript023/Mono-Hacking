@@ -108,8 +108,18 @@ namespace big
 		{
 			auto klass = get_class(classname, "assembly_valheim");
 			auto field = get_field(klass, fieldName);
+
+			if constexpr (std::is_same_v<T, std::string>)
+			{
+				MonoString* out{};
+				get_field_value(obj, field, out);
+
+				return from_mono_string(out);
+			}
+
 			T out{};
 			get_field_value(obj, field, &out);
+
 			return out;
 		}
 		template<typename T>
@@ -134,17 +144,17 @@ namespace big
 			if (!list)
 				return out;
 
-			MonoClass* klass = object_get_class(list);
+			auto klass = object_get_class(list);
 			if (!klass)
 				return out;
 
-			static MonoMethod* getCount = class_get_method_from_name(klass, "get_Count", 0);
-			static MonoMethod* getItem  = class_get_method_from_name(klass, "get_Item", 1);
+			static auto getCount = class_get_method_from_name(klass, "get_Count", 0);
+			static auto getItem  = class_get_method_from_name(klass, "get_Item", 1);
 
 			if (!getCount || !getItem)
 				return out;
 
-			MonoObject* ret = invoke_method(getCount, list);
+			auto ret = invoke_method(getCount, list);
 			if (!ret)
 				return out;
 
@@ -155,7 +165,7 @@ namespace big
 			for (int i = 0; i < count; ++i)
 			{
 				void* args[1] = { &i };
-				MonoObject* item = invoke_method(getItem, list, args);
+				auto item = invoke_method(getItem, list, args);
 
 				if (!item)
 					continue;

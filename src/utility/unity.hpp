@@ -77,6 +77,30 @@ namespace big::unity
 		return env_man_ptr_instance;
 	}
 
+	inline MonoObject* get_item_drops()
+	{
+		// 1. Cari Class Player
+		MonoClass* item_drop = mono::get_class("ItemDrop", "assembly_valheim");
+		if (item_drop == nullptr) return nullptr;
+
+		// 2. Cari Static Field m_localPlayer
+		MonoClassField* item_drop_instance = mono::get_field(item_drop, "s_instances");
+		if (item_drop_instance == nullptr) return nullptr;
+
+		// 3. Dapatkan Base Address Static Field Data
+		void* static_field_data_addr = mono::get_static_field_data(item_drop);
+		if (static_field_data_addr == nullptr) return nullptr;
+
+		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
+		uint32_t offset = mono::get_field_offset(item_drop_instance);
+		void* item_drop_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
+		MonoObject* item_drop_ptr_instance = *(MonoObject**)item_drop_ptr_addr;
+
+		return item_drop_ptr_instance;
+	}
+
 	template<typename T>
 	inline T get_field_value(MonoObject* obj, const char* classname, const char* fieldName)	
 	{

@@ -84,6 +84,20 @@ namespace big
 			LOG(FATAL) << "Failed to set max carry value";
 		}
 	}
+	void player::set_adrenalin(float adrenalin)
+	{
+		if (!mono::set_field_value(m_character, "Player", "m_adrenaline", adrenalin))
+		{
+			LOG(FATAL) << "Failed to set adrenalin value";
+		}
+	}
+	void player::set_max_adrenalin(float adrenalin)
+	{
+		if (!mono::set_field_value(m_character, "Player", "m_maxAdrenaline", adrenalin))
+		{
+			LOG(FATAL) << "Failed to set max adrenalin value";
+		}
+	}
 	void player::set_no_placement_cost(bool cost)
 	{
 		if (!mono::set_field_value(m_character, "Player", "m_noPlacementCost", cost))
@@ -163,13 +177,22 @@ namespace big
 	{
 		return mono::get_field_value<float>(m_character, "Player", "m_eiterRegen");
 	}
+	float player::get_max_adrenalin()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_maxAdrenaline");
+	}
+	float player::get_adrenalin()
+	{
+		return mono::get_field_value<float>(m_character, "Player", "m_adrenaline");
+	}
 	int player::get_player_id()
 	{
 		static auto method = mono::get_method("Player", "GetPlayerName", 0, "assembly_valheim");
 
 		if (!method)
 		{
-			LOG(WARNING) << "Failed to find method Player::GetPlayerName";
+			LOG(WARNING) << "Failed to find method Player::GetPlayerID";
+
 			return 0;
 		}
 
