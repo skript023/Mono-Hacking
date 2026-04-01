@@ -22,38 +22,38 @@ namespace big
 
 				auto local_player_pos = player.get_position();
 
-				for (auto& drop : drops)
-				{
-					if (!drop || (uintptr_t)drop.get_object() < 0x10000)
-						continue;
+				// for (auto& drop : drops)
+				// {
+				// 	if (!drop || (uintptr_t)drop.get_object() < 0x10000)
+				// 		continue;
 
-					auto pos = drop.get_position();
+				// 	auto pos = drop.get_position();
 					
-					if (!pos.has_value())
-						continue;
+				// 	if (!pos.has_value())
+				// 		continue;
 
-					auto name = drop.get_hover_name();
-					auto health = 0.f;
-					auto max_health = 0.f;
-					auto distance = local_player_pos.distance_in_meters(*pos);
+				// 	auto name = drop.get_hover_name();
+				// 	auto health = 0.f;
+				// 	auto max_health = 0.f;
+				// 	auto distance = local_player_pos.distance_in_meters(*pos);
 					
-					Vector3 screen;
-					if (!unity::world_to_screen(*pos, screen))
-						continue;
+				// 	Vector3 screen;
+				// 	if (!unity::world_to_screen(*pos, screen))
+				// 		continue;
 
-					char buffer[256];
-					snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
+				// 	char buffer[256];
+				// 	snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
 
-					esp_data data{};
-					data.location = *pos;
-					data.screen = screen;
-					data.name = buffer;
-					data.health = health;
-					data.max_health = max_health;
-					data.distance = distance;
-					data.type = EEntityType::ItemDrop;
-					back.push_back(data);
-				}
+				// 	esp_data data{};
+				// 	data.location = *pos;
+				// 	data.screen = screen;
+				// 	data.name = buffer;
+				// 	data.health = health;
+				// 	data.max_health = max_health;
+				// 	data.distance = distance;
+				// 	data.type = EEntityType::ItemDrop;
+				// 	back.push_back(data);
+				// }
 
 				for (auto& character : characters)
 				{
@@ -102,7 +102,7 @@ namespace big
 				g_esp_data.publish();
 			} 
 			EXCEPT_CLAUSE
-			script::get_current()->yield(200ms);
+			script::get_current()->yield(100ms);
 		}
 	}
 } // namespace big
