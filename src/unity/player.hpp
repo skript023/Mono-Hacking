@@ -15,6 +15,7 @@ namespace big
 		void set_max_eitr(float eitr);
 		void set_base_stamina(float stamina);
 		void set_max_stamina(float stamina, bool flash);
+		void set_stamina(float stamina);
 		void set_stamina_regen(float regen);
 		void set_max_carry(float carry);
 		void set_no_placement_cost(bool cost);

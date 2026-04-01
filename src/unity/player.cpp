@@ -63,6 +63,13 @@ namespace big
 
 		mono::invoke_method(method, m_character, args.data());
 	}
+	void player::set_stamina(float stamina)
+	{
+		if (!mono::set_field_value(m_character, "Player", "m_stamina", stamina))
+		{
+			LOG(FATAL) << "Failed to set stamina value";
+		}
+	}
 	void player::set_stamina_regen(float regen)
 	{
 		if (!mono::set_field_value(m_character, "Player", "m_staminaRegen", regen))

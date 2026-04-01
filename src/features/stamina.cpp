@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -20,24 +21,11 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_stamina = mono::get_field(klass, "m_stamina");
-			auto m_baseStamina = mono::get_field(klass, "m_baseStamina");
+			auto player = self::get_player();
 
-			if (!klass || !m_stamina || !m_baseStamina)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
+			auto base = player.get_base_stamina();
 
-				return;
-			}
-
-			void* max_stam = nullptr;
-			mono::get_field_value(unity::get_local_player(), m_baseStamina, &max_stam);
-
-			if (max_stam)
-			{
-				mono::set_field_value(unity::get_local_player(), m_stamina, &max_stam);
-			}
+			player.set_stamina(base);
 		}
 
 		virtual void on_disable() override
