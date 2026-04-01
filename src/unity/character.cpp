@@ -197,6 +197,8 @@ namespace big
 
 		auto transform = mono::invoke_method(method, m_character, nullptr);
 
+		if (!transform) return Vector3();
+
     	auto obj = mono::invoke_method(get_position, transform, nullptr);
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));

@@ -143,15 +143,7 @@ namespace big
 			return;
 		}
 
-		bool flashBar = true;
-
-		auto pos = position;
-		auto rot = rotation;
-		auto distant = distantTeleport;
-
-		std::array<void*, 3> args = {&pos, &rot, &distant};
-
-		mono::invoke_method(method, m_character, args.data());
+		mono::invoke(method, m_character, position, rotation, distantTeleport);
 	}
 	float player::get_max_carry()
 	{

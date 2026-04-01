@@ -38,6 +38,19 @@ namespace big
         {
             return get_instance().invoke_method_impl(method, obj, params);
 		};
+		template<typename... Args>
+		static MonoObject* invoke(MonoMethod* method, void* obj, Args... args) 
+		{
+			if constexpr (sizeof...(args) > 0)
+			{
+				void* params[] = { &args... };
+				return invoke_method(method, obj, params);
+			} 
+			else 
+			{
+				return invoke_method(method, obj, nullptr); // Sesuai kebutuhan Mono
+			}
+		}
         static void* get_compile_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
         {
             return get_instance().get_compile_method_impl(className, methodName, param_count, assemblyName, nameSpace);

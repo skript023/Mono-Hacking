@@ -201,7 +201,7 @@ namespace big::unity
 
 	inline Vector3 get_position(void* player)
 	{
-		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		static MonoMethod* method = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
 		static MonoMethod* get_position = mono::get_method("Transform", "get_position", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!method || !player || !get_position)
@@ -209,7 +209,11 @@ namespace big::unity
 
 		auto transform = mono::invoke_method(method, player, nullptr);
 
+		if (!transform) return Vector3();
+
     	auto obj = mono::invoke_method(get_position, transform, nullptr);
+
+		if (!obj) return Vector3();
 
 		return *(Vector3*)mono::object_unbox(obj);
 	}
