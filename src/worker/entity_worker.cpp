@@ -102,7 +102,7 @@ namespace big
 				g_esp_data.publish();
 			} 
 			EXCEPT_CLAUSE
-			script::get_current()->yield(100ms);
+			script::get_current()->yield(200ms);
 		}
 	}
 } // namespace big

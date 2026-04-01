@@ -84,7 +84,7 @@ namespace big
 
 		float distance_in_meters(const Vector3& other) const
 		{
-			return distance(other) * static_cast<float>(0.01);
+			return distance(other) * 0.03048f;
 		}
 
 		bool is_zero() const
