@@ -18,6 +18,7 @@ namespace big
 				auto player = self::get_player();
 
 				auto characters = self::get_player().get_all_characters();
+				auto drops = item_drop::get_drops();
 
 				auto local_player_pos = player.get_position();
 
