@@ -3,23 +3,15 @@
 
 namespace big
 {
-	self::self(): m_player(unity::get_local_player())
+	self::self(): m_player(nullptr)
 	{
 	}
 	player self::get_player_impl()
 	{
 		return m_player;
 	}
-	void self::set_max_health_impl(float health, bool flash)
+	void self::update_impl()
 	{
-		m_player.set_max_health(health, flash);
-	}
-	void self::set_base_health_impl(float health)
-	{
-		m_player.set_base_health(health);
-	}
-	void self::set_max_eitr_impl(float eitr)
-	{
-		m_player.set_max_eitr(eitr);
+		m_player = player(unity::get_local_player());
 	}
 }

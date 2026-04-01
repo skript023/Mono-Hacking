@@ -1,6 +1,7 @@
 #pragma once
 #include "mono/mono.hpp"
 #include "humanoid.hpp"
+#include "food.hpp"
 
 namespace big
 {
@@ -18,7 +19,12 @@ namespace big
 		void set_no_placement_cost(bool cost);
 		void set_max_food(int food);
 		void add_eitr(float eitr);
-		std::vector<MonoObject*> get_foods();
-		std::vector<MonoObject*> get_all_players();
+		void teleport_to(Vector3 const& position, Vector4 const& rotation, bool distantTeleport);
+		int get_player_id();
+		std::string get_player_name();
+		std::vector<food> get_foods();
+		std::vector<player> get_all_players();
+
+		bool operator==(const player c) const { return m_character == c.m_character; }
 	};
 }

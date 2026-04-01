@@ -11,6 +11,8 @@ namespace big
 		character(MonoObject* character);
 		~character() noexcept;
 
+		MonoObject* get_object();
+
 		void set_max_health(float health);
 		float get_max_health();
 		std::string get_hover_name();
@@ -24,6 +26,12 @@ namespace big
 		Vector3 get_position();
 		Vector4 get_rotation();
 		Vector3 get_euler_angles();
-		std::vector<MonoObject*> get_all_characters();
+		std::vector<character> get_all_characters();
+
+		bool operator==(const character c) const { return m_character == c.m_character; }
+		operator bool() const
+        {
+            return m_character != nullptr;
+        }
 	};
 }

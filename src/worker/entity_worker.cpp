@@ -1,6 +1,7 @@
 #include "entity_worker.hpp"
 #include "script.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big
@@ -13,14 +14,13 @@ namespace big
 			{
 				auto& back = g_esp_data.back(); back.clear();
 
-				auto list = unity::get_all_characters();
+				auto characters = self::get_player().get_all_characters();
+				auto local_player = self::get_player();
 
-				for (auto player : list)
+				for (auto character : characters)
 				{
-					auto local_player = unity::get_local_player();
-					if (!player || (uintptr_t)player < 0x10000 || player == local_player)
+					if (!character || (uintptr_t)character.get_object() < 0x10000 || character == local_player)
 						continue;
-
 #ifdef _DEBUG
 					MonoClass* elem_class = mono::object_get_class(player);
 
@@ -30,23 +30,18 @@ namespace big
 						<< mono::class_get_name(elem_class) << " at address " << player << " local player is " << unity::get_local_player();
 #endif
 
-					Vector3 pos = unity::get_position(player);
-					auto local_player_pos = unity::get_position(local_player);
+					Vector3 pos = character.get_position();
+					auto local_player_pos = local_player.get_position();
 
 					if (pos.is_zero())
 						continue;
 
-					Vector3 top{};
-					Vector3 bottom{};
-
-					auto name = unity::get_hover_name(player);
-					auto health = unity::get_health(player);
-					auto max_health = unity::get_max_health(player);
+					auto top = character.get_top_point();
+					auto name = character.get_hover_name();
+					auto health = character.get_health();
+					auto max_health = character.get_max_health();
 					auto distance = local_player_pos.distance(pos);
 					
-					if (!unity::get_bounds(player, top, bottom))
-						continue;
-
 					Vector3 screen;
 					if (!unity::world_to_screen(pos, screen))
 						continue;
@@ -62,7 +57,7 @@ namespace big
 					data.max_health = max_health;
 					data.distance = distance;
 					data.top = top;
-					data.bottom = bottom;
+					data.bottom = pos;
 					back.push_back(data);
 				}
 

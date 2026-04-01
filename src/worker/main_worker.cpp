@@ -3,6 +3,7 @@
 #include "pointers.hpp"
 #include "utility/unity.hpp"
 
+#include "unity/self.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
 
@@ -10,6 +11,10 @@
 
 namespace big
 {
+	static void update()
+	{
+		self::update();
+	}
 	void main_worker::run()
 	{
 		commands::enable_bool_commands();

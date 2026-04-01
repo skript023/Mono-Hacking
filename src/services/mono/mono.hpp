@@ -127,6 +127,51 @@ namespace big
 
 			return true;
 		}
+		template<typename T = MonoObject*>
+		static std::vector<T> from_list(MonoObject* list)
+		{
+			std::vector<T> out;
+			if (!list)
+				return out;
+
+			MonoClass* klass = object_get_class(list);
+			if (!klass)
+				return out;
+
+			static MonoMethod* getCount = class_get_method_from_name(klass, "get_Count", 0);
+			static MonoMethod* getItem  = class_get_method_from_name(klass, "get_Item", 1);
+
+			if (!getCount || !getItem)
+				return out;
+
+			MonoObject* ret = invoke_method(getCount, list);
+			if (!ret)
+				return out;
+
+			int count = *(int*)object_unbox(ret);
+
+			out.reserve(count);
+
+			for (int i = 0; i < count; ++i)
+			{
+				void* args[1] = { &i };
+				MonoObject* item = invoke_method(getItem, list, args);
+
+				if (!item)
+					continue;
+
+				if constexpr (std::is_same_v<T, MonoObject*>)
+				{
+					out.push_back(item);
+				}
+				else
+				{
+					out.emplace_back(item);
+				}
+			}
+
+			return out;
+		}
 	private:
 		bool initalized = false;
 

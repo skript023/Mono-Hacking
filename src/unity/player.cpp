@@ -97,27 +97,76 @@ namespace big
 		void* args[1] = {&amount};
 		mono::invoke_method(method, m_character, args);
 	}
-	std::vector<MonoObject*> player::get_foods()
+	void player::teleport_to(Vector3 const& position, Vector4 const& rotation, bool distantTeleport)
 	{
-		std::vector<MonoObject*> result;
-		auto player = unity::get_local_player(); // sesuaikan fungsi kamu
-		if (!player)
+		static MonoMethod* method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
+
+		if (!method || !m_character)
+		{
+			LOG(WARNING) << "Failed to find method Plyer::TeleportTo";
+
+			return;
+		}
+
+		bool flashBar = true;
+
+		auto pos = position;
+		auto rot = rotation;
+		auto distant = distantTeleport;
+
+		std::array<void*, 3> args = {&pos, &rot, &distant};
+
+		mono::invoke_method(method, m_character, args.data());
+	}
+	int player::get_player_id()
+	{
+		static auto method = mono::get_method("Player", "GetPlayerName", 0, "assembly_valheim");
+
+		if (!method)
+		{
+			LOG(WARNING) << "Failed to find method Player::GetPlayerName";
+			return 0;
+		}
+
+		auto result = mono::invoke_method(method, m_character, nullptr);
+
+		return *reinterpret_cast<int*>(mono::object_unbox(result));
+	}
+	std::string player::get_player_name()
+	{
+		static auto method = mono::get_method("Player", "GetPlayerName", 0, "assembly_valheim");
+
+		if (!method)
+		{
+			LOG(WARNING) << "Failed to find method Player::GetPlayerName";
+			return {};
+		}
+
+		auto result = mono::invoke_method(method, m_character, nullptr);
+
+		return mono::from_mono_string(reinterpret_cast<MonoString*>(result));
+	}
+	std::vector<food> player::get_foods()
+	{
+		std::vector<food> result;
+		
+		if (!m_character)
 			return result;
 
-		// Panggil GetFoods()
-		auto method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
+		static auto method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
 
-		auto foodsList = mono::invoke_method(method, player);
-		if (!foodsList)
+		auto foods = mono::invoke_method(method, m_character);
+
+		if (!foods)
 		{
 			LOG(WARNING) << "Failed to get food list object.";
 			return result;
 		}
 
-		return unity::list_to_vector(foodsList);
+		return mono::from_list<food>(foods);
 	}
 
-	std::vector<MonoObject*> player::get_all_players()
+	std::vector<player> player::get_all_players()
 	{
 		static MonoMethod* method = mono::get_method("Player", "GetAllPlayers", 0, "assembly_valheim");
 
@@ -132,6 +181,6 @@ namespace big
 
 		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
 #endif
-		return unity::list_to_vector(result);
+		return mono::from_list<player>(result);
 	}
 }

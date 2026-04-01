@@ -418,7 +418,7 @@ namespace big::unity
 
 		void* args[3] = {&pos, &rot, &distant};
 
-		MonoObject* ret = mono::invoke_method(method, player, args);
+		mono::invoke_method(method, player, args);
 	}
 
 	inline int get_screen_width()

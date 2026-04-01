@@ -12,7 +12,11 @@ namespace big
 	{
 		m_character = nullptr;
 	}
-    void character::set_max_health(float health)
+	MonoObject* character::get_object()
+	{
+		return m_character;
+	}
+	void character::set_max_health(float health)
 	{
 		auto method = mono::get_method("Character", "SetMaxHealth", 1, "assembly_valheim");
 		
@@ -246,7 +250,7 @@ namespace big
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
-	std::vector<MonoObject*> character::get_all_characters()
+	std::vector<character> character::get_all_characters()
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
 
@@ -261,6 +265,6 @@ namespace big
 
 		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
 #endif
-		return unity::list_to_vector(result);
+		return mono::from_list<character>(result);
 	}
 }
