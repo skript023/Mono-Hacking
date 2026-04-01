@@ -101,6 +101,30 @@ namespace big::unity
 		return item_drop_ptr_instance;
 	}
 
+	inline MonoObject* get_localization()
+	{
+		// 1. Cari Class Player
+		MonoClass* klass = mono::get_class("Localization", "assembly_guiutils");
+		if (klass == nullptr) return nullptr;
+
+		// 2. Cari Static Field m_localPlayer
+		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr) return nullptr;
+
+		// 3. Dapatkan Base Address Static Field Data
+		void* static_field_data_addr = mono::get_static_field_data(klass);
+		if (static_field_data_addr == nullptr) return nullptr;
+
+		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
+		uint32_t offset = mono::get_field_offset(field);
+		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
+		MonoObject* ptr_instance = *(MonoObject**)ptr_addr;
+
+		return ptr_instance;
+	}
+
 	template<typename T>
 	inline T get_field_value(MonoObject* obj, const char* classname, const char* fieldName)	
 	{
