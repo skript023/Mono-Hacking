@@ -1,39 +1,64 @@
-<p align="center"><a title="Jeremy Kratz, Public domain, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:ISO_C%2B%2B_Logo.svg"><img width="256" alt="ISO C++ Logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/ISO_C%2B%2B_Logo.svg/256px-ISO_C%2B%2B_Logo.svg.png"></a></p>
-
-<h1 align="center">Scarlet Nexus Trainer Internal</h1>
 <p align="center">
-  <a href="https://github.com/skript023/Scarlet-Nexus-Internal/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/skript023/Scarlet-Nexus-Internal.svg?style=flat-square"/>
-   </a>
-  <a href="https://github.com/skript023/Scarlet-Nexus-Internal/actions">
-      <img src="https://img.shields.io/github/actions/workflow/status/skript023/Scarlet-Nexus-Internal/main.yml?branch=main&style=flat-square"/>
-   </a>
-  <br>
-  A trainer menu base Scarlet Nexus Trainer.
-  Strictly for educational purposes.
+  <img width="256" alt="C++ Logo" src="https://upload.wikimedia.org/wikipedia/commons/1/18/ISO_C%2B%2B_Logo.svg">
 </p>
 
-## Features
-* ImGui�based user interface
-* Log console
-* Unreal Classes
-* Native Function Access
-* Fiber Pool
-* Thread Pool
-* Unload at runtime
+<h1 align="center">Mono Game Hacking Base</h1>
 
-## Bugs
-* Trainer window will not show if you have overlay hooked for example MSI Afterburner and something like that.
+<p align="center">
+  Base framework untuk eksplorasi & reverse engineering game berbasis <b>Mono / Unity</b> menggunakan C++.<br>
+  <b>Strictly for educational purposes only.</b>
+</p>
 
+---
 
-## Building
-To build Scarlet Nexus Internal you need:
-* Visual Studio 2022
-* [Premake 5.0](https://premake.github.io/download.html) in your PATH
+## 📌 Overview
 
-To set up the build environment, run the following commands in a terminal:
-```dos
-git clone https://github.com/skript023/Scarlet-Nexus-Internal.git --recurse-submodules
-GenerateProjects.bat
+Project ini dibuat sebagai base internal untuk berinteraksi langsung dengan runtime Mono pada game berbasis Unity.
+
+Dengan framework ini, kamu bisa:
+- Akses class, method, dan field dari C#
+- Invoke method langsung dari native C++
+- Manipulasi object (Player, Transform, dll)
+- Eksplorasi struktur internal game
+
+Cocok untuk:
+- Reverse engineering Unity games
+- Research Mono runtime
+- Internal debugging & experimentation
+
+---
+
+## ⚙️ Features
+
+- 🔍 Mono reflection helper (class, method, field)
+- 🧠 Wrapper untuk MonoObject, MonoClass, dll
+- 📦 Utility conversion (List → std::vector)
+- 🎯 Direct method invoke (mono_runtime_invoke)
+- 🧵 Worker loop (update/tick system)
+- 🖥️ ImGui debug menu (optional)
+- 🔌 Hook-ready structure
+
+---
+
+## 🧠 Basic Concept (Mono)
+
+Game Unity berbasis Mono memiliki 2 layer utama:
+
+- Managed Layer → C# (Assembly-CSharp.dll)
+- Native Layer → Engine (C++)
+
+Framework ini bekerja dengan bridge ke Mono runtime:
+
+- mono_get_root_domain
+- mono_thread_attach
+- mono_class_from_name
+- mono_class_get_method_from_name
+- mono_runtime_invoke
+
+### Example
+
+```cpp
+auto klass = mono::get_class("Player", "Assembly-CSharp");
+auto method = mono::get_method(klass, "GetPosition", 0);
+auto result = mono::invoke(method, instance);
 ```
-Now, you will be able to open the solution, and simply build it in Visual Studio.
