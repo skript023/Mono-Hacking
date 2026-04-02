@@ -12,9 +12,11 @@ namespace big
 	{
 		auto method = mono::get_method("Localization", "Localize", 1, "assembly_guiutils");
 
-        if (!method)
+        if (!method || text.empty())
         {
-            LOG(FATAL) << "Method not found";
+            LOG(FATAL) << "Method not found or parameter empty";
+
+            return {};
         }
 
         auto ms = mono::to_mono_string(text);

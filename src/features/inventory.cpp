@@ -2,6 +2,7 @@
 #include "commands/int_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -15,51 +16,20 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			auto method = mono::get_method("Humanoid", "GetInventory", 0, "assembly_valheim");
-            auto player = unity::get_local_player();
+			auto player = self::get_player();
 
-            if (!method || !player) 
-            {
-                LOG(WARNING) << "Failed to find method Humanoid::GetInventory or local player";
-                return;
-            }
-
-            auto ret = mono::invoke_method(method, player);
-
-            if (ret == 0)
-                return;
-
-            auto inventory = mono::get_class("Inventory", "assembly_valheim");
-            auto m_height = mono::get_field(inventory, "m_height");
-            auto m_width = mono::get_field(inventory, "m_width");
-            mono::set_field_value(ret, m_height, &_inventory_height.get_state());
-            mono::set_field_value(ret, m_width, &_inventory_width.get_state());
+            auto inventory = player.get_inventory();
+            inventory.set_height(_inventory_height.get_state());
+            inventory.set_width(_inventory_width.get_state());
 		}
 
 		virtual void on_disable() override
 		{
-			auto method = mono::get_method("Humanoid", "GetInventory", 0, "assembly_valheim");
-            auto player = unity::get_local_player();
+			auto player = self::get_player();
 
-            if (!method || !player) 
-            {
-                LOG(WARNING) << "Failed to find method Humanoid::GetInventory or local player";
-                return;
-            }
-
-            auto ret = mono::invoke_method(method, player);
-
-            if (ret == 0)
-                return;
-
-			int height = 4;
-			int width = 8;
-
-            auto inventory = mono::get_class("Inventory", "assembly_valheim");
-            auto m_height = mono::get_field(inventory, "m_height");
-            auto m_width = mono::get_field(inventory, "m_width");
-            mono::set_field_value(ret, m_height, &height);
-            mono::set_field_value(ret, m_width, &width);
+            auto inventory = player.get_inventory();
+            inventory.set_height(4);
+            inventory.set_width(8);
 		}
 	};
 
