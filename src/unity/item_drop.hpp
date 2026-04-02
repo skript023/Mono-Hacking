@@ -19,6 +19,8 @@ namespace big
 		void set_quality(int quality);
 		std::optional<Vector3> get_position();
 		std::optional<Vector3> get_bounds_top();
+        bool can_pickup(bool autoPickupDelay);
+        bool can_eat();
 		std::string get_hover_name();
 		std::string get_hover_text();
 

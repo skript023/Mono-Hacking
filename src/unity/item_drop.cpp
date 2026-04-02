@@ -2,7 +2,7 @@
 
 namespace big
 {
-	item_drop::item_drop(MonoObject* o): obj(o), m_localization(o)
+	item_drop::item_drop(MonoObject* o): obj(o), m_localization(localization::get_instance())
 	{}
 	item_drop::~item_drop() noexcept
 	{
@@ -18,19 +18,19 @@ namespace big
 	}
 	std::vector<item_drop> item_drop::get_drops()
 	{
-		static auto drop = mono::get_class("ItemDrop", "assembly_valheim");
+		auto drop = mono::get_class("ItemDrop", "assembly_valheim");
 		if (drop == nullptr) return {};
 
-		static auto drop_instance = mono::get_field(drop, "s_instances");
+		auto drop_instance = mono::get_field(drop, "s_instances");
 		if (drop_instance == nullptr) return {};
 
-		static auto static_field_data_addr = mono::get_static_field_data(drop);
+		auto static_field_data_addr = mono::get_static_field_data(drop);
 		if (static_field_data_addr == nullptr) return {};
 
 		uint32_t offset = mono::get_field_offset(drop_instance);
-		static auto drop_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+		auto drop_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
 
-		static MonoObject* drop_ptr_instance = *(MonoObject**)drop_ptr_addr;
+		MonoObject* drop_ptr_instance = *(MonoObject**)drop_ptr_addr;
 
 		return mono::from_list<item_drop>(drop_ptr_instance);
 	}
@@ -77,7 +77,7 @@ namespace big
 
 		std::string result = mono::from_mono_string(reinterpret_cast<MonoString*>(name_obj));
 
-		return m_localization.localize(result);
+		return result;
 	}
 	std::string item_drop::get_hover_text()
 	{
@@ -151,5 +151,43 @@ namespace big
 		top.y += bounds.extents.y;
 
 		return top;
+	}
+	bool item_drop::can_pickup(bool autoPickupDelay)
+	{
+		static auto method = mono::get_method(
+			"ItemDrop",
+			"CanPickup",
+			1,
+			"assembly_valheim"
+		);
+
+		if (!method || !obj)
+			return false;
+
+		auto ret = mono::invoke(method, obj, autoPickupDelay);
+
+		if (!ret)
+			return false;
+
+		return *reinterpret_cast<bool*>(ret);
+	}
+	bool item_drop::can_eat()
+	{
+		static auto method = mono::get_method(
+			"ItemDrop",
+			"CanEat",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !obj)
+			return false;
+
+		auto ret = mono::invoke(method, obj);
+
+		if (!ret)
+			return false;
+
+		return *reinterpret_cast<bool*>(ret);
 	}
 }
