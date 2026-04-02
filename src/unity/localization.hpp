@@ -10,6 +10,6 @@ namespace big
         localization(MonoObject* obj);
         ~localization() noexcept;
 
-        std::string Localize(std::string const& height);
+        std::string localize(std::string const& height);
 	};
 }

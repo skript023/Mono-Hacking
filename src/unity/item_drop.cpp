@@ -2,7 +2,7 @@
 
 namespace big
 {
-	item_drop::item_drop(MonoObject* o): obj(o), m_data(o)
+	item_drop::item_drop(MonoObject* o): obj(o), m_data(o), m_localization(o)
 	{}
 	item_drop::~item_drop() noexcept
 	{
@@ -73,7 +73,7 @@ namespace big
 
 		std::string result = mono::from_mono_string(reinterpret_cast<MonoString*>(name_obj));
 
-		return result;
+		return m_localization.localize(result);
 	}
 	std::string item_drop::get_hover_text()
 	{

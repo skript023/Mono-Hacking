@@ -8,7 +8,7 @@ namespace big
 	{
         m_localization = nullptr;
 	}
-	std::string localization::Localize(std::string const& text)
+	std::string localization::localize(std::string const& text)
 	{
 		auto method = mono::get_method("Localization", "Localize", 1, "assembly_guiutils");
 

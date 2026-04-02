@@ -1,6 +1,7 @@
 #pragma once
 #include "mono/mono.hpp"
 #include "item_data.hpp"
+#include "localization.hpp"
 
 namespace big
 {
@@ -8,6 +9,7 @@ namespace big
     {
         MonoObject* obj;
         item_data m_data;
+        localization m_localization;
     public:
         item_drop(MonoObject* o);
         ~item_drop() noexcept;
