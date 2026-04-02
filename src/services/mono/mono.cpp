@@ -27,6 +27,7 @@ namespace big
 		mono_field_get_offset = module.get_export("mono_field_get_offset").as<mono_field_get_offset_t>();
 		mono_class_get_name = module.get_export("mono_class_get_name").as<mono_class_get_name_t>();
 		mono_class_get_namespace = module.get_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
+		mono_string_new_utf16 = module.get_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
 
 		// Attach thread to prevent crashes
 		mono_thread_attach = module.get_export("mono_thread_attach").as<mono_thread_attach_t>();
@@ -275,6 +276,32 @@ namespace big
 		    nullptr);
 
 		return out;
+	}
+	MonoString* mono::to_mono_string_utf16(std::string const& str)
+	{
+		MonoDomain* domain = mono_get_root_domain();
+
+		int size_needed = MultiByteToWideChar(
+			CP_UTF8,
+			0,
+			str.c_str(),
+			-1,
+			nullptr,
+			0
+		);
+
+		std::wstring wstr(size_needed, 0);
+
+		MultiByteToWideChar(
+			CP_UTF8,
+			0,
+			str.c_str(),
+			-1,
+			wstr.data(),
+			size_needed
+		);
+
+		return mono_string_new_utf16(domain, (mono_unichar2*)wstr.c_str(), (int)wstr.length());
 	}
 	std::filesystem::path mono::get_assembly_path(const char* assemblyName) const
 	{

@@ -26,6 +26,7 @@ namespace big
 	using mono_object_get_class_t = MonoClass* (*)(MonoObject * obj);
 	using mono_class_get_name_t = const char* (*)(MonoClass* klass);
 	using mono_class_get_namespace_t = const char* (*)(MonoClass* klass);
+	using mono_string_new_utf16_t = MonoString* (*)(MonoDomain*, const mono_unichar2*, int);
 	// --- Fungsi Class dan Field ---
 
 	using mono_class_get_field_from_name_t = MonoClassField * (*)(MonoClass* klass, const char* name);
