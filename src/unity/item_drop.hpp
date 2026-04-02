@@ -8,12 +8,12 @@ namespace big
     class item_drop
     {
         MonoObject* obj;
-        item_data m_data;
         localization m_localization;
     public:
         item_drop(MonoObject* o);
         ~item_drop() noexcept;
         MonoObject* get_object() const;
+        item_data get_data();
         static std::vector<item_drop> get_drops();
         void set_stack(int stack);
 		void set_quality(int quality);

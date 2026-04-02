@@ -61,22 +61,6 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			// MonoObject* player = unity::get_local_player(); // sesuaikan fungsi kamu
-			// if (!player)
-			// 	return;
-
-			// // Panggil GetFoods()
-			// MonoMethod* method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
-
-			// MonoObject* foodsList = mono::invoke_method(method, player);
-			// if (!foodsList)
-			// {
-			// 	LOG(WARNING) << "Failed to get food list object.";
-			// 	return;
-			// }
-
-			// // Set health semua Food
-			// set_all_food_health(foodsList, _food_hp.get_state());
 			auto player = self::get_player();
 			
 			auto foods = player.get_foods();

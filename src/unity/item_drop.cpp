@@ -2,7 +2,7 @@
 
 namespace big
 {
-	item_drop::item_drop(MonoObject* o): obj(o), m_data(o), m_localization(o)
+	item_drop::item_drop(MonoObject* o): obj(o), m_localization(o)
 	{}
 	item_drop::~item_drop() noexcept
 	{
@@ -12,21 +12,25 @@ namespace big
 	{
 		return obj;
 	}
+	item_data item_drop::get_data()
+	{
+		return mono::get_field_value<MonoObject*>(obj, "ItemDrop", "m_itemData");
+	}
 	std::vector<item_drop> item_drop::get_drops()
 	{
-		MonoClass* drop = mono::get_class("ItemDrop", "assembly_valheim");
+		static auto drop = mono::get_class("ItemDrop", "assembly_valheim");
 		if (drop == nullptr) return {};
 
-		MonoClassField* drop_instance = mono::get_field(drop, "s_instances");
+		static auto drop_instance = mono::get_field(drop, "s_instances");
 		if (drop_instance == nullptr) return {};
 
-		void* static_field_data_addr = mono::get_static_field_data(drop);
+		static auto static_field_data_addr = mono::get_static_field_data(drop);
 		if (static_field_data_addr == nullptr) return {};
 
 		uint32_t offset = mono::get_field_offset(drop_instance);
-		void* drop_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+		static auto drop_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
 
-		MonoObject* drop_ptr_instance = *(MonoObject**)drop_ptr_addr;
+		static MonoObject* drop_ptr_instance = *(MonoObject**)drop_ptr_addr;
 
 		return mono::from_list<item_drop>(drop_ptr_instance);
 	}

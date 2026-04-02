@@ -10,5 +10,7 @@ namespace big
         item_data(MonoObject* o);
         ~item_data() noexcept;
 		MonoObject* get_object();
+
+        operator bool() const { return obj != nullptr; }
 	};
 }
