@@ -16,6 +16,19 @@ namespace big
 	{
 		return m_character;
 	}
+	void character::set_health(float health)
+	{
+		auto method = mono::get_method("Character", "SetHealth", 1, "assembly_valheim");
+		
+		if (!method )
+		{
+			LOG(WARNING) << "Failed to find method Character::SetHealth";
+
+			return;
+		}
+
+		mono::invoke(method, m_character, health);
+	}
 	void character::set_max_health(float health)
 	{
 		auto method = mono::get_method("Character", "SetMaxHealth", 1, "assembly_valheim");
@@ -28,6 +41,19 @@ namespace big
 		}
 
 		mono::invoke(method, m_character, health);
+	}
+	void character::set_tamed(bool tamed)
+	{
+		auto method = mono::get_method("Character", "SetTamed", 1, "assembly_valheim");
+		
+		if (!method )
+		{
+			LOG(WARNING) << "Failed to find method Character::SetTamed";
+
+			return;
+		}
+
+		mono::invoke(method, m_character, tamed);
 	}
 	float character::get_max_health()
 	{

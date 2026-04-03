@@ -13,7 +13,9 @@ namespace big
 
 		MonoObject* get_object();
 
+		void set_health(float health);
 		void set_max_health(float health);
+		void set_tamed(bool tamed);
 		float get_max_health();
 		std::string get_hover_name();
 		float get_health();

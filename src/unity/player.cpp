@@ -203,11 +203,11 @@ namespace big
 		);
 
 		if (!method || !m_character)
-			return false;
+			return nullptr;
 
 		auto obj = mono::invoke(method, m_character);
 		if (!obj)
-			return false;
+			return nullptr;
 
 		return obj;
 	}
