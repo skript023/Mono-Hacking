@@ -115,11 +115,11 @@ namespace big
             if (data.self)
                 continue;
                 
-            if (_draw_health.get_state() && data.type == EEntityType::Character)
+            if (_draw_health.get_state() && ( data.type == EEntityType::Character || data.type == EEntityType::Player))
             {
                 draw_health(data.top, data.location, data.health, data.max_health);
             }
-            if (_draw_box.get_state() && data.type == EEntityType::Character)
+            if (_draw_box.get_state() && ( data.type == EEntityType::Character || data.type == EEntityType::Player))
             {
                 draw_box(data.top, data.location);
             }
