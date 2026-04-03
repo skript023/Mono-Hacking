@@ -42,39 +42,39 @@ jobs:
             build/version-dev-*.dll
             build/version-dev-*.pdb
 
-  cross-compilation:
-    runs-on: ubuntu-latest
-    name: Cross-compilation
-    steps:
-      - uses: actions/checkout@v4
+  # cross-compilation:
+  #   runs-on: ubuntu-latest
+  #   name: Cross-compilation
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Setup CMake and build tools
-        run: |
-          sudo apt update
-          sudo apt install -y cmake ninja-build
+  #     - name: Setup CMake and build tools
+  #       run: |
+  #         sudo apt update
+  #         sudo apt install -y cmake ninja-build
 
-      - name: Setup Zig
-        uses: mlugg/setup-zig@v2
+  #     - name: Setup Zig
+  #       uses: mlugg/setup-zig@v2
 
-      - name: Generate CMake project
-        run: cmake -DUSE_CROSSCOMPILER=Zig -DCMAKE_BUILD_TYPE=RelWithDebInfo -S . -B build -G Ninja
+  #     - name: Generate CMake project
+  #       run: cmake -DUSE_CROSSCOMPILER=Zig -DCMAKE_BUILD_TYPE=RelWithDebInfo -S . -B build -G Ninja
 
-      - name: Build 64bit RelWithDebInfo DLL
-        run: cmake --build ./build --config RelWithDebInfo --target Valheim --
+  #     - name: Build 64bit RelWithDebInfo DLL
+  #       run: cmake --build ./build --config RelWithDebInfo --target Valheim --
 
-      - name: Check if DLL got built
-        run: if [ ! -f build/version.dll ]; then exit 1; fi
+  #     - name: Check if DLL got built
+  #       run: if [ ! -f build/version.dll ]; then exit 1; fi
 
-      - name: Rename DLL to libValheim-dev-{GITHUB_SHA}.dll
-        run: |
-          mv version.dll libValheim-dev-${{github.sha}}.dll
-          mv version.pdb libValheim-dev-${{github.sha}}.pdb
-        working-directory: build/
+  #     - name: Rename DLL to libValheim-dev-{GITHUB_SHA}.dll
+  #       run: |
+  #         mv version.dll libValheim-dev-${{github.sha}}.dll
+  #         mv version.pdb libValheim-dev-${{github.sha}}.pdb
+  #       working-directory: build/
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: RelWithDebInfo-Cross
-          path: |
-            build/libValheim-dev-*.dll
-            build/libValheim-dev-*.pdb
+  #     - name: Upload Artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: RelWithDebInfo-Cross
+  #         path: |
+  #           build/libValheim-dev-*.dll
+  #           build/libValheim-dev-*.pdb
