@@ -6,5 +6,6 @@ namespace big
 	{
 	public:
 		static void run();
+		static void slow_run();
 	};
 }

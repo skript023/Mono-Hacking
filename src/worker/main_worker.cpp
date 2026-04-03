@@ -18,6 +18,7 @@ namespace big
 	void main_worker::run()
 	{
 		commands::enable_bool_commands();
+		
 		while (g_running)
 		{
 			TRY_CLAUSE
@@ -25,11 +26,21 @@ namespace big
 				update();
 				g_pointers->m_resolution.x = unity::get_screen_width();
 				g_pointers->m_resolution.y = unity::get_screen_height();
+			} EXCEPT_CLAUSE
 
-				commands::run_looped_command();
-			} 
-			EXCEPT_CLAUSE
 			script::get_current()->yield();
+		}
+	}
+	void main_worker::slow_run()
+	{
+		while (g_running)
+		{
+			TRY_CLAUSE
+			{
+				commands::run_looped_command();
+			} EXCEPT_CLAUSE
+
+			script::get_current()->yield(1s);
 		}
 	}
 }
