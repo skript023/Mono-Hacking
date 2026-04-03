@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -13,30 +14,17 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_eiterRegen = mono::get_field(klass, "m_eiterRegen");
+			auto player = self::get_player();
 
-			if (!klass || !m_eiterRegen)
-			{
-				return;
-			}
-
-			mono::set_field_value(unity::get_local_player(), m_eiterRegen, &_eitr_regen_amount.get_state());
+			if (player.get_eitr_regen() < _eitr_regen_amount.get_state())
+				player.set_eitr_regen(_eitr_regen_amount.get_state());
 		}
 
 		virtual void on_disable() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_eiterRegen = mono::get_field(klass, "m_eiterRegen");
+			auto player = self::get_player();
 
-			if (!klass || !m_eiterRegen)
-			{
-				return;
-			}
-
-			float default_stamina_regen = 5.f;
-
-			mono::set_field_value(unity::get_local_player(), m_eiterRegen, &default_stamina_regen);
+			player.set_eitr_regen(5.f);
 		}
 	};
 

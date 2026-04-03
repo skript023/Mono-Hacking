@@ -3,6 +3,7 @@
 #include "mono/mono.hpp"
 #include "unity/player.hpp"
 #include "utility/unity.hpp"
+#include "features/features.hpp"
 
 namespace big
 {
@@ -46,10 +47,14 @@ namespace big
         canvas::add_submenu<regular_submenu>("Inventory", "SubmenuInventory"_hash, [](regular_submenu* sub)
         {
             sub->add_option<bool_slider_int_option>("override_drop"_hash, "drop_amount"_hash);
-            sub->add_option<number_option<float>>("durability"_hash);
-            sub->add_option<number_option<float>>("quality"_hash);
-            sub->add_option<number_option<float>>("stack"_hash);
-            sub->add_option<number_option<float>>("variant"_hash);
+            sub->add_option<bool_option<bool>>("override_selected"_hash);
+            if (features::_override_selected.get_state())
+            {
+                sub->add_option<number_option<float>>("durability"_hash);
+                sub->add_option<number_option<float>>("quality"_hash);
+                sub->add_option<number_option<float>>("stack"_hash);
+                sub->add_option<number_option<float>>("variant"_hash);
+            }
         });
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuPlayerList, [](regular_submenu* sub)

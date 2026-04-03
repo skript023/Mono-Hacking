@@ -24,4 +24,6 @@ namespace big::features
 	inline number_command<float> _aimbot_smooth("aimbot_smooth", "Aimbot Smooth", "Rotation interpolation", 1.f, 100.f, 10.f );
 	inline bool_command _triggerbot("triggerbot", "Triggerbot", "Auto shoot when enemy is in crosshair", false);
 	inline number_command<float> _trigger_fov("trigger_fov", "Trigger FOV", "Shoot angle tolerance", 0.1f, 5.f, 1.0f);
+
+	inline bool_command _override_selected("override_selected", "Override Selected Item", "Override Selected Item", false);
 }

@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
 
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
 namespace big::features
@@ -13,34 +14,17 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_maxCarryWeight = mono::get_field(klass, "m_maxCarryWeight");
-
-			if (!klass || !m_maxCarryWeight)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
-			}
-
-			mono::set_field_value(unity::get_local_player(), m_maxCarryWeight, &_carry_amount.get_state());
+			auto player = self::get_player();
+			
+			if (player.get_max_carry() < _carry_amount.get_state())
+				player.set_max_carry(_carry_amount.get_state());
 		}
 
 		virtual void on_disable() override
 		{
-			auto klass = mono::get_class("Player", "assembly_valheim");
-			auto m_maxCarryWeight = mono::get_field(klass, "m_maxCarryWeight");
+			auto player = self::get_player();
 
-			if (!klass || !m_maxCarryWeight)
-			{
-				LOG(WARNING) << "Failed to find method Player::GetPlayerName";
-
-				return;
-			}
-
-			float default_stamina_regen = 300.f;
-
-			mono::set_field_value(unity::get_local_player(), m_maxCarryWeight, &default_stamina_regen);
+			player.set_max_carry(300.f);
 		}
 	};
 

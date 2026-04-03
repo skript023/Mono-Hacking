@@ -7,7 +7,6 @@ namespace big
 	{
 		if (g_settings.self.is_teleportable)
 		{
-			LOG(INFO) << "Pointer of player is " << _this;
 			return true;
 		}
 
