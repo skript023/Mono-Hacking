@@ -121,6 +121,24 @@ namespace big
 		}
         static bool is_initialized() { return get_instance().initalized; };
 		template<const_str Class, const_str Field, typename T>
+		static T get_static_field_value()
+		{
+			static auto klass = mono::get_class(Class.value, "assembly_valheim");
+			static auto field = mono::get_field(klass, Field.value);
+
+			void* static_field = mono::get_static_field_data(klass);
+
+			uint32_t offset = mono::get_field_offset(field);
+			void* address = (void*)((uintptr_t)static_field + offset);
+
+			MonoObject* value = *(MonoObject**)address;
+
+			if constexpr (std::is_same_v<T, MonoObject*>)
+        		return value;
+
+			return T(value);
+		}
+		template<const_str Class, const_str Field, typename T>
 		static T get_field_value(MonoObject* obj)
 		{
 			static auto klass = get_class(Class.value, "assembly_valheim");

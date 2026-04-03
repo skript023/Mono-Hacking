@@ -307,4 +307,16 @@ namespace big
 #endif
 		return mono::list<character>(result);
 	}
+	mono_array_view<character> character::get_all_scharacters()
+	{
+		auto result = mono::get_static_field_value<"Character", "s_characters", MonoObject*>();
+#ifdef _DEBUG
+		MonoClass* klass = mono::object_get_class(result);
+		const char* class_name = mono::class_get_name(klass);
+		const char* namespace_name = mono::class_get_namespace(klass);
+
+		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
+#endif
+		return mono::list<character>(result);
+	}
 }

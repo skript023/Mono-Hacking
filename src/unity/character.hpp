@@ -38,6 +38,7 @@ namespace big
 		Vector4 get_rotation();
 		Vector3 get_euler_angles();
 		static mono_array_view<character> get_all_characters();
+		static mono_array_view<character> get_all_scharacters();
 
 		bool operator==(character const& c) const { return m_character == c.m_character; }
 		operator bool() const { return m_character != nullptr; }

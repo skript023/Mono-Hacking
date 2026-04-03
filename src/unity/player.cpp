@@ -260,4 +260,17 @@ namespace big
 #endif
 		return mono::list<player>(result);
 	}
+
+	mono_array_view<player> player::get_all_splayers()
+	{
+		auto result = mono::get_static_field_value<"Player", "s_players", MonoObject*>();
+#ifdef _DEBUG
+		MonoClass* klass = mono::object_get_class(result);
+		const char* class_name = mono::class_get_name(klass);
+		const char* namespace_name = mono::class_get_namespace(klass);
+
+		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
+#endif
+		return mono::list<player>(result);
+	}
 }

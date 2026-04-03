@@ -59,7 +59,7 @@ namespace big
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuPlayerList, [](regular_submenu* sub)
         {
-            auto players = player::get_all_players();
+            auto players = player::get_all_splayers();
             
             for (auto p : players)
             {
@@ -71,7 +71,7 @@ namespace big
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuSelectedPlayer, [](regular_submenu* sub)
         {
-            
+
         });
 
         canvas::add_submenu<regular_submenu>("ESP", "SubmenuESP"_hash, [](regular_submenu* sub)

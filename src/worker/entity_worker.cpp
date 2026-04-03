@@ -17,16 +17,7 @@ namespace big
 				auto& back = g_esp_data.back(); back.clear();
 
 				auto self = self::get_player();
-
-				static auto last_list_update = std::chrono::steady_clock::now();
-				static mono_array_view<character> characters;
-				
-				if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_list_update).count() > 1000) 
-				{
-					characters = character::get_all_characters();
-					last_list_update = std::chrono::steady_clock::now();
-				}
-
+				auto characters = character::get_all_scharacters();
 				auto local_player_pos = self.get_position();
 
 				for (auto character : characters)
