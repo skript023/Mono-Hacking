@@ -229,6 +229,11 @@ namespace big
 		{
 			return get_instance().mono_class_get_namespace(klass);
 		}
+		static const char* get_name(MonoObject* obj)
+		{
+			MonoClass* elem_class = mono::object_get_class(obj);
+			return mono::class_get_name(elem_class);
+		}
 	private:
         // --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
 

@@ -112,6 +112,9 @@ namespace big
 
         for (const auto& data : *view)
         {
+            if (data.self)
+                continue;
+                
             if (_draw_health.get_state() && data.type == EEntityType::Character)
             {
                 draw_health(data.top, data.location, data.health, data.max_health);

@@ -1,6 +1,7 @@
 #include "entity_worker.hpp"
 #include "script.hpp"
 
+#include "utility/joaat.hpp"
 #include "utility/unity.hpp"
 
 #include "unity/self.hpp"
@@ -15,16 +16,18 @@ namespace big
 			{
 				auto& back = g_esp_data.back(); back.clear();
 
-				auto player = self::get_player();
+				auto self = self::get_player();
 
 				auto characters = character::get_all_characters();
 
-				auto local_player_pos = player.get_position();
+				auto local_player_pos = self.get_position();
 
 				for (auto& character : characters)
 				{
-					if (!character || (uintptr_t)character.get_object() < 0x10000 || character == player)
+					if (!character || (uintptr_t)character.get_object() < 0x10000)
 						continue;
+
+					auto classname = mono::get_name(character.get_object());
 #ifdef _DEBUG
 					MonoClass* elem_class = mono::object_get_class(player);
 
@@ -44,11 +47,18 @@ namespace big
 					auto health = character.get_health();
 					auto max_health = character.get_max_health();
 					auto distance = local_player_pos.distance_in_meters(pos);
+
+					if (joaat(classname) == "Player"_hash)
+					{
+						player p(character.get_object());
+						name = p.get_player_name();
+					}
 					
 					char buffer[256];
 					snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
 
 					back.emplace_back(esp_data{
+						character == self,
 						pos,
 						screen,
 						distance,
@@ -57,7 +67,7 @@ namespace big
 						max_health,
 						top,
 						pos,
-						EEntityType::Character
+						joaat(classname) == "Player"_hash ? EEntityType::Player : EEntityType::Character
 					});
 				}
 

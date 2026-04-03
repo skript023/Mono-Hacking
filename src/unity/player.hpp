@@ -34,6 +34,7 @@ namespace big
 		float get_max_adrenalin();
 		float get_adrenalin();
 		int get_player_id();
+		bool is_player() override;
 		std::string get_player_name();
 		std::vector<food> get_foods();
 		static std::vector<player> get_all_players();

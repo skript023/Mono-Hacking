@@ -18,6 +18,7 @@ namespace big
 		std::string get_hover_name();
 		float get_health();
 		bool is_dead();
+		virtual bool is_player();
 		Vector3 get_center_point();
 		Vector3 get_forward();
 		Vector3 get_head_point();

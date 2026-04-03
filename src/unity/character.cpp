@@ -101,6 +101,11 @@ namespace big
 
 		return *reinterpret_cast<bool*>(mono::object_unbox(obj));
 	}
+	bool character::is_player()
+	{
+		return false;
+	}
+
 	Vector3 character::get_center_point()
 	{
 		Vector3 pos{};

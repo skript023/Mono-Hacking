@@ -175,6 +175,24 @@ namespace big
 
 		return *reinterpret_cast<int*>(mono::object_unbox(result));
 	}
+	bool player::is_player()
+	{
+		static MonoMethod* method = mono::get_method(
+			"Player",
+			"IsPlayer",
+			0,
+			"assembly_valheim"
+		);
+
+		if (!method || !m_character)
+			return false;
+
+		auto obj = mono::invoke(method, m_character);
+		if (!obj)
+			return false;
+
+		return *reinterpret_cast<bool*>(mono::object_unbox(obj));
+	}
 	std::string player::get_player_name()
 	{
 		static auto method = mono::get_method("Player", "GetPlayerName", 0, "assembly_valheim");

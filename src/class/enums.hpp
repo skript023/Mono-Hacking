@@ -2,6 +2,7 @@
 
 enum class EEntityType
 {
+    Player,
     Character,
     ItemDrop,
     Pickable

@@ -1,16 +1,18 @@
 #include "../view.hpp"
 #include "script.hpp"
 #include "mono/mono.hpp"
+#include "unity/player.hpp"
 #include "utility/unity.hpp"
 
 namespace big
 {
     void view::player_submenu()
     {
-        canvas::add_tab<regular_submenu>("Player", SubmenuPlayer, [](regular_submenu* sub)
+        canvas::add_tab<regular_submenu>("Home", SubmenuHome, [](regular_submenu* sub)
         {
             sub->add_option<sub_option>("Self", nullptr, "SubmenuSelf"_hash);
             sub->add_option<sub_option>("Inventory", nullptr, "SubmenuInventory"_hash);
+            sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
             sub->add_option<sub_option>("ESP", nullptr, "SubmenuESP"_hash);
             sub->add_option<sub_option>("Aimbot", nullptr, "SubmenuAimbot"_hash);
         });
@@ -48,6 +50,16 @@ namespace big
             sub->add_option<number_option<float>>("quality"_hash);
             sub->add_option<number_option<float>>("stack"_hash);
             sub->add_option<number_option<float>>("variant"_hash);
+        });
+        
+        canvas::add_submenu<regular_submenu>("Online Players", SubmenuPlayerList, [](regular_submenu* sub)
+        {
+            auto players = player::get_all_players();
+            
+            for (auto& p : players)
+            {
+                sub->add_option<sub_option>(p.get_player_name().c_str(), nullptr, "SubmenuSelectedPlayer"_J);
+            }
         });
 
         canvas::add_submenu<regular_submenu>("ESP", "SubmenuESP"_hash, [](regular_submenu* sub)

@@ -130,7 +130,7 @@ namespace big
 #ifdef _DEBUG
             LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
 #endif
-            Vector3 dir = shooter - target_pos;
+            Vector3 dir = target_pos - shooter;
 
             float len = dir.length();
             if (len < 0.001f)

@@ -6,6 +6,7 @@ namespace big
 {
 	struct esp_data
     {
+		bool self;
         Vector3 location;
         Vector3 screen;
         float distance;
