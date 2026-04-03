@@ -32,28 +32,28 @@ namespace big
 	}
 	void food::set_time(float time)
 	{
-		if (!mono::set_field_value(m_food, "Player/Food", "m_time", time))
+		if (!mono::set_field_value<"Player/Food", "m_time">(m_food, time))
 		{
 			LOG(FATAL) << "Failed set field m_time";
 		}
 	}
 	void food::set_health(float h)
 	{
-		if (!mono::set_field_value(m_food, "Player/Food", "m_health", h))
+		if (!mono::set_field_value<"Player/Food", "m_health">(m_food, h))
 		{
 			LOG(FATAL) << "Failed set field m_health";
 		}
 	}
 	void food::set_stamina(float s)
 	{
-		if (!mono::set_field_value(m_food, "Player/Food", "m_stamina", s))
+		if (!mono::set_field_value<"Player/Food", "m_stamina">(m_food, s))
 		{
 			LOG(FATAL) << "Failed set field m_stamina";
 		}
 	}
 	void food::set_eitr(float e)
 	{
-		if (!mono::set_field_value(m_food, "Player/Food", "m_eitr", e))
+		if (!mono::set_field_value<"Player/Food", "m_eitr">(m_food, e))
 		{
 			LOG(FATAL) << "Failed set field m_eitr";
 		}

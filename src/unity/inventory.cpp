@@ -10,14 +10,14 @@ namespace big
 	}
 	void inventory::set_height(int height)
 	{
-        if (!mono::set_field_value(m_inventory, "Inventory", "m_height", height))
+        if (!mono::set_field_value<"Inventory", "m_height">(m_inventory, height))
         {
             LOG(FATAL) << "Failed set m_height";
         }
 	}
 	void inventory::set_width(int width)
 	{
-        if (!mono::set_field_value(m_inventory, "Inventory", "m_width", width))
+        if (!mono::set_field_value<"Inventory", "m_width">(m_inventory, width))
         {
             LOG(FATAL) << "Failed set m_width";
         }

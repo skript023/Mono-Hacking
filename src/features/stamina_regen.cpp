@@ -8,11 +8,11 @@
 namespace big::features
 {
 	float_command _stamina_regen_amount("stamina_regen_amount", "Stamina Regen Amount", "Amount of stamina to regenerate per second.", 5.f, 100.f, 5.f);
-	class stamina_regen : public bool_command
+	class stamina_regen : public looped_command
 	{
-		using bool_command::bool_command;
+		using looped_command::looped_command;
 
-		virtual void on_enable() override
+		virtual void on_tick() override
 		{
 			auto player = self::get_player();
 

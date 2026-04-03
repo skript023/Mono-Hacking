@@ -139,11 +139,12 @@ namespace big
 
 			return out;
 		}
-		template<typename T>
-		static bool set_field_value(MonoObject* obj, const char* classname, const char* fieldName, T&& value)
+		template<const_str Class, const_str Field, typename T>
+		static bool set_field_value(MonoObject* obj, T&& value)
 		{
-			auto klass = get_class(classname, "assembly_valheim");
-			auto field = get_field(klass, fieldName);
+			static auto klass = get_class(Class.value, "assembly_valheim");
+			static auto field = get_field(klass, Field.value);
+
 
 			if (!klass || !field)
 				return false;

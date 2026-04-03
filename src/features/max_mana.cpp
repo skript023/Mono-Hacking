@@ -8,11 +8,11 @@
 namespace big::features
 {
 	float_command _eitr_amount("eitr_amount", "Stamina Regen Amount", "Amount of stamina to regenerate per second.", 0.f, 10000.f, 0.f);
-	class eitr : public bool_command
+	class eitr : public looped_command
 	{
-		using bool_command::bool_command;
+		using looped_command::looped_command;
 
-		virtual void on_enable() override
+		virtual void on_tick() override
 		{
 			auto player = self::get_player();
 

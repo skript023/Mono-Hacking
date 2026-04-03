@@ -6,11 +6,11 @@
 
 namespace big::features
 {
-	class open_all_recepies : public bool_command
+	class open_all_recepies : public looped_command
 	{
-		using bool_command::bool_command;
+		using looped_command::looped_command;
 
-		virtual void on_enable() override
+		virtual void on_tick() override
 		{
 			auto player = self::get_player();
 

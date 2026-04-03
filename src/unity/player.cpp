@@ -18,21 +18,21 @@ namespace big
 	}
 	void player::set_base_health(float health)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_baseHP", health))
+		if (!mono::set_field_value<"Player", "m_baseHP">(m_character, health))
 		{
 			LOG(FATAL) << "Failed to set base health value";
 		}
 	}
 	void player::set_max_eitr(float eitr)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_maxEitr", eitr))
+		if (!mono::set_field_value<"Player", "m_maxEitr">(m_character, eitr))
 		{
 			LOG(FATAL) << "Failed to set max eitr value";
 		}
 	}
 	void player::set_base_stamina(float stamina)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_baseStamina", stamina))
+		if (!mono::set_field_value<"Player", "m_baseStamina">(m_character, stamina))
 		{
 			LOG(FATAL) << "Failed to set base stamina value";
 		}
@@ -50,49 +50,49 @@ namespace big
 	}
 	void player::set_stamina(float stamina)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_stamina", stamina))
+		if (!mono::set_field_value<"Player", "m_stamina">(m_character, stamina))
 		{
 			LOG(FATAL) << "Failed to set stamina value";
 		}
 	}
 	void player::set_stamina_regen(float regen)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_staminaRegen", regen))
+		if (!mono::set_field_value<"Player", "m_staminaRegen">(m_character, regen))
 		{
 			LOG(FATAL) << "Failed to set stamina regen value";
 		}
 	}
 	void player::set_max_carry(float carry)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_maxCarryWeight", carry))
+		if (!mono::set_field_value<"Player", "m_maxCarryWeight">(m_character, carry))
 		{
 			LOG(FATAL) << "Failed to set max carry value";
 		}
 	}
 	void player::set_adrenalin(float adrenalin)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_adrenaline", adrenalin))
+		if (!mono::set_field_value<"Player", "m_adrenaline">(m_character, adrenalin))
 		{
 			LOG(FATAL) << "Failed to set adrenalin value";
 		}
 	}
 	void player::set_max_adrenalin(float adrenalin)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_maxAdrenaline", adrenalin))
+		if (!mono::set_field_value<"Player", "m_maxAdrenaline">(m_character, adrenalin))
 		{
 			LOG(FATAL) << "Failed to set max adrenalin value";
 		}
 	}
 	void player::set_no_placement_cost(BOOL cost)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_noPlacementCost", cost))
+		if (!mono::set_field_value<"Player", "m_noPlacementCost">(m_character, cost))
 		{
 			LOG(FATAL) << "Failed to set no placement cost value";
 		}
 	}
 	void player::set_max_food(int food)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_maxFoods", food))
+		if (!mono::set_field_value<"Player", "m_maxFoods">(m_character, food))
 		{
 			LOG(FATAL) << "Failed to set max food value";
 		}
@@ -110,7 +110,7 @@ namespace big
 	}
 	void player::set_eitr_regen(float regen)
 	{
-		if (!mono::set_field_value(m_character, "Player", "m_eiterRegen", regen))
+		if (!mono::set_field_value<"Player", "m_eiterRegen">(m_character, regen))
 		{
 			LOG(FATAL) << "Failed to set eitr regen value";
 		}

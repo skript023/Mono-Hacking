@@ -17,7 +17,7 @@ namespace big::features
 			auto player = self::get_player();
 
 			player.set_base_stamina(_max_stam.get_state());
-			player.set_max_stamina(_max_stam.get_state(), true);
+			// player.set_max_stamina(_max_stam.get_state(), true);
 		}
 
 		virtual void on_disable() override
@@ -25,7 +25,7 @@ namespace big::features
 			auto player = self::get_player();
 
 			player.set_base_stamina(50.f);
-			player.set_max_stamina(50.f, true);
+			// player.set_max_stamina(50.f, true);
 		}
 	};
 

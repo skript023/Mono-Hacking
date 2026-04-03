@@ -19,7 +19,7 @@ namespace big
 	}
 	void item_data::set_durability(float durability)
 	{
-		if (!mono::set_field_value(obj, "ItemDrop/ItemData", "m_durability", durability))
+		if (!mono::set_field_value<"ItemDrop/ItemData", "m_durability">(obj, durability))
 		{
 			LOG(FATAL) << "Failed set durability";
 		}
@@ -40,7 +40,7 @@ namespace big
 	}
 	void item_data::set_quality(int quality)
 	{
-		if (!mono::set_field_value(obj, "ItemDrop/ItemData", "m_quality", quality))
+		if (!mono::set_field_value<"ItemDrop/ItemData", "m_quality">(obj, quality))
 		{
 			LOG(FATAL) << "Failed set quality";
 		}
@@ -51,7 +51,7 @@ namespace big
 	}
 	void item_data::set_stack(int stack)
 	{
-		if (!mono::set_field_value(obj, "ItemDrop/ItemData", "m_stack", stack))
+		if (!mono::set_field_value<"ItemDrop/ItemData", "m_stack">(obj, stack))
 		{
 			LOG(FATAL) << "Failed set stack";
 		}
@@ -62,7 +62,7 @@ namespace big
 	}
 	void item_data::set_variant(int variant)
 	{
-		if (!mono::set_field_value(obj, "ItemDrop/ItemData", "m_variant", variant))
+		if (!mono::set_field_value<"ItemDrop/ItemData", "m_variant">(obj, variant))
 		{
 			LOG(FATAL) << "Failed set variant";
 		}
@@ -73,7 +73,7 @@ namespace big
 	}
 	void item_data::set_grid_pos(iVector2 pos)
 	{
-		if (!mono::set_field_value(obj, "ItemDrop/ItemData", "m_gridPos", pos))
+		if (!mono::set_field_value<"ItemDrop/ItemData", "m_gridPos">(obj, pos))
 		{
 			LOG(FATAL) << "Failed set grid pos";
 		}
