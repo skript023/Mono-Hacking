@@ -58,7 +58,7 @@ namespace big
             
             for (auto& p : players)
             {
-                sub->add_option<sub_option>(p.get_player_name().c_str(), nullptr, "SubmenuSelectedPlayer"_J);
+                sub->add_option<sub_option>(p.get_player_name().c_str(), nullptr, SubmenuSelectedPlayer);
             }
         });
 
