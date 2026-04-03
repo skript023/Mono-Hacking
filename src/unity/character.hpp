@@ -7,6 +7,14 @@ namespace big
 	{
 	protected:
 		MonoObject* m_character{};
+	private:
+		struct cached_name_entry
+		{
+			std::string name;
+			std::chrono::steady_clock::time_point last_update;
+		};
+
+		static inline std::unordered_map<MonoObject*, cached_name_entry> m_hover_name_cache;
 	public:
 		character(MonoObject* character);
 		~character() noexcept;
@@ -29,7 +37,7 @@ namespace big
 		Vector3 get_position();
 		Vector4 get_rotation();
 		Vector3 get_euler_angles();
-		static std::vector<character> get_all_characters();
+		static mono_array_view<character> get_all_characters();
 
 		bool operator==(character const& c) const { return m_character == c.m_character; }
 		operator bool() const { return m_character != nullptr; }

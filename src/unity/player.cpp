@@ -83,7 +83,7 @@ namespace big
 			LOG(FATAL) << "Failed to set max adrenalin value";
 		}
 	}
-	void player::set_no_placement_cost(bool cost)
+	void player::set_no_placement_cost(BOOL cost)
 	{
 		if (!mono::set_field_value(m_character, "Player", "m_noPlacementCost", cost))
 		{
@@ -130,35 +130,35 @@ namespace big
 	}
 	float player::get_max_carry()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_maxCarryWeight");
+		return mono::get_field_value<"Player", "m_maxCarryWeight", float>(m_character);
 	}
 	float player::get_base_health()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_baseHP");
+		return mono::get_field_value<"Player", "m_baseHP", float>(m_character);
 	}
 	float player::get_base_stamina()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_baseStamina");
+		return mono::get_field_value<"Player", "m_baseStamina", float>(m_character);
 	}
 	float player::get_max_eitr()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_maxEitr");
+		return mono::get_field_value<"Player", "m_maxEitr", float>(m_character);
 	}
 	float player::get_stamina_regen()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_staminaRegen");
+		return mono::get_field_value<"Player", "m_staminaRegen", float>(m_character);
 	}
 	float player::get_eitr_regen()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_eiterRegen");
+		return mono::get_field_value<"Player", "m_eiterRegen", float>(m_character);
 	}
 	float player::get_max_adrenalin()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_maxAdrenaline");
+		return mono::get_field_value<"Player", "m_maxAdrenaline", float>(m_character);
 	}
 	float player::get_adrenalin()
 	{
-		return mono::get_field_value<float>(m_character, "Player", "m_adrenaline");
+		return mono::get_field_value<"Player", "m_adrenaline", float>(m_character);
 	}
 	int player::get_player_id()
 	{
@@ -225,12 +225,10 @@ namespace big
 
 		return mono::from_mono_string(reinterpret_cast<MonoString*>(result));
 	}
-	std::vector<food> player::get_foods()
+	mono_array_view<food> player::get_foods()
 	{
-		std::vector<food> result;
-		
 		if (!m_character)
-			return result;
+			return {};
 
 		static auto method = mono::get_method("Player", "GetFoods", 0, "assembly_valheim");
 
@@ -239,13 +237,13 @@ namespace big
 		if (!foods)
 		{
 			LOG(WARNING) << "Failed to get food list object.";
-			return result;
+			return {};
 		}
 
-		return mono::from_list<food>(foods);
+		return mono::list<food>(foods);
 	}
 
-	std::vector<player> player::get_all_players()
+	mono_array_view<player> player::get_all_players()
 	{
 		static MonoMethod* method = mono::get_method("Player", "GetAllPlayers", 0, "assembly_valheim");
 
@@ -260,6 +258,6 @@ namespace big
 
 		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
 #endif
-		return mono::from_list<player>(result);
+		return mono::list<player>(result);
 	}
 }

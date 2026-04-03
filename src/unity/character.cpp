@@ -82,12 +82,25 @@ namespace big
 		if (!method || !m_character)
 			return "unknown";
 
+		auto now = std::chrono::steady_clock::now();
+
+		
+		if (auto it = m_hover_name_cache.find(m_character);it != m_hover_name_cache.end())
+		{
+			if (std::chrono::duration_cast<std::chrono::seconds>(now - it->second.last_update).count() < 2)
+			{
+				return it->second.name;
+			}
+		}
+
 		auto name_obj = mono::invoke(method, m_character);
 
 		if (!name_obj)
 			return "unknown";
 
 		std::string result = mono::from_mono_string(reinterpret_cast<MonoString*>(name_obj));
+
+		m_hover_name_cache[m_character] = { result, now };
 
 		return result;
 	}
@@ -277,7 +290,7 @@ namespace big
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
-	std::vector<character> character::get_all_characters()
+	mono_array_view<character> character::get_all_characters()
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
 
@@ -292,6 +305,6 @@ namespace big
 
 		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
 #endif
-		return mono::from_list<character>(result);
+		return mono::list<character>(result);
 	}
 }

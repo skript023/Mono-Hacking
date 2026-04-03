@@ -8,27 +8,16 @@
 namespace big::features
 {
 	float_command _max_hp("max_hp", "Stamina Regen Amount", "Amount of stamina to regenerate per second.", 25.f, 1000.f, 25.f);
-	class max_health : public looped_command
+	class max_health : public bool_command
 	{
-		using looped_command::looped_command;
+		using bool_command::bool_command;
 
-		virtual void on_call() override
-		{
-			if (m_state)
-				on_enable();
-			else
-				on_disable();
-		}
-
-		virtual void on_tick() override
+		virtual void on_enable() override
 		{
 			auto player = self::get_player();
 
-			if (player.get_base_health() < _max_hp.get_state())
-			{
-				player.set_base_health(_max_hp.get_state());
-				player.set_max_health(_max_hp.get_state(), true);
-			}
+			player.set_base_health(_max_hp.get_state());
+			player.set_max_health(_max_hp.get_state(), true);
 		}
 
 		virtual void on_disable() override

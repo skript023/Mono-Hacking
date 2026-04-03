@@ -15,7 +15,7 @@ namespace big
 	}
 	shared_data item_data::get_shared_data()
 	{
-		return mono::get_field_value<MonoObject*>(obj, "ItemDrop/ItemData", "m_shared");
+		return mono::get_field_value<"ItemDrop/ItemData", "m_shared", MonoObject*>(obj);
 	}
 	void item_data::set_durability(float durability)
 	{
@@ -26,7 +26,7 @@ namespace big
 	}
 	float item_data::get_durability()
 	{
-		return mono::get_field_value<float>(obj, "ItemDrop/ItemData", "m_durability");
+		return mono::get_field_value<"ItemDrop/ItemData", "m_durability", float>(obj);
 	}
 	float item_data::get_max_durability()
 	{
@@ -34,7 +34,7 @@ namespace big
 
 		auto durability = shared.get_max_durability();
 		auto durability_per_level = shared.get_durability_per_level();
-		auto quality = mono::get_field_value<int>(obj, "ItemDrop/ItemData", "m_quality");
+		auto quality = mono::get_field_value<"ItemDrop/ItemData", "m_quality", int>(obj);
 
 		return durability + (float)std::max(0, quality - 1) * durability_per_level; 
 	}
@@ -47,7 +47,7 @@ namespace big
 	}
 	int item_data::get_quality()
 	{
-		return mono::get_field_value<int>(obj, "ItemDrop/ItemData", "m_quality");
+		return mono::get_field_value<"ItemDrop/ItemData", "m_quality", int>(obj);
 	}
 	void item_data::set_stack(int stack)
 	{
@@ -58,7 +58,7 @@ namespace big
 	}
 	int item_data::get_stack()
 	{
-		return mono::get_field_value<int>(obj, "ItemDrop/ItemData", "m_stack");
+		return mono::get_field_value<"ItemDrop/ItemData", "m_stack", int>(obj);
 	}
 	void item_data::set_variant(int variant)
 	{
@@ -69,7 +69,7 @@ namespace big
 	}
 	int item_data::get_variant()
 	{
-		return mono::get_field_value<int>(obj, "ItemDrop/ItemData", "m_variant");
+		return mono::get_field_value<"ItemDrop/ItemData", "m_variant", int>(obj);
 	}
 	void item_data::set_grid_pos(iVector2 pos)
 	{
@@ -80,6 +80,6 @@ namespace big
 	}
 	iVector2 item_data::get_grid_pos()
 	{
-		return mono::get_field_value<iVector2>(obj, "ItemDrop/ItemData", "m_gridPos");
+		return mono::get_field_value<"ItemDrop/ItemData", "m_gridPos", iVector2>(obj);
 	}
 }

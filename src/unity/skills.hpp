@@ -18,6 +18,6 @@ namespace big
         skills(MonoObject* o);
         ~skills() noexcept;
 
-        std::vector<skill_def> get_all_skill_def();
+        mono_array_view<skill_def> get_all_skill_def();
     };
 }

@@ -8,10 +8,10 @@ namespace big
 	{
         m_skills = nullptr;
 	}
-	std::vector<skill_def> skills::get_all_skill_def()
+	mono_array_view<skill_def> skills::get_all_skill_def()
 	{
-		auto s = mono::get_field_value<MonoObject*>(m_skills, "Skills", "m_skills");
+		auto s = mono::get_field_value<"Skills", "m_skills", MonoObject*>(m_skills);
 
-        return mono::from_list<skill_def>(s);
+        return mono::list<skill_def>(s);
 	}
 }

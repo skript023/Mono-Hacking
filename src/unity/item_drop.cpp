@@ -14,9 +14,9 @@ namespace big
 	}
 	item_data item_drop::get_data()
 	{
-		return mono::get_field_value<MonoObject*>(obj, "ItemDrop", "m_itemData");
+		return mono::get_field_value<"ItemDrop", "m_itemData", MonoObject*>(obj);
 	}
-	std::vector<item_drop> item_drop::get_drops()
+	mono_array_view<item_drop> item_drop::get_drops()
 	{
 		auto drop = mono::get_class("ItemDrop", "assembly_valheim");
 		if (drop == nullptr) return {};
@@ -32,7 +32,7 @@ namespace big
 
 		MonoObject* drop_ptr_instance = *(MonoObject**)drop_ptr_addr;
 
-		return mono::from_list<item_drop>(drop_ptr_instance);
+		return mono::list<item_drop>(drop_ptr_instance);
 	}
 	void item_drop::set_stack(int stack)
 	{

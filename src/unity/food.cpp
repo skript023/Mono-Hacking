@@ -12,23 +12,23 @@ namespace big
 
 	std::string food::get_name()
 	{
-        return mono::get_field_value<std::string>(m_food, "Player/Food", "m_name");
+        return mono::get_field_value<"Player/Food", "m_name", std::string>(m_food);
 	}
 	float food::get_time()
 	{
-		return mono::get_field_value<float>(m_food, "Player/Food", "m_time");
+		return mono::get_field_value<"Player/Food", "m_time", float>(m_food);
 	}
 	float food::get_health()
 	{
-		return mono::get_field_value<float>(m_food, "Player/Food", "m_health");
+		return mono::get_field_value<"Player/Food", "m_health", float>(m_food);
 	}
 	float food::get_stamina()
 	{
-		return mono::get_field_value<float>(m_food, "Player/Food", "m_stamina");
+		return mono::get_field_value<"Player/Food", "m_stamina", float>(m_food);
 	}
 	float food::get_eitr()
 	{
-		return mono::get_field_value<float>(m_food, "Player/Food", "m_eitr");
+		return mono::get_field_value<"Player/Food", "m_eitr", float>(m_food);
 	}
 	void food::set_time(float time)
 	{

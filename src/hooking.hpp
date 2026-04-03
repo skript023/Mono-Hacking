@@ -1,9 +1,10 @@
 #pragma once
 #include "common.hpp"
 #include "mono/mono.hpp"
-#include "mono/enums.hpp"
+#include "class/enums.hpp"
 
 #include "unity/player.hpp"
+#include "unity/skills.hpp"
 #include "unity/item_drop.hpp"
 
 #include "hooking/vmt_hook.hpp"

@@ -21,7 +21,7 @@ namespace big
 		void set_max_carry(float carry);
 		void set_adrenalin(float adrenalin);
 		void set_max_adrenalin(float adrenalin);
-		void set_no_placement_cost(bool cost);
+		void set_no_placement_cost(BOOL cost);
 		void set_max_food(int food);
 		void add_eitr(float eitr);
 		void set_eitr_regen(float regen);
@@ -38,8 +38,8 @@ namespace big
 		bool is_player() override;
 		skills get_skills();
 		std::string get_player_name();
-		std::vector<food> get_foods();
-		static std::vector<player> get_all_players();
+		mono_array_view<food> get_foods();
+		static mono_array_view<player> get_all_players();
 
 		bool operator==(player const& c) const { return m_character == c.m_character; }
 

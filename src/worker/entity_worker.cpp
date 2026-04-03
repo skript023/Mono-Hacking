@@ -18,11 +18,18 @@ namespace big
 
 				auto self = self::get_player();
 
-				auto characters = character::get_all_characters();
+				static auto last_list_update = std::chrono::steady_clock::now();
+				static mono_array_view<character> characters;
+				
+				if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_list_update).count() > 1000) 
+				{
+					characters = character::get_all_characters();
+					last_list_update = std::chrono::steady_clock::now();
+				}
 
 				auto local_player_pos = self.get_position();
 
-				for (auto& character : characters)
+				for (auto character : characters)
 				{
 					if (!character || (uintptr_t)character.get_object() < 0x10000)
 						continue;
@@ -72,8 +79,8 @@ namespace big
 				}
 
 				g_esp_data.publish();
-			} 
-			EXCEPT_CLAUSE
+			}  EXCEPT_CLAUSE
+
 			script::get_current()->yield(30ms);
 		}
 	}

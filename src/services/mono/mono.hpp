@@ -1,6 +1,8 @@
 #pragma once
 #include "mono_functions.hpp"
 #include "memory/module.hpp"
+#include "cache.hpp"
+#include "array.hpp"
 
 namespace big
 {
@@ -118,11 +120,11 @@ namespace big
 			return get_instance().mono_object_unbox_impl(obj);
 		}
         static bool is_initialized() { return get_instance().initalized; };
-		template<typename T>
-		static T get_field_value(MonoObject* obj, const char* classname, const char* fieldName)
+		template<const_str Class, const_str Field, typename T>
+		static T get_field_value(MonoObject* obj)
 		{
-			auto klass = get_class(classname, "assembly_valheim");
-			auto field = get_field(klass, fieldName);
+			static auto klass = get_class(Class.value, "assembly_valheim");
+			static auto field = get_field(klass, Field.value);
 
 			if constexpr (std::is_same_v<T, std::string>)
 			{
@@ -151,6 +153,37 @@ namespace big
 			set_field_value(obj, field, &temp);
 
 			return true;
+		}
+		template<typename T = MonoObject*>
+		static mono_array_view<T> list(MonoObject* list)
+		{
+			if (!list)
+				return {};
+
+			auto klass = object_get_class(list);
+
+			if (!klass)
+				return {};
+
+			static MonoClassField* items_field = get_field(klass, "_items");
+			static MonoClassField* size_field  = get_field(klass, "_size");
+
+			if (!items_field || !size_field)
+				return {};
+
+			MonoObject* items{};
+			int size{};
+
+			get_field_value(list, items_field, &items);
+			get_field_value(list, size_field, &size);
+
+			if (!items || size <= 0)
+				return {};
+
+			return mono_array_view<T>(
+				reinterpret_cast<MonoArray*>(items),
+				size
+			);
 		}
 		template<typename T = MonoObject*>
 		static std::vector<T> from_list(MonoObject* list)
@@ -229,6 +262,15 @@ namespace big
 		{
 			return get_instance().mono_class_get_namespace(klass);
 		}
+		static void* array_with_size(MonoArray* array, int size, uintptr_t idx)
+		{
+			return get_instance().mono_array_addr_with_size(array, size, idx);
+		}
+		static int array_length(MonoArray* array)
+		{
+			return get_instance().mono_array_length(array);
+		}
+		static void free(void* ptr) { get_instance().mono_free(ptr); }
 		static const char* get_name(MonoObject* obj)
 		{
 			MonoClass* elem_class = mono::object_get_class(obj);
@@ -259,6 +301,10 @@ namespace big
         mono_field_get_offset_t mono_field_get_offset = nullptr;
 		mono_class_get_name_t mono_class_get_name = nullptr;
 		mono_class_get_namespace_t mono_class_get_namespace = nullptr;
+		mono_string_to_utf8_t mono_string_to_utf8 = nullptr;
 		mono_string_new_utf16_t mono_string_new_utf16 = nullptr;
+		mono_array_addr_with_size_t mono_array_addr_with_size = nullptr;
+		mono_array_length_t mono_array_length = nullptr;
+		mono_free_t mono_free = nullptr;
 	};
 }

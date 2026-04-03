@@ -65,7 +65,7 @@ namespace big::features
 			
 			auto foods = player.get_foods();
 
-			for (auto& food : foods)
+			for (auto food : foods)
 			{
 				food.set_time(_food_hp.get_state());
 			}

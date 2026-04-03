@@ -12,6 +12,7 @@ namespace big
 	}
 	void self::update_impl()
 	{
-		m_player = player(unity::get_local_player());
+		if (m_player == nullptr)
+			m_player = player(unity::get_local_player());
 	}
 }

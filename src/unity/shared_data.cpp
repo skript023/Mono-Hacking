@@ -10,10 +10,10 @@ namespace big
 	}
     float shared_data::get_max_durability()
 	{
-		return mono::get_field_value<float>(m_shared, "ItemDrop/ItemData/SharedData", "m_maxDurability");
+		return mono::get_field_value<"ItemDrop/ItemData/SharedData", "m_maxDurability", float>(m_shared);
 	}
     float shared_data::get_durability_per_level()
 	{
-		return mono::get_field_value<float>(m_shared, "ItemDrop/ItemData/SharedData", "m_durabilityPerLevel");
+		return mono::get_field_value<"ItemDrop/ItemData/SharedData", "m_durabilityPerLevel", float>(m_shared);
 	}
 }

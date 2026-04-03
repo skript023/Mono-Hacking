@@ -1,5 +1,6 @@
 #pragma warning (disable:4311 4312)
 #include "mono.hpp"
+#include "core.hpp"
 
 namespace big
 {
@@ -28,6 +29,11 @@ namespace big
 		mono_class_get_name = module.get_export("mono_class_get_name").as<mono_class_get_name_t>();
 		mono_class_get_namespace = module.get_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
 		mono_string_new_utf16 = module.get_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
+		mono_array_addr_with_size = module.get_export("mono_array_addr_with_size").as<mono_array_addr_with_size_t>();
+		mono_array_length = module.get_export("mono_array_length").as<mono_array_length_t>();
+		mono_core::mono_array_addr_with_size = module.get_export("mono_array_addr_with_size").as<mono_core::mono_array_addr_with_size_t>();
+		mono_core::mono_array_length = module.get_export("mono_array_length").as<mono_core::mono_array_length_t>();
+		mono_free = module.get_export("mono_free").as<mono_free_t>();
 
 		// Attach thread to prevent crashes
 		mono_thread_attach = module.get_export("mono_thread_attach").as<mono_thread_attach_t>();

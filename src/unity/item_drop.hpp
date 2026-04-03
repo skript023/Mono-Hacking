@@ -14,7 +14,7 @@ namespace big
         ~item_drop() noexcept;
         MonoObject* get_object() const;
         item_data get_data();
-        static std::vector<item_drop> get_drops();
+        static mono_array_view<item_drop> get_drops();
         void set_stack(int stack);
 		void set_quality(int quality);
 		std::optional<Vector3> get_position();

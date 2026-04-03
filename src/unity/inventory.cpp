@@ -24,10 +24,10 @@ namespace big
 	}
 	int inventory::get_height()
 	{
-		return mono::get_field_value<int>(m_inventory, "Inventory", "m_height");
+		return mono::get_field_value<"Inventory", "m_height", int>(m_inventory);
 	}
 	int inventory::get_width()
 	{
-		return mono::get_field_value<int>(m_inventory, "Inventory", "m_width");
+		return mono::get_field_value<"Inventory", "m_width", int>(m_inventory);
 	}
 }

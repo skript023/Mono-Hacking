@@ -8,26 +8,15 @@
 namespace big::features
 {
 	float_command _eitr_amount("eitr_amount", "Stamina Regen Amount", "Amount of stamina to regenerate per second.", 0.f, 10000.f, 0.f);
-	class eitr : public looped_command
+	class eitr : public bool_command
 	{
-		using looped_command::looped_command;
+		using bool_command::bool_command;
 
-		virtual void on_call() override
-		{
-			if (m_state)
-				on_enable();
-			else
-				on_disable();
-		}
-
-		virtual void on_tick() override
+		virtual void on_enable() override
 		{
 			auto player = self::get_player();
 
-			if (player.get_max_eitr() < _eitr_amount.get_state())
-			{
-				player.set_max_eitr(_eitr_amount.get_state());
-			}
+			player.set_max_eitr(_eitr_amount.get_state());
 		}
 
 		virtual void on_disable() override
