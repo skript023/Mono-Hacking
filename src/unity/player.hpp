@@ -1,6 +1,7 @@
 #pragma once
 #include "mono/mono.hpp"
 #include "humanoid.hpp"
+#include "skills.hpp"
 #include "food.hpp"
 
 namespace big
@@ -35,6 +36,7 @@ namespace big
 		float get_adrenalin();
 		int get_player_id();
 		bool is_player() override;
+		skills get_skills();
 		std::string get_player_name();
 		std::vector<food> get_foods();
 		static std::vector<player> get_all_players();

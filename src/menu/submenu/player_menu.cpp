@@ -58,7 +58,21 @@ namespace big
             
             for (auto& p : players)
             {
-                sub->add_option<sub_option>(p.get_player_name().c_str(), nullptr, SubmenuSelectedPlayer);
+                sub->add_option<sub_option>(p.get_player_name().c_str(), nullptr, SubmenuSelectedPlayer, [=]{
+                    
+                });
+            }
+        });
+        
+        canvas::add_submenu<regular_submenu>("Online Players", SubmenuSelectedPlayer, [](regular_submenu* sub)
+        {
+            auto players = player::get_all_players();
+            
+            for (auto& p : players)
+            {
+                sub->add_option<sub_option>(p.get_player_name().c_str(), nullptr, SubmenuSelectedPlayer, [=]{
+
+                });
             }
         });
 
