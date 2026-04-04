@@ -26,5 +26,5 @@ namespace big::features
 		}
 	};
 
-	static infinite_stamina _infinite_stamina("infinite_stamina", "Infinite Stamina", "Stamina Always Maximum");
+	// static infinite_stamina _infinite_stamina("infinite_stamina", "Infinite Stamina", "Stamina Always Maximum");
 }

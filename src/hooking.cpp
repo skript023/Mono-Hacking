@@ -42,6 +42,7 @@ namespace big
 		detour_hook::add<hooks::on_hit>("Projectile::OnHit", mono::get_compile_method("Projectile", "OnHit", 4, "assembly_valheim"));
 		detour_hook::add<hooks::is_known_material>("Player::IsKnownMaterial", mono::get_compile_method("Player", "IsKnownMaterial", 1, "assembly_valheim"));
 		detour_hook::add<hooks::drop_item>("ItemDrop::DropItem", mono::get_compile_method("ItemDrop", "DropItem", 4, "assembly_valheim"));
+		detour_hook::add<hooks::rpc_use_stamina>("Player::RPC_UseStamina", mono::get_compile_method("Player", "RPC_UseStamina", 2, "assembly_valheim"));
 
 		g_hooking = this;
 	}

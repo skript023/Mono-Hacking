@@ -17,7 +17,6 @@ namespace big::features
 			auto player = self::get_player();
 
 			player.set_base_health(_max_hp.get_state());
-			// player.set_max_health(_max_hp.get_state(), true);
 		}
 
 		virtual void on_disable() override
@@ -25,9 +24,8 @@ namespace big::features
 			auto player = self::get_player();
 			
 			player.set_base_health(25.f);
-			// player.set_max_health(25.f, true);
 		}
 	};
 
-	static max_health _max_health("max_health", "Max Health", "Increase Max Health");
+	static max_health _max_health("max_health", "Max Base Health", "Increase Max Base Health");
 }

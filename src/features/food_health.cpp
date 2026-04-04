@@ -51,14 +51,6 @@ namespace big::features
 	{
 		using looped_command::looped_command;
 
-		virtual void on_call() override
-		{
-			if (m_state)
-				on_enable();
-			else
-				on_disable();
-		}
-
 		virtual void on_tick() override
 		{
 			auto player = self::get_player();
@@ -79,7 +71,7 @@ namespace big::features
 
 			for (auto food : foods)
 			{
-				food.set_time(0.f);
+				food.set_time(10.f);
 			}
 		}
 	};

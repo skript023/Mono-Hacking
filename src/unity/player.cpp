@@ -160,6 +160,10 @@ namespace big
 	{
 		return mono::get_field_value<"Player", "m_baseStamina", float>(m_character);
 	}
+	float player::get_max_stamina()
+	{
+		return mono::get_field_value<"Player", "m_maxStamina", float>(m_character);
+	}
 	float player::get_max_eitr()
 	{
 		return mono::get_field_value<"Player", "m_maxEitr", float>(m_character);
@@ -265,7 +269,7 @@ namespace big
 
 	mono_array_view<food> player::get_sfoods()
 	{
-		auto result = mono::get_static_field_value<"Player", "s_players", MonoObject*>();
+		auto result = mono::get_field_value<"Player", "m_foods", MonoObject*>(m_character);
 #ifdef _DEBUG
 		MonoClass* klass = mono::object_get_class(result);
 		const char* class_name = mono::class_get_name(klass);

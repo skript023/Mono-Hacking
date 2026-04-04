@@ -49,6 +49,7 @@ namespace big
 		static void on_hit(MonoObject* attack, MonoObject* spawnPoint, Vector3 hitPoint, bool water, Vector3 normal);
 		static bool is_known_material(MonoObject* player, MonoString* name);
 		static MonoObject* drop_item(MonoObject* item, int amount, Vector3 position, Quaternions rotation);
+		static void rpc_use_stamina(MonoObject* player, long sender, float v);
 	};
 
 	struct minhook_keepalive

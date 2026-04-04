@@ -31,6 +31,7 @@ namespace big
 		float get_max_carry();
 		float get_base_health();
 		float get_base_stamina();
+		float get_max_stamina();
 		float get_max_eitr();
 		float get_stamina_regen();
 		float get_eitr_regen();
@@ -46,7 +47,5 @@ namespace big
 		static mono_array_view<player> get_all_splayers();
 
 		bool operator==(player const& c) const { return m_character == c.m_character; }
-
-		;
 	};
 }

@@ -16,18 +16,16 @@ namespace big::features
 		{
 			auto player = self::get_player();
 
-			// player.set_base_stamina(_max_stam.get_state());
-			player.set_max_stamina(_max_stam.get_state());
+			player.set_base_stamina(_max_stam.get_state());
 		}
 
 		virtual void on_disable() override
 		{
 			auto player = self::get_player();
 
-			// player.set_base_stamina(50.f);
-			player.set_max_stamina(50.f);
+			player.set_base_stamina(50.f);
 		}
 	};
 
-	static max_stamina _max_stamina("max_stamina", "Max Stamina", "Increase Maximum Stamina");
+	static max_stamina _max_stamina("max_stamina", "Max Base Stamina", "Increase Maximum Base Stamina");
 }
