@@ -100,8 +100,6 @@ namespace big
 
         if (view.empty())
         {
-            LOG(FATAL) << "View data is empty";
-
             return;
         }
 
