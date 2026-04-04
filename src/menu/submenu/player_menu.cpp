@@ -63,6 +63,7 @@ namespace big
         {
             sub->add_option<reguler_option>("tamed_all_deer"_hash);
             sub->add_option<reguler_option>("tamed_all_boar"_hash);
+            sub->add_option<reguler_option>("tamed_all_wolf"_hash);
         });
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuPlayerList, [](regular_submenu* sub)
