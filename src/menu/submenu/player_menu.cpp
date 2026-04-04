@@ -13,10 +13,10 @@ namespace big
         {
             sub->add_option<sub_option>("Self", nullptr, "SubmenuSelf"_hash);
             sub->add_option<sub_option>("Inventory", nullptr, "SubmenuInventory"_hash);
+            sub->add_option<sub_option>("World", nullptr, "SubmenuWorld"_hash);
             sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
             sub->add_option<sub_option>("ESP", nullptr, "SubmenuESP"_hash);
             sub->add_option<sub_option>("Aimbot", nullptr, "SubmenuAimbot"_hash);
-            sub->add_option<reguler_option>("tamed_all_deer"_hash);
         });
 
         canvas::add_submenu<regular_submenu>("Self", "SubmenuSelf"_hash, [](regular_submenu* sub)
@@ -56,6 +56,13 @@ namespace big
                 sub->add_option<number_option<float>>("stack"_hash);
                 sub->add_option<number_option<float>>("variant"_hash);
             }
+        });
+        
+        
+        canvas::add_submenu<regular_submenu>("World", "SubmenuWorld"_hash, [](regular_submenu* sub)
+        {
+            sub->add_option<reguler_option>("tamed_all_deer"_hash);
+            sub->add_option<reguler_option>("tamed_all_boar"_hash);
         });
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuPlayerList, [](regular_submenu* sub)
