@@ -37,6 +37,13 @@ namespace big
 			LOG(FATAL) << "Failed to set base stamina value";
 		}
 	}
+	void player::set_max_stamina(float stamina)
+	{
+		if (!mono::set_field_value<"Player", "m_maxStamina">(m_character, stamina))
+		{
+			LOG(FATAL) << "Failed to set max stamina value";
+		}
+	}
 	void player::set_max_stamina(float stamina, bool flash)
 	{
 		auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
@@ -100,9 +107,22 @@ namespace big
 	void player::add_eitr(float eitr)
 	{
 		auto method = mono::get_method("Player", "AddEitr", 1, "assembly_valheim");
+
 		if (!method)
 		{
 			LOG(WARNING) << "Failed to find method Player::AddEitr";
+			return;
+		}
+
+		mono::invoke(method, m_character, eitr);
+	}
+	void player::add_stamina(float eitr)
+	{
+		auto method = mono::get_method("Player", "AddStamina", 1, "assembly_valheim");
+
+		if (!method)
+		{
+			LOG(WARNING) << "Failed to find method Player::AddStamina";
 			return;
 		}
 

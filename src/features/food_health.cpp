@@ -73,7 +73,14 @@ namespace big::features
 
 		virtual void on_disable() override
 		{
+			auto player = self::get_player();
+			
+			auto foods = player.get_sfoods();
 
+			for (auto food : foods)
+			{
+				food.set_time(0.f);
+			}
 		}
 	};
 

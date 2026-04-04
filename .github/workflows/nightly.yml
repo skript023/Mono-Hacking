@@ -72,7 +72,7 @@ jobs:
   recreate_release:
     runs-on: ubuntu-latest
     name: Recreate Release
-    needs: build_nightly
+    needs: [check_recent_commit, build_nightly]
     if: needs.check_recent_commit.outputs.should_run == 'true'
     steps:
       - uses: actions/checkout@v4

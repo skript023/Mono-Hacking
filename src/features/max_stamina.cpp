@@ -8,24 +8,24 @@
 namespace big::features
 {
 	float_command _max_stam("max_stam", "Stamina Regen Amount", "Amount of stamina to regenerate per second.", 50.f, 1000.f, 50.f);
-	class max_stamina : public bool_command
+	class max_stamina : public looped_command
 	{
-		using bool_command::bool_command;
+		using looped_command::looped_command;
 
-		virtual void on_enable() override
+		virtual void on_tick() override
 		{
 			auto player = self::get_player();
 
-			player.set_base_stamina(_max_stam.get_state());
-			// player.set_max_stamina(_max_stam.get_state(), true);
+			// player.set_base_stamina(_max_stam.get_state());
+			player.set_max_stamina(_max_stam.get_state());
 		}
 
 		virtual void on_disable() override
 		{
 			auto player = self::get_player();
 
-			player.set_base_stamina(50.f);
-			// player.set_max_stamina(50.f, true);
+			// player.set_base_stamina(50.f);
+			player.set_max_stamina(50.f);
 		}
 	};
 

@@ -15,6 +15,7 @@ namespace big
 		void set_base_health(float health);
 		void set_max_eitr(float eitr);
 		void set_base_stamina(float stamina);
+		void set_max_stamina(float stamina);
 		void set_max_stamina(float stamina, bool flash);
 		void set_stamina(float stamina);
 		void set_stamina_regen(float regen);
@@ -24,6 +25,7 @@ namespace big
 		void set_no_placement_cost(BOOL cost);
 		void set_max_food(int food);
 		void add_eitr(float eitr);
+		void add_stamina(float eitr);
 		void set_eitr_regen(float regen);
 		void teleport_to(Vector3 const& position, Quaternions const& rotation, bool distantTeleport);
 		float get_max_carry();

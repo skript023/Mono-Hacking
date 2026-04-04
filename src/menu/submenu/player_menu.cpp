@@ -16,6 +16,7 @@ namespace big
             sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
             sub->add_option<sub_option>("ESP", nullptr, "SubmenuESP"_hash);
             sub->add_option<sub_option>("Aimbot", nullptr, "SubmenuAimbot"_hash);
+            sub->add_option<reguler_option>("tamed_all_deer"_hash);
         });
 
         canvas::add_submenu<regular_submenu>("Self", "SubmenuSelf"_hash, [](regular_submenu* sub)
