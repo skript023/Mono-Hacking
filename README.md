@@ -34,7 +34,9 @@ With this framework, you can:
 
 ---
 
-## ⚙️ Features
+## 🧩 Core Framework Features
+
+These are the reusable building blocks of the framework, independent from any specific game logic.
 
 - 🔍 Mono reflection helpers (class, method, field)
 - 🧠 Clean wrappers for MonoObject, MonoClass, MonoMethod
@@ -48,6 +50,109 @@ With this framework, you can:
 - 🧩 Modular and extensible design
 
 ---
+
+## 🎮 Game Modules (Valheim)
+
+These features are built on top of the framework and are specific to game behavior manipulation.
+
+### 👤 Player (Self)
+
+- Flying
+- Infinite stamina
+- No weight
+- No item drop on death
+- Always wind for sailing
+- Teleport with any item
+- Skill / stats modifiers (health, stamina, armor, etc.)
+
+---
+
+### 🎒 Inventory
+
+- Override item properties:
+  - Durability
+  - Quality
+  - Stack size
+  - Variant
+- Custom drop amount
+
+---
+
+### 🌍 World
+
+- Tame all animals (deer, boar, wolf)
+- World interaction utilities
+
+---
+
+### 👥 Online Players
+
+- Player list retrieval via Mono
+- Dynamic submenu generation per player
+- Extendable for player-specific actions
+
+---
+
+### 👁️ ESP
+
+- Player/entity ESP
+- Name, health, box rendering
+- Line & skeleton visualization
+
+---
+
+### 🎯 Aimbot
+
+- Aimbot with configurable:
+  - FOV
+  - Smoothness
+  - Trigger key
+- Triggerbot
+- FOV visualization
+- Optional teleport targeting
+
+---
+
+### 📍 Teleport System
+
+- Forward teleport
+- Custom teleport system
+- Save/load locations by category
+- Persistent teleport storage
+- Rotation-aware teleportation
+
+---
+
+## 🧠 Architecture Overview
+
+The project is divided into two main layers:
+
+### Core Layer
+Handles:
+- Mono interaction
+- Memory / hooks
+- Scripting engine
+- UI system
+
+### Feature Layer
+Handles:
+- Game-specific logic
+- Player modifications
+- ESP / Aimbot / Teleport
+- High-level gameplay manipulation
+
+---
+
+## 🧵 Example: Dynamic UI System
+
+```cpp
+canvas::add_submenu<regular_submenu>("ESP", "SubmenuESP"_hash, [](regular_submenu* sub)
+{
+    sub->add_option<bool_option<bool>>("esp_activate"_hash);
+    sub->add_option<bool_option<bool>>("draw_name"_hash);
+    sub->add_option<bool_option<bool>>("draw_health"_hash);
+});
+```
 
 ## 📜 JavaScript Scripting (QuickJS)
 
