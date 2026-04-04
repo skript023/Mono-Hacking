@@ -11,6 +11,7 @@ namespace big
 	character::~character() noexcept
 	{
 		m_character = nullptr;
+		m_hover_name_cache.clear();
 	}
 	MonoObject* character::get_object()
 	{
@@ -82,25 +83,12 @@ namespace big
 		if (!method || !m_character)
 			return "unknown";
 
-		auto now = std::chrono::steady_clock::now();
-
-		
-		if (auto it = m_hover_name_cache.find(m_character);it != m_hover_name_cache.end())
-		{
-			if (std::chrono::duration_cast<std::chrono::seconds>(now - it->second.last_update).count() < 2)
-			{
-				return it->second.name;
-			}
-		}
-
 		auto name_obj = mono::invoke(method, m_character);
 
 		if (!name_obj)
 			return "unknown";
 
 		std::string result = mono::from_mono_string(reinterpret_cast<MonoString*>(name_obj));
-
-		m_hover_name_cache[m_character] = { result, now };
 
 		return result;
 	}

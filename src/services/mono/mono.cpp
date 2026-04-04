@@ -46,7 +46,13 @@ namespace big
 	}
 	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
 	{
-		mono_thread_attach(mono_get_root_domain());
+		static thread_local bool attached = false;
+
+		if (!attached)
+		{
+			mono_thread_attach(mono_get_root_domain());
+			attached = true;
+		}
 
 		MonoObject* execution;
 

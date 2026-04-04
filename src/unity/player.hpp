@@ -39,6 +39,7 @@ namespace big
 		skills get_skills();
 		std::string get_player_name();
 		mono_array_view<food> get_foods();
+		mono_array_view<food> get_sfoods();
 		static mono_array_view<player> get_all_players();
 		static mono_array_view<player> get_all_splayers();
 

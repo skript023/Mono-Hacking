@@ -63,7 +63,7 @@ namespace big::features
 		{
 			auto player = self::get_player();
 			
-			auto foods = player.get_foods();
+			auto foods = player.get_sfoods();
 
 			for (auto food : foods)
 			{

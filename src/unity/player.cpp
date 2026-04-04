@@ -243,6 +243,19 @@ namespace big
 		return mono::list<food>(foods);
 	}
 
+	mono_array_view<food> player::get_sfoods()
+	{
+		auto result = mono::get_static_field_value<"Player", "s_players", MonoObject*>();
+#ifdef _DEBUG
+		MonoClass* klass = mono::object_get_class(result);
+		const char* class_name = mono::class_get_name(klass);
+		const char* namespace_name = mono::class_get_namespace(klass);
+
+		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
+#endif
+		return mono::list<food>(result);
+	}
+
 	mono_array_view<player> player::get_all_players()
 	{
 		static MonoMethod* method = mono::get_method("Player", "GetAllPlayers", 0, "assembly_valheim");

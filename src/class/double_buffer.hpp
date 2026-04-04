@@ -31,10 +31,8 @@ namespace big
         {
             std::lock_guard lock(m_lock);
 
-            // swap pointer
             std::swap(front_, back_);
 
-            // IMPORTANT: back harus jadi buffer baru (biar gak dipakai render)
             back_ = std::make_shared<container_type>();
         }
 

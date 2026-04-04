@@ -98,7 +98,7 @@ namespace big
 
         const auto view = g_esp_data.view();
 
-        if (!view)
+        if (view.empty())
         {
             LOG(FATAL) << "View data is empty";
 
@@ -110,7 +110,7 @@ namespace big
             draw_fov_circle(_aimbot_fov.get_state());
         }
 
-        for (const auto& data : *view)
+        for (const auto& data : view)
         {
             if (data.self)
                 continue;

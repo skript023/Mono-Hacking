@@ -1,6 +1,6 @@
 #pragma once
 #include "class/enums.hpp"
-#include "class/double_buffer.hpp"
+#include "class/triple_buffer.hpp"
 
 namespace big
 {
@@ -20,7 +20,7 @@ namespace big
 		EEntityType type;
     };
 
-	inline DoubleBuffer<esp_data> g_esp_data;
+	inline TripleBuffer<esp_data> g_esp_data{512};
 
 	class entity_worker
 	{

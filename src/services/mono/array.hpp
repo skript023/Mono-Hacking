@@ -88,73 +88,73 @@ namespace big
         int m_size{-1};
     };
 
-    template<typename T>
-    class List
-    {
-    public:
-        List() = default;
+    // template<typename T>
+    // class List
+    // {
+    // public:
+    //     List() = default;
 
-        explicit List(MonoObject* list)
-        {
-            reset(list);
-        }
+    //     explicit List(MonoObject* list)
+    //     {
+    //         reset(list);
+    //     }
 
-        void reset(MonoObject* list)
-        {
-            m_list = list;
+    //     void reset(MonoObject* list)
+    //     {
+    //         m_list = list;
 
-            if (!m_list)
-            {
-                m_view = {};
-                return;
-            }
+    //         if (!m_list)
+    //         {
+    //             m_view = {};
+    //             return;
+    //         }
 
-            auto klass = mono::object_get_class(m_list);
+    //         auto klass = mono::object_get_class(m_list);
 
-            auto items_field = mono::get_field(klass, "_items");
-            auto size_field  = mono::get_field(klass, "_size");
+    //         auto items_field = mono::get_field(klass, "_items");
+    //         auto size_field  = mono::get_field(klass, "_size");
 
-            if (!items_field || !size_field)
-            {
-                m_view = {};
-                return;
-            }
+    //         if (!items_field || !size_field)
+    //         {
+    //             m_view = {};
+    //             return;
+    //         }
 
-            MonoObject* items{};
-            int size{};
+    //         MonoObject* items{};
+    //         int size{};
 
-            mono::get_field_value(m_list, items_field, &items);
-            mono::get_field_value(m_list, size_field, &size);
+    //         mono::get_field_value(m_list, items_field, &items);
+    //         mono::get_field_value(m_list, size_field, &size);
 
-            if (!items || size <= 0)
-            {
-                m_view = {};
-                return;
-            }
+    //         if (!items || size <= 0)
+    //         {
+    //             m_view = {};
+    //             return;
+    //         }
 
-            m_view = mono_array_view<T>(reinterpret_cast<MonoArray*>(items), size);
-        }
+    //         m_view = mono_array_view<T>(reinterpret_cast<MonoArray*>(items), size);
+    //     }
 
-        int size() const
-        {
-            return m_view.size();
-        }
+    //     int size() const
+    //     {
+    //         return m_view.size();
+    //     }
 
-        bool empty() const
-        {
-            return size() == 0;
-        }
+    //     bool empty() const
+    //     {
+    //         return size() == 0;
+    //     }
 
-        T operator[](int index) const
-        {
-            return m_view[index];
-        }
+    //     T operator[](int index) const
+    //     {
+    //         return m_view[index];
+    //     }
 
-        auto begin() const { return m_view.begin(); }
-        auto end()   const { return m_view.end();   }
+    //     auto begin() const { return m_view.begin(); }
+    //     auto end()   const { return m_view.end();   }
 
-    private:
-        MonoObject* m_list{};
-        mono_array_view<T> m_view{};
-    };
+    // private:
+    //     MonoObject* m_list{};
+    //     mono_array_view<T> m_view{};
+    // };
 }
