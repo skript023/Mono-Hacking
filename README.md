@@ -5,9 +5,9 @@
 <h1 align="center">Valheim Hacks</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/github/actions/workflow/status/skript023/Mono-Hacking/valheim-hacks/build.yml?branch=main&label=build&logo=github" />
-  <img src="https://img.shields.io/github/actions/workflow/status/skript023/Mono-Hacking/valheim-hacks/nightly.yml?label=nightly&logo=github" />
-  <img src="https://img.shields.io/github/v/release/skript023/Mono-Hacking/valheim-hacks?label=release&logo=github" />
+  <img src="https://img.shields.io/github/actions/workflow/status/skript023/Mono-Hacking/main.yml?branch=main&label=build&logo=github" />
+  <img src="https://img.shields.io/github/actions/workflow/status/skript023/Mono-Hacking/nightly.yml?label=nightly&logo=github" />
+  <img src="https://img.shields.io/github/v/release/skript023/Mono-Hacking?label=release&logo=github" />
 </p>
 
 <p align="center">
