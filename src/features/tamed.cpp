@@ -71,7 +71,7 @@ namespace big::features
 
                 auto name = character.get_hover_name();
 
-                if (joaat(name) == "Boar"_hash)
+                if (joaat(name) == "Wolf"_hash)
                 {
                     character.set_tamed(true);
                 }
