@@ -490,7 +490,7 @@ namespace big::unity
 	inline bool world_to_screen(Vector3 const& world, Vector3& out)
 	{
 		static MonoMethod* get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule", "UnityEngine");
-		static MonoMethod* w2s_method = mono::get_method("Camera", "WorldToScreenPoint", 2, "UnityEngine.CoreModule", "UnityEngine");
+		static MonoMethod* w2s_method = mono::get_method("Camera", "WorldToScreenPoint", 1, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_main || !w2s_method)
 			return false;
@@ -501,11 +501,7 @@ namespace big::unity
 
 		int eye = 2;
 
-		void* args[2];
-		args[0] = (void*)&world;
-		args[1] = (void*)&eye;
-
-		auto result_obj = mono::invoke_method(w2s_method, camera, args);
+		auto result_obj = mono::invoke(w2s_method, camera, world);
 		if (!result_obj)
 			return false;
 

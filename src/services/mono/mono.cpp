@@ -241,7 +241,7 @@ namespace big
 		if (field == nullptr)
 			return nullptr;
 
-		DWORD addr = (DWORD)get_static_field_data_impl(klass);
+		auto addr = (uintptr_t)get_static_field_data_impl(klass);
 		uint32_t offset = get_field_offset_impl(field);
 
 		void* value = (void*)(addr + offset);

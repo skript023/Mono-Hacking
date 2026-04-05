@@ -10,18 +10,18 @@ namespace big
 
         TripleBuffer(size_t reserve_size = 0)
         {
-            for (auto& buf : buffers_)
+            for (auto& buf : m_buffers)
                 buf.reserve(reserve_size);
 
-            front_index_.store(0, std::memory_order_relaxed);
-            back_index_ = 1;
-            spare_index_ = 2;
+            m_front_index.store(0, std::memory_order_relaxed);
+            m_back_index = 1;
+            m_spare_index = 2;
         }
 
         // Writer: isi buffer ini
         container_type& back() noexcept
         {
-            return buffers_[back_index_];
+            return m_buffers[m_back_index];
         }
 
         // Writer: publish hasil write
@@ -32,28 +32,33 @@ namespace big
             // front -> spare
             // spare -> back
 
-            const int old_front = front_index_.load(std::memory_order_relaxed);
+            const int old_front = m_front_index.load(std::memory_order_relaxed);
 
-            front_index_.store(back_index_, std::memory_order_release);
+            m_front_index.store(m_back_index, std::memory_order_release);
 
-            back_index_ = spare_index_;
-            spare_index_ = old_front;
+            m_back_index = m_spare_index;
+            m_spare_index = old_front;
 
             // clear buffer baru untuk write berikutnya
-            buffers_[back_index_].clear();
+            m_buffers[m_back_index].clear();
         }
 
         // Reader: ambil snapshot (NO LOCK)
         const container_type& view() const noexcept
         {
-            return buffers_[front_index_.load(std::memory_order_acquire)];
+            return m_buffers[m_front_index.load(std::memory_order_acquire)];
         }
 
+        void clear_all() noexcept
+        {
+            for (auto buffer : m_buffers)
+                buffer.clear();
+        }
     private:
-        std::array<container_type, 3> buffers_;
+        std::array<container_type, 3> m_buffers;
 
-        std::atomic<int> front_index_;
-        int back_index_;
-        int spare_index_;
+        std::atomic<int> m_front_index;
+        int m_back_index;
+        int m_spare_index;
     };
 }

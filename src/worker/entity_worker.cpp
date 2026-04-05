@@ -41,10 +41,13 @@ namespace big
 							<< "::"
 							<< mono::class_get_name(elem_class) << " at address " << player << " local player is " << player;
 	#endif
-						Vector3 screen;
 						Vector3 pos = character.get_position();
 						
-						if (pos.is_zero() || !unity::world_to_screen(pos, screen))
+						if (pos.is_zero())
+							continue;
+
+						Vector3 screen;
+						if (!unity::world_to_screen(pos, screen))
 							continue;
 
 						auto top = character.get_top_point();
@@ -82,5 +85,7 @@ namespace big
 
 			script::get_current()->yield(30ms);
 		}
+
+		g_esp_data.clear_all();
 	}
 } // namespace big
