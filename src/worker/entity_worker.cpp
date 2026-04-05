@@ -13,8 +13,8 @@ namespace big
 {
 	using namespace features;
 
-	static std::unordered_map<void*, std::string> cache;
-	static std::unordered_map<void*, std::string> new_cache;
+	static std::unordered_map<uintptr_t, std::string> cache;
+	static std::unordered_map<uintptr_t, std::string> new_cache;
 
     void entity_worker::run()
 	{
@@ -34,8 +34,8 @@ namespace big
 					{
 						player p(character.get_object());
 
-						auto obj = character.get_object();
-						if (!character || (uintptr_t)obj < 0x10000)
+						auto obj = (uintptr_t)character.get_object();
+						if (!character || obj < 0x10000)
 							continue;
 
 						//auto classname = mono::get_name(character.get_object());
@@ -56,38 +56,35 @@ namespace big
 						if (!unity::world_to_screen(pos, screen))
 							continue;
 
-						auto top = character.get_top_point();
-						auto health = character.get_health();
-						auto max_health = character.get_max_health();
+						auto top = p.get_top_point();
+						auto health = p.get_health();
+						auto max_health = p.get_max_health();
 						auto distance = local_player_pos.distance_in_meters(pos);
+
+						std::string name;
 
 						auto it = cache.find(obj);
 
-						bool valid = false;
-
 						if (it != cache.end())
 						{
-							// optional: validasi ulang
-							auto current = character.get_hover_name();
-
-							if (!current.empty() && current != "...")
+							name = it->second;
+						}
+						else
+						{
+							if (p.is_player())
 							{
-								new_cache[obj] = current;
-								valid = true;
+								name = p.get_player_name();
+								LOG(INFO) << "Retreive player name " << name;
+							}
+							else
+							{
+								name = p.get_hover_name();
+
+								LOG(INFO) << "Retreive chara name " << name;
 							}
 						}
 
-						if (!valid)
-						{
-							std::string name;
-
-							if (p.is_player())
-								name = p.get_player_name();
-							else
-								name = character.get_hover_name();
-
-							new_cache[obj] = name;
-						}
+						new_cache[obj] = name;
 
 						char buffer[256];
 						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", new_cache[obj].c_str(), distance);
