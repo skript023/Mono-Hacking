@@ -20,7 +20,7 @@ namespace big
 		EEntityType type;
     };
 
-	inline TripleBuffer<esp_data> g_esp_data{512};
+	inline TripleBuffer<esp_data> g_esp_data{64};
 
 	class entity_worker
 	{

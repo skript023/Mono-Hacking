@@ -13,6 +13,9 @@ namespace big
 {
 	using namespace features;
 
+	static std::unordered_map<void*, std::string> cache;
+	static std::unordered_map<void*, std::string> new_cache;
+
     void entity_worker::run()
 	{
 		while (g_running)
@@ -29,10 +32,13 @@ namespace big
 
 					for (auto character : characters)
 					{
-						if (!character || (uintptr_t)character.get_object() < 0x10000)
+						player p(character.get_object());
+
+						auto obj = character.get_object();
+						if (!character || (uintptr_t)obj < 0x10000)
 							continue;
 
-						auto classname = mono::get_name(character.get_object());
+						//auto classname = mono::get_name(character.get_object());
 	#ifdef _DEBUG
 						MonoClass* elem_class = mono::object_get_class(player);
 
@@ -51,22 +57,43 @@ namespace big
 							continue;
 
 						auto top = character.get_top_point();
-						auto name = character.get_hover_name();
 						auto health = character.get_health();
 						auto max_health = character.get_max_health();
 						auto distance = local_player_pos.distance_in_meters(pos);
 
-						if (joaat(classname) == "Player"_hash)
-						{
-							player p(character.get_object());
-							name = p.get_player_name();
-						}
-						
-						char buffer[256];
-						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
+						auto it = cache.find(obj);
 
+						bool valid = false;
+
+						if (it != cache.end())
+						{
+							// optional: validasi ulang
+							auto current = character.get_hover_name();
+
+							if (!current.empty() && current != "...")
+							{
+								new_cache[obj] = current;
+								valid = true;
+							}
+						}
+
+						if (!valid)
+						{
+							std::string name;
+
+							if (p.is_player())
+								name = p.get_player_name();
+							else
+								name = character.get_hover_name();
+
+							new_cache[obj] = name;
+						}
+
+						char buffer[256];
+						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", new_cache[obj].c_str(), distance);
+						
 						back.emplace_back(esp_data{
-							character == self,
+							false,//character == self
 							pos,
 							screen,
 							distance,
@@ -75,9 +102,12 @@ namespace big
 							max_health,
 							top,
 							pos,
-							joaat(classname) == "Player"_hash ? EEntityType::Player : EEntityType::Character
+							p.is_player() ? EEntityType::Player : EEntityType::Character
 						});
 					}
+
+					cache.swap(new_cache);
+					new_cache.clear();
 
 					g_esp_data.publish();
 				}
