@@ -72,14 +72,10 @@ namespace big
 							if (joaat(classname) == "Player"_hash)
 							{
 								name = p.get_player_name();
-
-								LOG(INFO) << "Retreive player name " << name;
 							}
 							else
 							{
 								name = character.get_hover_name();
-
-								LOG(INFO) << "Retreive chara name " << name;
 							}
 						}
 
