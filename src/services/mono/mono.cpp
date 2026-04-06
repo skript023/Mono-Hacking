@@ -289,6 +289,15 @@ namespace big
 
 		return out;
 	}
+	std::wstring_view mono::view_mono_string_impl(MonoString* monoStr) const
+	{
+		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
+			return {};
+
+		const wchar_t* wchars = reinterpret_cast<const wchar_t*>(monoStr->chars);
+
+		return std::wstring_view(wchars, monoStr->length);
+	}
 	MonoString* mono::to_mono_string_utf16(std::string const& str)
 	{
 		MonoDomain* domain = mono_get_root_domain();

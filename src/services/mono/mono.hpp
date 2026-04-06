@@ -27,6 +27,7 @@ namespace big
 		MonoThread* mono_thread_attach_impl(MonoDomain* domain) const;
 		MonoDomain* get_root_domain_impl() const;
 		std::string from_mono_string_impl(MonoString* monoStr) const;
+		std::wstring_view view_mono_string_impl(MonoString* monoStr) const;
 		MonoString* to_mono_string_utf16(std::string const& str);
 		std::filesystem::path get_assembly_path(const char* assemblyName) const;
 		static mono& get_instance()
