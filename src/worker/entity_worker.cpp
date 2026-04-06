@@ -63,23 +63,14 @@ namespace big
 
 						std::string name;
 
-						if (auto it = cache.find(obj); it != cache.end())
+						if (joaat(classname) == "Player"_hash)
 						{
-							name = it->second;
+							name = p.get_player_name();
 						}
 						else
 						{
-							if (joaat(classname) == "Player"_hash)
-							{
-								name = p.get_player_name();
-							}
-							else
-							{
-								name = character.get_hover_name();
-							}
+							name = character.get_hover_name();
 						}
-
-						new_cache[obj] = name;
 
 						char buffer[256];
 						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);

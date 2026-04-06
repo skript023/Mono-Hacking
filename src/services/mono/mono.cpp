@@ -28,6 +28,7 @@ namespace big
 		mono_field_get_offset = module.get_export("mono_field_get_offset").as<mono_field_get_offset_t>();
 		mono_class_get_name = module.get_export("mono_class_get_name").as<mono_class_get_name_t>();
 		mono_class_get_namespace = module.get_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
+		mono_string_to_utf8 = module.get_export("mono_string_to_utf8").as<mono_string_to_utf8_t>();
 		mono_string_new_utf16 = module.get_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
 		mono_array_addr_with_size = module.get_export("mono_array_addr_with_size").as<mono_array_addr_with_size_t>();
 		mono_array_length = module.get_export("mono_array_length").as<mono_array_length_t>();
@@ -265,29 +266,39 @@ namespace big
 		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
 			return {};
 
-		int len = WideCharToMultiByte(
-		    CP_UTF8,
-		    0,
-		    (wchar_t*)monoStr->chars,
-		    monoStr->length,
-		    nullptr,
-		    0,
-		    nullptr,
-		    nullptr);
+		auto raw = this->mono_string_to_utf8(monoStr);
 
-		std::string out(len, '\0');
+		if (!raw) return {};
 
-		WideCharToMultiByte(
-		    CP_UTF8,
-		    0,
-		    (wchar_t*)monoStr->chars,
-		    monoStr->length,
-		    out.data(),
-		    len,
-		    nullptr,
-		    nullptr);
+		std::string out(raw);
+
+		this->mono_free(raw);
 
 		return out;
+
+		// int len = WideCharToMultiByte(
+		//     CP_UTF8,
+		//     0,
+		//     (wchar_t*)monoStr->chars,
+		//     monoStr->length,
+		//     nullptr,
+		//     0,
+		//     nullptr,
+		//     nullptr);
+
+		// std::string out(len, '\0');
+
+		// WideCharToMultiByte(
+		//     CP_UTF8,
+		//     0,
+		//     (wchar_t*)monoStr->chars,
+		//     monoStr->length,
+		//     out.data(),
+		//     len,
+		//     nullptr,
+		//     nullptr);
+
+		// return out;
 	}
 	std::wstring_view mono::view_mono_string_impl(MonoString* monoStr) const
 	{
