@@ -38,7 +38,7 @@ namespace big
 						if (!character || obj < 0x10000)
 							continue;
 
-						//auto classname = mono::get_name(character.get_object());
+						auto classname = mono::get_name(character.get_object());
 	#ifdef _DEBUG
 						MonoClass* elem_class = mono::object_get_class(player);
 
@@ -56,29 +56,28 @@ namespace big
 						if (!unity::world_to_screen(pos, screen))
 							continue;
 
-						auto top = p.get_top_point();
-						auto health = p.get_health();
-						auto max_health = p.get_max_health();
+						auto top = character.get_top_point();
+						auto health = character.get_health();
+						auto max_health = character.get_max_health();
 						auto distance = local_player_pos.distance_in_meters(pos);
 
 						std::string name;
 
-						auto it = cache.find(obj);
-
-						if (it != cache.end())
+						if (auto it = cache.find(obj); it != cache.end())
 						{
 							name = it->second;
 						}
 						else
 						{
-							if (p.is_player())
+							if (joaat(classname) == "Player"_hash)
 							{
 								name = p.get_player_name();
+
 								LOG(INFO) << "Retreive player name " << name;
 							}
 							else
 							{
-								name = p.get_hover_name();
+								name = character.get_hover_name();
 
 								LOG(INFO) << "Retreive chara name " << name;
 							}
@@ -87,10 +86,10 @@ namespace big
 						new_cache[obj] = name;
 
 						char buffer[256];
-						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", new_cache[obj].c_str(), distance);
+						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
 						
 						back.emplace_back(esp_data{
-							false,//character == self
+							character == self,//character == self
 							pos,
 							screen,
 							distance,
@@ -99,7 +98,7 @@ namespace big
 							max_health,
 							top,
 							pos,
-							p.is_player() ? EEntityType::Player : EEntityType::Character
+							joaat(classname) == "Player"_hash ? EEntityType::Player : EEntityType::Character
 						});
 					}
 
@@ -114,5 +113,6 @@ namespace big
 		}
 
 		g_esp_data.clear_all();
+		cache.clear();
 	}
 } // namespace big
