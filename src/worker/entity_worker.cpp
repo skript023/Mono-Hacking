@@ -13,9 +13,6 @@ namespace big
 {
 	using namespace features;
 
-	static std::unordered_map<uintptr_t, std::string> cache;
-	static std::unordered_map<uintptr_t, std::string> new_cache;
-
     void entity_worker::run()
 	{
 		while (g_running)
@@ -63,23 +60,14 @@ namespace big
 
 						std::string name;
 
-						if (auto it = cache.find(obj); it != cache.end())
+						if (joaat(classname) == "Player"_hash)
 						{
-							name = it->second;
+							name = p.get_player_name();
 						}
 						else
 						{
-							if (joaat(classname) == "Player"_hash)
-							{
-								name = p.get_player_name();
-							}
-							else
-							{
-								name = character.get_hover_name();
-							}
+							name = character.get_hover_name();
 						}
-
-						new_cache[obj] = name;
 
 						char buffer[256];
 						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
@@ -98,9 +86,6 @@ namespace big
 						});
 					}
 
-					cache.swap(new_cache);
-					new_cache.clear();
-
 					g_esp_data.publish();
 				}
 			}  EXCEPT_CLAUSE
@@ -109,6 +94,5 @@ namespace big
 		}
 
 		g_esp_data.clear_all();
-		cache.clear();
 	}
 } // namespace big

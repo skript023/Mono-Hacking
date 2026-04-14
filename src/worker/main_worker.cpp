@@ -40,7 +40,7 @@ namespace big
 				commands::run_looped_command();
 			} EXCEPT_CLAUSE
 
-			script::get_current()->yield(1s);
+			script::get_current()->yield(5s);
 		}
 	}
 }

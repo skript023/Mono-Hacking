@@ -266,39 +266,39 @@ namespace big
 		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
 			return {};
 
-		auto raw = this->mono_string_to_utf8(monoStr);
+		//auto raw = this->mono_string_to_utf8(monoStr);
 
-		if (!raw) return {};
+		//if (!raw) return {};
 
-		std::string out(raw);
+		//std::string out(raw);
 
-		this->mono_free(raw);
+		//this->mono_free(raw);
+
+		//return out;
+
+		int len = WideCharToMultiByte(
+		    CP_UTF8,
+		    0,
+		    (wchar_t*)monoStr->chars,
+		    monoStr->length,
+		    nullptr,
+		    0,
+		    nullptr,
+		    nullptr);
+
+		std::string out(len, '\0');
+
+		WideCharToMultiByte(
+		    CP_UTF8,
+		    0,
+		    (wchar_t*)monoStr->chars,
+		    monoStr->length,
+		    out.data(),
+		    len,
+		    nullptr,
+		    nullptr);
 
 		return out;
-
-		// int len = WideCharToMultiByte(
-		//     CP_UTF8,
-		//     0,
-		//     (wchar_t*)monoStr->chars,
-		//     monoStr->length,
-		//     nullptr,
-		//     0,
-		//     nullptr,
-		//     nullptr);
-
-		// std::string out(len, '\0');
-
-		// WideCharToMultiByte(
-		//     CP_UTF8,
-		//     0,
-		//     (wchar_t*)monoStr->chars,
-		//     monoStr->length,
-		//     out.data(),
-		//     len,
-		//     nullptr,
-		//     nullptr);
-
-		// return out;
 	}
 	std::wstring_view mono::view_mono_string_impl(MonoString* monoStr) const
 	{

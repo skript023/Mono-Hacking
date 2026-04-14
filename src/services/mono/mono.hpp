@@ -38,6 +38,7 @@ namespace big
 	public:
         static void init() { get_instance().init_impl(); };
 		static std::string from_mono_string(MonoString* monoStr) { return get_instance().from_mono_string_impl(monoStr); };
+		static std::wstring_view view_mono_string(MonoString* monoStr) { return get_instance().view_mono_string_impl(monoStr); };
 		static MonoString* to_mono_string(std::string const& str) { return get_instance().to_mono_string_utf16(str); }
         static MonoObject* invoke_method(MonoMethod* method, void* obj = nullptr, void** params = nullptr)
         {

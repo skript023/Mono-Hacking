@@ -88,7 +88,7 @@ namespace big
 		if (!name_obj)
 			return "unknown";
 
-		std::string result = mono::from_mono_string(reinterpret_cast<MonoString*>(name_obj));
+		auto result = mono::from_mono_string(reinterpret_cast<MonoString*>(name_obj));
 
 		return result;
 	}
