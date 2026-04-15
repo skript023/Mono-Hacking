@@ -292,7 +292,7 @@ namespace big
 			return get_instance().mono_array_length(array);
 		}
 		static void free(void* ptr) { get_instance().mono_free(ptr); }
-		static const char* get_name(MonoObject* obj)
+		static std::string_view get_name(MonoObject* obj)
 		{
 			MonoClass* elem_class = mono::object_get_class(obj);
 			return mono::class_get_name(elem_class);
