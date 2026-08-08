@@ -6,6 +6,7 @@
 #include "script_mgr.hpp"
 #include "fiber_pool.hpp"
 #include "file_manager.hpp"
+#include "reflective_loader.hpp"
 
 #include "mono/mono.hpp"
 #include "logger/logger.hpp"
@@ -18,12 +19,14 @@
 
 #include "services/notification/notification_service.hpp"
 
+extern HINSTANCE hAppInstance;
+
 DWORD APIENTRY main_thread(LPVOID)
 {
 	using namespace big;
 
 	while (!FindWindow(WINDOW_CLASS, WINDOW_NAME))
-		std::this_thread::sleep_for(8s);
+		std::this_thread::sleep_for(1s);
 
 	benchmark initialization_benchmark("Initialization");
 
@@ -32,7 +35,11 @@ DWORD APIENTRY main_thread(LPVOID)
 
 	file_manager::init(base_dir);
 
+	MessageBoxA(nullptr, "after file_manager", "Debug", MB_OK);
+
 	logger::initialize(WINDOW_NAME, file_manager::get_project_file("./logs/log.txt"), true);
+
+	MessageBoxA(nullptr, "after logger", "Debug", MB_OK);
 
 	try
 	{
@@ -143,22 +150,53 @@ DWORD APIENTRY main_thread(LPVOID)
 	return 0;
 }
 
-BOOL APIENTRY DllMain(HMODULE hmod, DWORD reason, PVOID)
+//BOOL APIENTRY DllMain(HMODULE hmod, DWORD reason, PVOID reserved)
+//{
+//	using namespace big;
+//
+//	switch (reason)
+//	{
+//	case DLL_QUERY_HMODULE:
+//		if (reserved != NULL)
+//			*(HMODULE*)reserved = hAppInstance;
+//		break;
+//	case DLL_PROCESS_ATTACH:
+//		hAppInstance = hmod;
+//		DisableThreadLibraryCalls(hmod);
+//
+//		g_hmodule = hmod;
+//		g_main_thread = CreateThread(nullptr, 0, &main_thread, nullptr, 0, &g_main_thread_id);
+//		break;
+//	case DLL_PROCESS_DETACH:
+//		g_running = false;
+//		break;
+//	}
+//
+//	return true;
+//}
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD dwReason, LPVOID lpReserved)
 {
 	using namespace big;
 
-	switch (reason)
-	{
-	case DLL_PROCESS_ATTACH:
-		DisableThreadLibraryCalls(hmod);
+	BOOL bReturnValue = TRUE;
 
-		g_hmodule = hmod;
+	switch (dwReason)
+	{
+	case DLL_QUERY_HMODULE:
+		if (lpReserved != NULL)
+			*(HMODULE*)lpReserved = hAppInstance;
+		break;
+	case DLL_PROCESS_ATTACH:
+		hAppInstance = hinstDLL;
+		MessageBoxA(NULL, "Hello from DllMain!", "Reflective Dll Injection", MB_OK);
+
+		g_hmodule = hinstDLL;
 		g_main_thread = CreateThread(nullptr, 0, &main_thread, nullptr, 0, &g_main_thread_id);
 		break;
 	case DLL_PROCESS_DETACH:
-		g_running = false;
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
 		break;
 	}
-
-	return true;
+	return bReturnValue;
 }

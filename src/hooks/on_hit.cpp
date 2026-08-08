@@ -66,32 +66,29 @@ namespace big
 
 	void hooks::on_hit(MonoObject* Projectile, MonoObject* collider, Vector3 hitPoint, bool water, Vector3 normal)
 	{
-        TRY_CLAUSE
-        {
-            if (!_aimbot_enabled.get_state())
-            {
-                auto local = unity::get_local_player();
-                if (!local)
-                    return;
+		if (!_aimbot_enabled.get_state())
+		{
+			auto local = unity::get_local_player();
+			if (!local)
+				return;
 
-                Vector3 shooter = unity::get_position(local);
-                Vector3 forward = unity::get_forward(local);
+			Vector3 shooter = unity::get_position(local);
+			Vector3 forward = unity::get_forward(local);
 
-                auto best = find_best_target(shooter);
+			auto best = find_best_target(shooter);
 
-                if (!best)
-                {
-                    LOG(FATAL) << "No target found within FOV";
-                    return;
-                }
+			if (!best)
+			{
+				LOG(FATAL) << "No target found within FOV";
+				return;
+			}
 
-                Vector3 target_pos = unity::get_top_point(best);
-                Vector3 velocity   = unity::get_velocity(best);
-                
-                return detour_base::get_original<on_hit>()(Projectile, collider, target_pos, water, normal);
-            }
+			Vector3 target_pos = unity::get_top_point(best);
+			Vector3 velocity = unity::get_velocity(best);
 
-            return detour_base::get_original<on_hit>()(Projectile, collider, hitPoint, water, normal);
-        } EXCEPT_CLAUSE
+			return detour_base::get_original<on_hit>()(Projectile, collider, target_pos, water, normal);
+		}
+
+		return detour_base::get_original<on_hit>()(Projectile, collider, hitPoint, water, normal);
 	}
 }

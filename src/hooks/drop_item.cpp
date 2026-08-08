@@ -10,25 +10,21 @@ namespace big
 
 	MonoObject* hooks::drop_item(MonoObject* item, int amount, Vector3 position, Quaternions rotation)
 	{
-        TRY_CLAUSE
-        {
-            item_data itm(item);
+		item_data itm(item);
 
-            auto ret = detour_base::get_original<hooks::drop_item>()(
-                item,
-                amount,
-                position,
-                rotation
-            );
+		auto ret = detour_base::get_original<hooks::drop_item>()(
+		    item,
+		    amount,
+		    position,
+		    rotation);
 
-            item_drop dropped(ret);
+		item_drop dropped(ret);
 
-            if (_enable_override_drop.get_state())
-            {
-                dropped.set_stack(_drop_amount.get_state());
-            }
+		if (_enable_override_drop.get_state())
+		{
+			dropped.set_stack(_drop_amount.get_state());
+		}
 
-            return ret;
-        } EXCEPT_CLAUSE
+		return ret;
 	}
 }

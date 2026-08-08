@@ -88,57 +88,54 @@ namespace big
 
 	void hooks::get_projectile_spawn_point(MonoObject* attack, Vector3* spawnPoint, Vector3* aimDir)
 	{
-        TRY_CLAUSE
-        {
-            if (!_aimbot_enabled.get_state())
-            {
-                return detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
-            }
+		if (!_aimbot_enabled.get_state())
+		{
+			return detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
+		}
 
-            detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
+		detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
 
-            if (!spawnPoint || !aimDir)
-                return;
+		if (!spawnPoint || !aimDir)
+			return;
 #ifdef _DEBUG
-            LOG(INFO) << "Original spawn point: " << spawnPoint->x << ", " << spawnPoint->y << ", " << spawnPoint->z;
-            LOG(INFO) << "Original aim dir: " << aimDir->x << ", " << aimDir->y << ", " << aimDir->z;
+		LOG(INFO) << "Original spawn point: " << spawnPoint->x << ", " << spawnPoint->y << ", " << spawnPoint->z;
+		LOG(INFO) << "Original aim dir: " << aimDir->x << ", " << aimDir->y << ", " << aimDir->z;
 #endif
-            auto local = unity::get_local_player();
-            if (!local)
-                return;
+		auto local = unity::get_local_player();
+		if (!local)
+			return;
 
-            Vector3 shooter = *spawnPoint;
-            Vector3 forward = unity::get_forward(local);
+		Vector3 shooter = *spawnPoint;
+		Vector3 forward = unity::get_forward(local);
 
-            auto best = find_best_target(shooter);
+		auto best = find_best_target(shooter);
 
-            if (!best)
-            {
-                LOG(FATAL) << "No target found within FOV";
-                return;
-            }
+		if (!best)
+		{
+			LOG(FATAL) << "No target found within FOV";
+			return;
+		}
 
-            Vector3 target_pos = unity::get_top_point(best);
-            Vector3 velocity   = unity::get_velocity(best);
+		Vector3 target_pos = unity::get_top_point(best);
+		Vector3 velocity = unity::get_velocity(best);
 
-            if (_teleport_projectile.get_state())
-            {
-                *spawnPoint = target_pos;
+		if (_teleport_projectile.get_state())
+		{
+			*spawnPoint = target_pos;
 
-                return;
-            }
+			return;
+		}
 #ifdef _DEBUG
-            LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
+		LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
 #endif
-            Vector3 dir = target_pos - shooter;
+		Vector3 dir = target_pos - shooter;
 
-            float len = dir.length();
-            if (len < 0.001f)
-                return;
+		float len = dir.length();
+		if (len < 0.001f)
+			return;
 
-            dir = dir / len;
+		dir = dir / len;
 
-            *aimDir = dir;
-        } EXCEPT_CLAUSE
+		*aimDir = dir;
 	}
 }
