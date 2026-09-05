@@ -47,6 +47,9 @@ namespace big
 	}
 	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
 	{
+		if (!method)
+			return nullptr;
+
 		static thread_local bool attached = false;
 
 		if (!attached)
@@ -55,29 +58,37 @@ namespace big
 			attached = true;
 		}
 
-		MonoObject* execution;
+		MonoObject* execution = nullptr;
 
 		return mono_runtime_invoke(method, obj, params, &execution);
 	}
+	MonoImage* mono::get_image_impl(const char* assemblyName) const
+	{
+		if (!assemblyName)
+			return nullptr;
+
+		std::scoped_lock lock(m_image_cache_mutex);
+		if (auto it = m_image_cache.find(assemblyName); it != m_image_cache.end())
+			return it->second;
+
+		auto domain = mono_get_root_domain();
+		if (!domain)
+			return nullptr;
+
+		auto path = get_assembly_path(assemblyName).string();
+		auto assembly = mono_domain_assembly_open(domain, path.c_str());
+		if (!assembly)
+			return nullptr;
+
+		auto image = mono_assembly_get_image(assembly);
+		if (image)
+			m_image_cache.emplace(assemblyName, image);
+
+		return image;
+	}
 	void* mono::get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const
 	{
-		MonoDomain* domain = mono_get_root_domain();
-		if (domain == nullptr)
-		{
-			LOG(WARNING) << "Failed to get Mono root domain.";
-
-			return nullptr;
-		}
-
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
-		if (assembly == nullptr)
-		{
-			LOG(WARNING) << "Failed to open assembly: " << assemblyName;
-
-			return nullptr;
-		}
-
-		MonoImage* image = mono_assembly_get_image(assembly);
+		MonoImage* image = get_image_impl(assemblyName);
 		if (image == nullptr)
 		{
 			LOG(WARNING) << "Failed to get image from assembly: " << assemblyName;
@@ -105,23 +116,7 @@ namespace big
 	}
 	MonoMethod* mono::get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const
 	{
-		MonoDomain* domain = mono_get_root_domain();
-		if (domain == nullptr)
-		{
-			LOG(WARNING) << "Failed to get Mono root domain.";
-
-			return nullptr;
-		}
-
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
-		if (assembly == nullptr)
-		{
-			LOG(WARNING) << "Failed to open assembly: " << assemblyName;
-
-			return nullptr;
-		}
-
-		MonoImage* image = mono_assembly_get_image(assembly);
+		MonoImage* image = get_image_impl(assemblyName);
 		if (image == nullptr)
 		{
 			LOG(WARNING) << "Failed to get image from assembly: " << assemblyName;
@@ -141,15 +136,7 @@ namespace big
 	}
 	MonoClass* mono::get_class_impl(const char* className, const char* assemblyName, const char* nameSpace) const
 	{
-		MonoDomain* domain = mono_get_root_domain();
-		if (domain == nullptr)
-			return nullptr;
-
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
-		if (assembly == nullptr)
-			return nullptr;
-
-		MonoImage* image = mono_assembly_get_image(assembly);
+		MonoImage* image = get_image_impl(assemblyName);
 		if (image == nullptr)
 			return nullptr;
 
@@ -163,15 +150,7 @@ namespace big
 	}
 	MonoClassField* mono::get_field_impl(const char* className, const char* fieldName, const char* assemblyName, const char* nameSpace) const
 	{
-		MonoDomain* domain = mono_get_root_domain();
-		if (domain == nullptr)
-			return nullptr;
-
-		MonoAssembly* assembly = mono_domain_assembly_open(domain, get_assembly_path(assemblyName).string().c_str());
-		if (assembly == nullptr)
-			return nullptr;
-
-		MonoImage* image = mono_assembly_get_image(assembly);
+		MonoImage* image = get_image_impl(assemblyName);
 		if (image == nullptr)
 			return nullptr;
 

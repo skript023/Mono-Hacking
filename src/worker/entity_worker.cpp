@@ -29,20 +29,21 @@ namespace big
 
 					for (auto character : characters)
 					{
-						player p(character.get_object());
-
 						auto obj = (uintptr_t)character.get_object();
 						if (!character || obj < 0x10000)
 							continue;
 
+						player p(character.get_object());
+
 						auto classname = mono::get_name(character.get_object());
 	#ifdef _DEBUG
-						MonoClass* elem_class = mono::object_get_class(player);
+						MonoClass* elem_class = mono::object_get_class(p.get_object());
 
 						LOG(INFO) << "Element class: "
 							<< mono::class_get_namespace(elem_class)
 							<< "::"
-							<< mono::class_get_name(elem_class) << " at address " << player << " local player is " << player;
+							<< mono::class_get_name(elem_class) << " at address " << p.get_object()
+							<< " local player is " << self.get_object();
 	#endif
 						Vector3 pos = character.get_position();
 						

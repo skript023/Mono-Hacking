@@ -3,6 +3,7 @@
 #include "memory/module.hpp"
 #include "cache.hpp"
 #include "array.hpp"
+#include <unordered_map>
 
 namespace big
 {
@@ -30,6 +31,7 @@ namespace big
 		std::wstring_view view_mono_string_impl(MonoString* monoStr) const;
 		MonoString* to_mono_string_utf16(std::string const& str);
 		std::filesystem::path get_assembly_path(const char* assemblyName) const;
+		MonoImage* get_image_impl(const char* assemblyName) const;
 		static mono& get_instance()
         {
             static mono instance;
@@ -327,5 +329,10 @@ namespace big
 		mono_array_addr_with_size_t mono_array_addr_with_size = nullptr;
 		mono_array_length_t mono_array_length = nullptr;
 		mono_free_t mono_free = nullptr;
+
+		// mono_domain_assembly_open increments/retains runtime assembly state.  Do not
+		// call it for every entity getter; images are stable for the domain lifetime.
+		mutable std::mutex m_image_cache_mutex;
+		mutable std::unordered_map<std::string, MonoImage*> m_image_cache;
 	};
 }

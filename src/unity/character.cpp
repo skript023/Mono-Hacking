@@ -58,7 +58,7 @@ namespace big
 	}
 	float character::get_max_health()
 	{
-		auto method = mono::get_method("Character", "GetMaxHealth", 0, "assembly_valheim");
+		static auto method = mono::get_method("Character", "GetMaxHealth", 0, "assembly_valheim");
 		
 		if (!method )
 		{
@@ -68,6 +68,8 @@ namespace big
 		}
 
 		auto result = mono::invoke(method, m_character);
+		if (!result)
+			return 0.f;
 
 		return *reinterpret_cast<float*>(mono::object_unbox(result));
 	}
@@ -185,6 +187,8 @@ namespace big
 			return Vector3();
 
 		auto obj = mono::invoke(method, m_character);
+		if (!obj)
+			return Vector3();
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
@@ -225,7 +229,9 @@ namespace big
 
 		if (!transform) return Vector3();
 
-    	auto obj = mono::invoke(get_position, transform);
+		auto obj = mono::invoke(get_position, transform);
+		if (!obj)
+			return Vector3();
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}

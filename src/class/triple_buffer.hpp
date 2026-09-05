@@ -51,7 +51,7 @@ namespace big
 
         void clear_all() noexcept
         {
-            for (auto buffer : m_buffers)
+            for (auto& buffer : m_buffers)
                 buffer.clear();
         }
     private:
