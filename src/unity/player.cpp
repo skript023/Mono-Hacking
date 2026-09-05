@@ -184,11 +184,11 @@ namespace big
 	{
 		return mono::get_field_value<"Player", "m_adrenaline", float>(m_character);
 	}
-	int player::get_player_id()
+	int64_t player::get_player_id()
 	{
-		static auto method = mono::get_method("Player", "GetPlayerName", 0, "assembly_valheim");
+		static auto method = mono::get_method("Player", "GetPlayerID", 0, "assembly_valheim");
 
-		if (!method)
+		if (!method || !m_character)
 		{
 			LOG(WARNING) << "Failed to find method Player::GetPlayerID";
 
@@ -196,8 +196,11 @@ namespace big
 		}
 
 		auto result = mono::invoke(method, m_character);
+		if (!result)
+			return 0;
 
-		return *reinterpret_cast<int*>(mono::object_unbox(result));
+		auto value = mono::object_unbox(result);
+		return value ? *static_cast<int64_t*>(value) : 0;
 	}
 	bool player::is_player()
 	{

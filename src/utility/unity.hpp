@@ -195,8 +195,11 @@ namespace big::unity
 			return Vector3();
 
 		auto obj = mono::invoke_method(method, player, nullptr);
+		if (!obj)
+			return Vector3();
 
-		return *(Vector3*)mono::object_unbox(obj);
+		auto value = mono::object_unbox(obj);
+		return value ? *static_cast<Vector3*>(value) : Vector3{};
 	}
 
 	inline Vector3 get_top_point(void* player)
@@ -207,8 +210,11 @@ namespace big::unity
 			return Vector3();
 
 		auto obj = mono::invoke_method(method, player, nullptr);
+		if (!obj)
+			return Vector3();
 
-		return *(Vector3*)mono::object_unbox(obj);
+		auto value = mono::object_unbox(obj);
+		return value ? *static_cast<Vector3*>(value) : Vector3{};
 	}
 
 	inline Vector3 get_velocity(void* player)
@@ -219,8 +225,11 @@ namespace big::unity
 			return Vector3();
 
 		auto obj = mono::invoke_method(method, player, nullptr);
+		if (!obj)
+			return Vector3();
 
-		return *(Vector3*)mono::object_unbox(obj);
+		auto value = mono::object_unbox(obj);
+		return value ? *static_cast<Vector3*>(value) : Vector3{};
 	}
 
 	inline Vector3 get_position(void* player)

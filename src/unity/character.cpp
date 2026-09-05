@@ -201,8 +201,11 @@ namespace big
 			return Vector3();
 
 		auto obj = mono::invoke(method, m_character);
+		if (!obj)
+			return Vector3();
 
-		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
+		auto value = mono::object_unbox(obj);
+		return value ? *static_cast<Vector3*>(value) : Vector3{};
 	}
 
 	Vector3 character::get_velocity()
@@ -213,8 +216,11 @@ namespace big
 			return Vector3();
 
 		auto obj = mono::invoke(method, m_character);
+		if (!obj)
+			return Vector3();
 
-		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
+		auto value = mono::object_unbox(obj);
+		return value ? *static_cast<Vector3*>(value) : Vector3{};
 	}
 
 	Vector3 character::get_position()

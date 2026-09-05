@@ -45,18 +45,21 @@ namespace big
 
 		this->initalized = true;
 	}
-	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
+	void mono::ensure_thread_attached_impl() const
 	{
-		if (!method)
-			return nullptr;
-
 		static thread_local bool attached = false;
-
 		if (!attached)
 		{
 			mono_thread_attach(mono_get_root_domain());
 			attached = true;
 		}
+	}
+	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
+	{
+		if (!method)
+			return nullptr;
+
+		ensure_thread_attached_impl();
 
 		MonoObject* execution = nullptr;
 

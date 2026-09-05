@@ -62,11 +62,14 @@ namespace big
 	{
 		static MonoMethod* method = mono::get_method("Player/Food", "CanEatAgain", 0, "assembly_valheim");
 
-		if (!method)
+		if (!method || !m_food)
 			return false;
 
-		MonoObject* result = mono::invoke_method(method);
+		MonoObject* result = mono::invoke_method(method, m_food);
+		if (!result)
+			return false;
 
-        return *reinterpret_cast<bool*>(mono::object_unbox(result));
+		auto value = mono::object_unbox(result);
+		return value && *static_cast<bool*>(value);
 	}
 }

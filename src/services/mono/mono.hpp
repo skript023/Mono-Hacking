@@ -10,7 +10,29 @@ namespace big
 	class mono
 	{
 		void init_impl();
+		void ensure_thread_attached_impl() const;
 		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params) const;
+		template<typename Return, typename... Args>
+		Return invoke_compiled_method_impl(void* compiledMethod, Args... args) const
+		{
+			using function_t = Return (*)(Args...);
+
+			if (!compiledMethod)
+			{
+				if constexpr (std::is_void_v<Return>)
+					return;
+				else
+					return Return{};
+			}
+
+			ensure_thread_attached_impl();
+			auto function = reinterpret_cast<function_t>(compiledMethod);
+
+			if constexpr (std::is_void_v<Return>)
+				function(args...);
+			else
+				return function(args...);
+		}
 		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
         MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
         MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
@@ -46,6 +68,11 @@ namespace big
         {
             return get_instance().invoke_method_impl(method, obj, params);
 		};
+		template<typename Return, typename... Args>
+		static Return invoke_compiled_method(void* compiledMethod, Args... args)
+		{
+			return get_instance().invoke_compiled_method_impl<Return, Args...>(compiledMethod, args...);
+		}
 		template<typename... Args>
 		static MonoObject* invoke(MonoMethod* method, void* obj, Args... args) 
 		{

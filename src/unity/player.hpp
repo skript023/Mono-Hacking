@@ -37,7 +37,7 @@ namespace big
 		float get_eitr_regen();
 		float get_max_adrenalin();
 		float get_adrenalin();
-		int get_player_id();
+		int64_t get_player_id();
 		bool is_player() override;
 		skills get_skills();
 		std::string get_player_name();
