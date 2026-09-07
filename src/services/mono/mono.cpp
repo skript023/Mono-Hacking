@@ -45,6 +45,7 @@ namespace big
 
 		this->initalized = true;
 	}
+
 	void mono::ensure_thread_attached_impl() const
 	{
 		static thread_local bool attached = false;
@@ -54,6 +55,7 @@ namespace big
 			attached = true;
 		}
 	}
+
 	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
 	{
 		if (!method)
@@ -65,6 +67,7 @@ namespace big
 
 		return mono_runtime_invoke(method, obj, params, &execution);
 	}
+
 	MonoImage* mono::get_image_impl(const char* assemblyName) const
 	{
 		if (!assemblyName)
@@ -89,6 +92,7 @@ namespace big
 
 		return image;
 	}
+
 	void* mono::get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoImage* image = get_image_impl(assemblyName);
@@ -117,6 +121,7 @@ namespace big
 
 		return mono_compile_method(method);
 	}
+
 	MonoMethod* mono::get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoImage* image = get_image_impl(assemblyName);
@@ -137,6 +142,7 @@ namespace big
 
 		return mono_class_get_method_from_name(klass, methodName, param_count);
 	}
+
 	MonoClass* mono::get_class_impl(const char* className, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoImage* image = get_image_impl(assemblyName);
@@ -147,10 +153,12 @@ namespace big
 
 		return klass;
 	}
+
 	MonoClass* mono::get_class_from_method_impl(MonoMethod* method) const
 	{
 		return mono_method_get_class(method);
 	}
+
 	MonoClassField* mono::get_field_impl(const char* className, const char* fieldName, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoImage* image = get_image_impl(assemblyName);
@@ -165,12 +173,14 @@ namespace big
 
 		return field;
 	}
+
 	MonoClassField* mono::get_field_impl(MonoClass* pKlass, const char* fieldName) const
 	{
 		MonoClassField* field = mono_class_get_field_from_name(pKlass, fieldName);
 
 		return field;
 	}
+
 	uint32_t mono::get_field_offset_impl(MonoClassField* field) const
 	{
 		if (!field)
@@ -178,6 +188,7 @@ namespace big
 
 		return mono_field_get_offset(field);
 	}
+
 	void mono::get_field_value_impl(void* instance, MonoClassField* field, void* out) const
 	{
 		if (!instance || !field || !out)
@@ -185,6 +196,7 @@ namespace big
 
 		mono_field_get_value(instance, field, out);
 	}
+
 	void mono::set_field_value_impl(MonoObject* obj, MonoClassField* field, void* value)
 	{
 		if (!obj || !field || !value)
@@ -192,6 +204,7 @@ namespace big
 
 		mono_field_set_value(obj, field, value);
 	}
+
 	MonoVTable* mono::get_vtable_impl(MonoClass* pKlass) const
 	{
 		if (!pKlass)
@@ -199,6 +212,7 @@ namespace big
 
 		return mono_class_vtable(mono_get_root_domain(), pKlass);
 	}
+
 	void* mono::get_static_field_data_impl(MonoVTable* pVTable) const
 	{
 		if (!pVTable)
@@ -206,6 +220,7 @@ namespace big
 
 		return mono_vtable_get_static_field_data(pVTable);
 	}
+
 	void* mono::get_static_field_data_impl(MonoClass* pKlass) const
 	{
 		MonoVTable* vtable = get_vtable_impl(pKlass);
@@ -214,6 +229,7 @@ namespace big
 
 		return mono_vtable_get_static_field_data(vtable);
 	}
+
 	void* mono::get_static_field_value_impl(const char* className, const char* fieldName, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoClass* klass = get_class_impl(className, assemblyName, nameSpace);
@@ -231,18 +247,22 @@ namespace big
 
 		return value;
 	}
+
 	void* mono::mono_object_unbox_impl(MonoObject* obj)
 	{
 		return mono_object_unbox(obj);
 	}
+
 	MonoThread* mono::mono_thread_attach_impl(MonoDomain* domain) const
 	{
 		return mono_thread_attach(domain);
 	}
+
 	MonoDomain* mono::get_root_domain_impl() const
 	{
 		return mono_get_root_domain();
 	}
+
 	std::string mono::from_mono_string_impl(MonoString* monoStr) const
 	{
 		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
@@ -282,6 +302,7 @@ namespace big
 
 		return out;
 	}
+
 	std::wstring_view mono::view_mono_string_impl(MonoString* monoStr) const
 	{
 		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
@@ -291,7 +312,8 @@ namespace big
 
 		return std::wstring_view(wchars, monoStr->length);
 	}
-	MonoString* mono::to_mono_string_utf16(std::string const& str)
+
+	MonoString* mono::to_mono_string_utf16(std::string const& str) const
 	{
 		MonoDomain* domain = mono_get_root_domain();
 
@@ -317,8 +339,10 @@ namespace big
 
 		return mono_string_new_utf16(domain, (mono_unichar2*)wstr.c_str(), (int)wstr.length());
 	}
+
 	std::filesystem::path mono::get_assembly_path(const char* assemblyName) const
 	{
 		return std::filesystem::current_path() / std::filesystem::path(std::format("./Valheim_Data/Managed/{}.dll", assemblyName));
 	}
 }
+

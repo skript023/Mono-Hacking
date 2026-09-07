@@ -1,8 +1,8 @@
 #pragma once
 #include "data/hardware.hpp"
 #include "server/socket_client.hpp"
+#include "server/auth_client.hpp"
 #include "server/interfaces/message.hpp"
-
 #include "notification/notification_service.hpp"
 
 namespace big
@@ -12,72 +12,97 @@ namespace big
 	public:
 		explicit alpha_service()
 		{
-			m_alpha_gateway = std::make_shared<socket_client>("quantum.rena.my.id/ws/auth");
-			m_alpha_gateway->on_message_received([](const std::string& message) {
-				if (!message.empty())
-				{
-					notification::info("Server", message);
-				}
-			});
+			init_connection();
 		}
 
 		~alpha_service() noexcept
 		{
-			m_alpha_gateway->disconnect();
-
-			m_alpha_gateway.reset();
+			if (m_alpha_gateway)
+			{
+				m_alpha_gateway->disconnect();
+				m_alpha_gateway.reset();
+			}
 		}
 
-		void find()
+		void init_connection()
 		{
-			m_event.event = "findAllAlpha";
-			
-			m_alpha_gateway->send_message(m_event.to_json_string());
+			m_auth_info = auth_client::authenticate();
+			if (!m_auth_info.success)
+			{
+				LOG(WARNING) << "[AlphaService] Authentication failed: " << m_auth_info.error_message;
+				notification::info("Ellohim Server", "Authentication required. Please launch from Loader.");
+				return;
+			}
+
+			m_alpha_gateway = std::make_shared<socket_client>(m_auth_info.ws_endpoint, m_auth_info.is_ssl);
+
 			m_alpha_gateway->on_message_received([](const std::string& message) {
-				if (message.empty())
+				if (message == "pong")
 				{
-					LOG(INFO) << "Received an empty message";
+					LOG(INFO) << "[AlphaService] Heartbeat ACK (pong) received.";
 				}
-				else
+				else if (message.find("Connected to server successfully") != std::string::npos)
 				{
-					LOG(INFO) << "Received: " << message;
+					LOG(INFO) << "[AlphaService] Server WebSocket handshake success!";
+					notification::info("Ellohim Server", "Connected to server successfully");
 				}
+				else if (!message.empty())
+				{
+					LOG(INFO) << "[AlphaService] Received: " << message;
+				}
+			});
+
+			m_alpha_gateway->on_force_logout([](const std::string& reason) {
+				LOG(FATAL) << "[AlphaService] Logged out by server: " << reason;
 			});
 		}
 
 		void ping()
 		{
-			m_event.event = "pingAlpha";
-			
-			m_alpha_gateway->send_message(m_event.to_json_string());
-			m_alpha_gateway->on_message_received([](const std::string& message) {
-				if (message.empty())
-				{
-					LOG(INFO) << "Received an empty message";
-				}
-				else
-				{
-					LOG(INFO) << "Received: " << message;
-				}
-			});
+			if (m_alpha_gateway && m_alpha_gateway->is_connected())
+			{
+				// Send plain "ping" string as expected by Ellohim-Server auth.cc
+				m_alpha_gateway->send_message("ping");
+			}
 		}
 
 		void send_hardware()
 		{
-
 		}
 
 		bool auto_reconnect()
 		{
-			if (!m_alpha_gateway->is_connected())
+			if (!m_alpha_gateway || !m_alpha_gateway->is_connected())
 			{
-				return m_alpha_gateway->reconnect();
+				if (!m_auth_info.success || m_auth_info.token.empty())
+				{
+					init_connection();
+					return m_alpha_gateway && m_alpha_gateway->is_connected();
+				}
+
+				if (m_alpha_gateway)
+				{
+					return m_alpha_gateway->reconnect();
+				}
+				else
+				{
+					init_connection();
+					return m_alpha_gateway && m_alpha_gateway->is_connected();
+				}
 			}
 
 			return false;
-        }
+		}
+
+		bool is_connected() const
+		{
+			return m_alpha_gateway && m_alpha_gateway->is_connected();
+		}
+
 	private:
+		ServerAuthInfo m_auth_info;
 		std::shared_ptr<socket_client> m_alpha_gateway;
 		Gateway m_event;
 	};
 }
+

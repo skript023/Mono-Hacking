@@ -1,4 +1,4 @@
-﻿#include "gui.hpp"
+#include "gui.hpp"
 #include "hooking.hpp"
 #include "pointers.hpp"
 #include "renderer.hpp"
@@ -73,7 +73,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		javascript_manager::init();
 		LOG(INFO) << "Service registered.";
 
-		//auto server_instance = std::make_unique<server_module>();
+		auto server_instance = std::make_unique<server_module>();
 		LOG(INFO) << "Server initialized.";
 
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
@@ -102,7 +102,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		g_script_mgr.remove_all_scripts();
 		LOG(INFO) << "Scripts unregistered.";
 
-		//server_instance.reset();
+		server_instance.reset();
 		LOG(INFO) << "Server unregistered.";
 		
 		LOG(INFO) << "Service unregistered.";

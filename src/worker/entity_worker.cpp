@@ -96,4 +96,6 @@ namespace big
 
 		g_esp_data.clear_all();
 	}
+
 } // namespace big
+

@@ -2,129 +2,125 @@
 
 #define ASIO_STANDALONE
 
+#include "client_ws.hpp"
 #include "client_wss.hpp"
 #include "thread_pool.hpp"
 #include "enums/connection_status.hpp"
+#include "hooking.hpp"
+#include "services/notification/notification_service.hpp"
 
 namespace big
 {
-    using WsClient = SimpleWeb::SocketClient<SimpleWeb::WSS>;
-
     class socket_client
     {
     public:
         using MessageCallback = std::function<void(std::string const&)>;
+        using KickCallback = std::function<void(std::string const&)>;
 
-        socket_client(std::string const& host)
-            : host_(host), m_connection_status(eConnectionStatus::DISCONNECT)
+        socket_client(std::string const& endpoint, bool is_ssl = false)
+            : m_endpoint(endpoint), m_is_ssl(is_ssl), m_connection_status(eConnectionStatus::DISCONNECT)
         {
-            connect();  // Try to connect on initialization
+            connect();
         }
 
         ~socket_client()
         {
-            disconnect();  // Disconnect on destruction
+            disconnect();
         }
 
-        // Attempt to connect or reconnect to the WebSocket server
         bool connect()
         {
             if (m_connection_status == eConnectionStatus::CONNECTED)
             {
-                LOG(INFO) << "Already connected.";
+                LOG(INFO) << "[SocketClient] Already connected.";
                 return true;
             }
 
-            disconnect();  // Ensure any previous connection is stopped before reconnecting
-            std::string url = host_;
+            disconnect();
+            m_connection_status = eConnectionStatus::CONNECTING;
 
-            LOG(INFO) << "Connecting to " << url;
+            LOG(INFO) << "[SocketClient] Connecting to " << (m_is_ssl ? "wss://" : "ws://") << m_endpoint;
 
-            client = std::make_shared<WsClient>(url, false);  // Create WebSocket client instance
-
-            // Define what happens when a connection is established
-            client->on_open = [this](std::shared_ptr<WsClient::Connection> connection) {
-                m_connection_status = eConnectionStatus::CONNECTED;
-                active_connection_ = connection;  // Store the active connection
-
-                LOG(INFO) << "Connected to " << host_;
-            };
-
-            // Define what happens when a message is received
-            client->on_message = [this](std::shared_ptr<WsClient::Connection> connection, std::shared_ptr<WsClient::InMessage> message) {
-                std::unique_lock lock(m_mutex);
-                if (!m_message_callback.empty())
-                {
-                    auto job = std::move(m_message_callback.top());
-                    m_message_callback.pop();
-                    lock.unlock();
-                    job(message->string());
-                }
-            };
-
-            // Define what happens when the connection is closed
-            client->on_close = [this](std::shared_ptr<WsClient::Connection> connection, int status, const std::string& reason) {
-                LOG(WARNING) << "Connection closed, Status: " << status << " Reason: " << reason;
-                m_connection_status = eConnectionStatus::DISCONNECT;
-            };
-
-            // Define what happens when there is an error
-            client->on_error = [this](std::shared_ptr<WsClient::Connection> connection, const SimpleWeb::error_code& ec) {
-                LOG(FATAL) << "Error: [" << ec.value() << "] Reason: " << ec.message();
-                m_connection_status = eConnectionStatus::DISCONNECT;
-            };
-
-            // Start the WebSocket client in a separate thread
-            g_thread_pool->push([this]
+            if (m_is_ssl)
             {
-                LOG(INFO) << "Starting WebSocket client...";
-                client->start();
-                LOG(INFO) << "WebSocket client has been started.";
-            });
+                m_client_wss = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WSS>>(m_endpoint, false);
+                setup_wss_handlers();
+                g_thread_pool->push([this] {
+                    try {
+                        m_client_wss->start();
+                    } catch (const std::exception& ex) {
+                        LOG(WARNING) << "[SocketClient] WSS error: " << ex.what();
+                        m_connection_status = eConnectionStatus::DISCONNECT;
+                    }
+                });
+            }
+            else
+            {
+                m_client_ws = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WS>>(m_endpoint);
+                setup_ws_handlers();
+                g_thread_pool->push([this] {
+                    try {
+                        m_client_ws->start();
+                    } catch (const std::exception& ex) {
+                        LOG(WARNING) << "[SocketClient] WS error: " << ex.what();
+                        m_connection_status = eConnectionStatus::DISCONNECT;
+                    }
+                });
+            }
 
             return true;
         }
 
-        // Gracefully stop and disconnect the WebSocket client
         void disconnect()
         {
-            if (client)
+            if (m_client_wss)
             {
-                LOG(INFO) << "Stopping WebSocket client...";
-                client->stop();  // Stop the client
-                active_connection_.reset();  // Clear the active connection
-                m_connection_status = eConnectionStatus::DISCONNECT;
-                LOG(INFO) << "WebSocket client stopped.";
+                m_client_wss->stop();
+                m_active_conn_wss.reset();
+                m_client_wss.reset();
             }
+            if (m_client_ws)
+            {
+                m_client_ws->stop();
+                m_active_conn_ws.reset();
+                m_client_ws.reset();
+            }
+            m_connection_status = eConnectionStatus::DISCONNECT;
         }
 
-        // Reconnect logic
         bool reconnect()
         {
-            LOG(INFO) << "Reconnecting...";
-            disconnect();  // First, disconnect the previous session
-            return connect();  // Then, attempt to reconnect
+            disconnect();
+            return connect();
         }
 
         void send_message(const std::string& message)
         {
-            if (client && m_connection_status == eConnectionStatus::CONNECTED && active_connection_)
+            if (m_connection_status != eConnectionStatus::CONNECTED)
             {
-                active_connection_->send(message);  // Send the message through the active connection
+                LOG(WARNING) << "[SocketClient] Cannot send message, not connected.";
+                return;
             }
-            else
+
+            if (m_is_ssl && m_active_conn_wss)
             {
-                LOG(WARNING) << "No active connection to send the message.";
+                m_active_conn_wss->send(message);
+            }
+            else if (!m_is_ssl && m_active_conn_ws)
+            {
+                m_active_conn_ws->send(message);
             }
         }
 
         void on_message_received(MessageCallback callback)
         {
-            if (callback)
-            {
-                std::lock_guard lock(m_mutex);
-                m_message_callback.push(std::move(callback));
-            }
+            std::lock_guard lock(m_mutex);
+            m_message_callback = std::move(callback);
+        }
+
+        void on_force_logout(KickCallback callback)
+        {
+            m_kick_callback = std::move(callback);
         }
 
         bool is_connected() const
@@ -138,12 +134,97 @@ namespace big
         }
 
     private:
-        std::string host_;
-        std::shared_ptr<WsClient> client;  // WebSocket client instance
-        std::thread client_thread;
-        std::stack<MessageCallback> m_message_callback;
+        void handle_incoming_text(const std::string& text)
+        {
+            // Check for FORCE_LOGOUT event from server (Single active device enforcement)
+            if (text.find("FORCE_LOGOUT") != std::string::npos)
+            {
+                LOG(FATAL) << "[SocketClient] *** FORCE_LOGOUT: Your account was logged in from another device! ***";
+                notification::info("Security Alert", "Account logged in from another device. Mod deactivated.");
+                
+                if (m_kick_callback)
+                {
+                    m_kick_callback(text);
+                }
+
+                // Immediate safety shutdown: disable hooks & stop running
+                if (g_hooking)
+                {
+                    g_hooking->disable();
+                }
+                g_running = false;
+                disconnect();
+                return;
+            }
+
+            MessageCallback cb;
+            {
+                std::lock_guard lock(m_mutex);
+                cb = m_message_callback;
+            }
+            if (cb)
+            {
+                cb(text);
+            }
+        }
+
+        void setup_wss_handlers()
+        {
+            m_client_wss->on_open = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection> connection) {
+                m_connection_status = eConnectionStatus::CONNECTED;
+                m_active_conn_wss = connection;
+                LOG(INFO) << "[SocketClient] WSS connected successfully to " << m_endpoint;
+            };
+
+            m_client_wss->on_message = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection>, std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::InMessage> in_msg) {
+                handle_incoming_text(in_msg->string());
+            };
+
+            m_client_wss->on_close = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection>, int status, const std::string& reason) {
+                LOG(WARNING) << "[SocketClient] WSS closed, Status: " << status << " Reason: " << reason;
+                m_connection_status = eConnectionStatus::DISCONNECT;
+            };
+
+            m_client_wss->on_error = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection>, const SimpleWeb::error_code& ec) {
+                LOG(WARNING) << "[SocketClient] WSS error: [" << ec.value() << "] " << ec.message();
+                m_connection_status = eConnectionStatus::DISCONNECT;
+            };
+        }
+
+        void setup_ws_handlers()
+        {
+            m_client_ws->on_open = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::Connection> connection) {
+                m_connection_status = eConnectionStatus::CONNECTED;
+                m_active_conn_ws = connection;
+                LOG(INFO) << "[SocketClient] WS connected successfully to " << m_endpoint;
+            };
+
+            m_client_ws->on_message = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::Connection>, std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::InMessage> in_msg) {
+                handle_incoming_text(in_msg->string());
+            };
+
+            m_client_ws->on_close = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::Connection>, int status, const std::string& reason) {
+                LOG(WARNING) << "[SocketClient] WS closed, Status: " << status << " Reason: " << reason;
+                m_connection_status = eConnectionStatus::DISCONNECT;
+            };
+
+            m_client_ws->on_error = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::Connection>, const SimpleWeb::error_code& ec) {
+                LOG(WARNING) << "[SocketClient] WS error: [" << ec.value() << "] " << ec.message();
+                m_connection_status = eConnectionStatus::DISCONNECT;
+            };
+        }
+
+    private:
+        std::string m_endpoint;
+        bool m_is_ssl{false};
+        std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>> m_client_wss;
+        std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>> m_client_ws;
+        std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection> m_active_conn_wss;
+        std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::Connection> m_active_conn_ws;
+        MessageCallback m_message_callback;
+        KickCallback m_kick_callback;
         std::recursive_mutex m_mutex;
         eConnectionStatus m_connection_status;
-        std::shared_ptr<WsClient::Connection> active_connection_;  // Store the active connection
     };
 }
+

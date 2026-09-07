@@ -33,11 +33,19 @@ namespace big
 	}
 	void main_worker::slow_run()
 	{
+		int tick_counter = 0;
 		while (g_running)
 		{
 			TRY_CLAUSE
 			{
 				commands::run_looped_command();
+
+				// Send heartbeat every 15 seconds (every 3rd 5s cycle, server TTL is 60s)
+				if (g_server_module && (tick_counter % 3 == 0))
+				{
+					g_server_module->run();
+				}
+				tick_counter++;
 			} EXCEPT_CLAUSE
 
 			script::get_current()->yield(5s);
