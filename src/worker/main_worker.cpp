@@ -48,7 +48,7 @@ namespace big
 				tick_counter++;
 			} EXCEPT_CLAUSE
 
-			script::get_current()->yield(5s);
+			script::get_current()->yield(1s);
 		}
 	}
 }
