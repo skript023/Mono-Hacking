@@ -57,24 +57,6 @@ namespace big
 				return info;
 			}
 
-			// 3. Fallback to localhost:8180 if target was remote and failed (for local dev testing)
-			if (info.host != "localhost" && info.host != "127.0.0.1")
-			{
-				ServerAuthInfo local_info;
-				local_info.host = "localhost";
-				local_info.port = 8180;
-				local_info.is_ssl = false;
-
-				LOG(INFO) << "[AuthClient] Checking fallback to local dev server (localhost:8180)...";
-				if (login_via_hwid(local_info, hwid) || login_via_session_file(local_info))
-				{
-					local_info.success = true;
-					local_info.ws_endpoint = build_ws_endpoint(local_info);
-					LOG(INFO) << "[AuthClient] Local dev server login succeeded!";
-					return local_info;
-				}
-			}
-
 			info.success = false;
 			info.error_message = "Could not authenticate with Ellohim-Server. Please login via Loader first.";
 			LOG(WARNING) << "[AuthClient] " << info.error_message;
