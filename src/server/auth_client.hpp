@@ -144,6 +144,26 @@ namespace big
 			}
 		}
 
+		static std::string url_encode(const std::string& value)
+		{
+			std::ostringstream escaped;
+			escaped.fill('0');
+			escaped << std::hex;
+
+			for (auto c : value)
+			{
+				if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~')
+				{
+					escaped << c;
+				}
+				else
+				{
+					escaped << '%' << std::setw(2) << static_cast<int>(static_cast<unsigned char>(c));
+				}
+			}
+			return escaped.str();
+		}
+
 		static std::string build_ws_endpoint(const ServerAuthInfo& info)
 		{
 			std::string endpoint = info.host;
@@ -151,12 +171,23 @@ namespace big
 			{
 				endpoint += ":" + std::to_string(info.port);
 			}
-			return endpoint + "/ws/auth?token=" + info.token + "&client=valheim_mod";
+			std::string hwid = utils::get_hwid();
+			std::string device_name = utils::get_device_name();
+			return endpoint + "/ws/auth?token=" + url_encode(info.token) +
+			       "&client=valheim_mod" +
+			       "&hwid=" + url_encode(hwid) +
+			       "&device_name=" + url_encode(device_name);
 		}
 
 		static bool login_via_hwid(ServerAuthInfo& info, const std::string& hwid)
 		{
-			nlohmann::json body = {{"hwid", hwid}};
+			std::string device_name = utils::get_device_name();
+			std::string hwid_detail = utils::get_hwid_raw();
+			nlohmann::json body = {
+				{"hwid", hwid},
+				{"device_name", device_name},
+				{"hwid_detail", hwid_detail}
+			};
 			std::string response_body;
 			int status_code = 0;
 
@@ -278,7 +309,7 @@ namespace big
 
 		static bool http_post(const ServerAuthInfo& info, const std::string& path, const std::string& body, const std::string& extra_headers, std::string& out_response, int& out_status)
 		{
-			HINTERNET hSession = WinHttpOpen(L"MonoHacking/1.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+			HINTERNET hSession = WinHttpOpen(L"Valheim/1.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 			if (!hSession)
 			{
 				LOG(WARNING) << "[AuthClient] WinHttpOpen failed: " << GetLastError();
@@ -325,7 +356,7 @@ namespace big
 				WinHttpAddRequestHeaders(hRequest, wExtra.c_str(), -1L, WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE);
 			}
 
-			std::wstring default_headers = L"Content-Type: application/json\r\nAccept: application/json\r\n";
+			std::wstring default_headers = L"Content-Type: application/json\r\nAccept: application/json\r\nUser-Agent: Valheim/1.0\r\n";
 			WinHttpAddRequestHeaders(hRequest, default_headers.c_str(), -1L, WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE);
 
 			BOOL bSend = WinHttpSendRequest(

@@ -82,7 +82,7 @@ target_include_directories(Valheim PRIVATE
 )
 
 target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(Valheim PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord winhttp ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
+target_link_libraries(Valheim PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
 
 # Warnings as errors
 #set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)

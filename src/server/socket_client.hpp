@@ -8,6 +8,7 @@
 #include "enums/connection_status.hpp"
 #include "hooking.hpp"
 #include "services/notification/notification_service.hpp"
+#include <nlohmann/json.hpp>
 
 namespace big
 {
@@ -44,6 +45,7 @@ namespace big
             if (m_is_ssl)
             {
                 m_client_wss = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WSS>>(m_endpoint, false);
+                m_client_wss->config.header.emplace("User-Agent", "Valheim/1.0");
                 setup_wss_handlers();
                 g_thread_pool->push([this] {
                     try {
@@ -57,6 +59,7 @@ namespace big
             else
             {
                 m_client_ws = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WS>>(m_endpoint);
+                m_client_ws->config.header.emplace("User-Agent", "Valheim/1.0");
                 setup_ws_handlers();
                 g_thread_pool->push([this] {
                     try {
@@ -139,21 +142,29 @@ namespace big
             // Check for FORCE_LOGOUT event from server (Single active device enforcement)
             if (text.find("FORCE_LOGOUT") != std::string::npos)
             {
-                LOG(FATAL) << "[SocketClient] *** FORCE_LOGOUT: Your account was logged in from another device! ***";
-                notification::info("Security Alert", "Account logged in from another device. Mod deactivated.");
+                std::string reason = "Account logged in from another device. Mod deactivated.";
+                try
+                {
+                    auto j = nlohmann::json::parse(text, nullptr, false);
+                    if (!j.is_discarded() && j.contains("message") && j["message"].is_string())
+                    {
+                        reason = j["message"].get<std::string>();
+                    }
+                }
+                catch (...) {}
+
+                LOG(FATAL) << "[SocketClient] *** FORCE_LOGOUT: " << reason << " ***";
+                notification::info("Security Alert", reason);
                 
                 if (m_kick_callback)
                 {
-                    m_kick_callback(text);
+                    m_kick_callback(reason);
                 }
 
                 // Immediate safety shutdown: disable hooks & stop running
-                if (g_hooking)
-                {
-                    g_hooking->disable();
-                }
+                
                 g_running = false;
-                disconnect();
+
                 return;
             }
 

@@ -36,7 +36,7 @@ namespace big
 
 			m_alpha_gateway = std::make_shared<socket_client>(m_auth_info.ws_endpoint, m_auth_info.is_ssl);
 
-			m_alpha_gateway->on_message_received([](const std::string& message) {
+			m_alpha_gateway->on_message_received([this](const std::string& message) {
 				if (message == "pong")
 				{
 					LOG(INFO) << "[AlphaService] Heartbeat ACK (pong) received.";
@@ -45,6 +45,12 @@ namespace big
 				{
 					LOG(INFO) << "[AlphaService] Server WebSocket handshake success!";
 					notification::info("Ellohim Server", "Connected to server successfully");
+				}
+				else if (message.find("Unauthorized WebSocket connection") != std::string::npos)
+				{
+					LOG(WARNING) << "[AlphaService] Unauthorized connection. Invalidating session token for re-auth...";
+					m_auth_info.token.clear();
+					m_auth_info.success = false;
 				}
 				else if (!message.empty())
 				{
@@ -80,15 +86,13 @@ namespace big
 					return m_alpha_gateway && m_alpha_gateway->is_connected();
 				}
 
-				if (m_alpha_gateway)
+				if (m_alpha_gateway && m_alpha_gateway->reconnect())
 				{
-					return m_alpha_gateway->reconnect();
+					return true;
 				}
-				else
-				{
-					init_connection();
-					return m_alpha_gateway && m_alpha_gateway->is_connected();
-				}
+
+				init_connection();
+				return m_alpha_gateway && m_alpha_gateway->is_connected();
 			}
 
 			return false;
