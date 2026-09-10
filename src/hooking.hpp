@@ -51,6 +51,7 @@ namespace big
 		static MonoObject* drop_item(MonoObject* item, int amount, Vector3 position, Quaternions rotation);
 		static void rpc_use_stamina(MonoObject* player, long sender, float v);
 		static void on_map_middle_click(MonoObject* minimap, MonoObject* handler);
+		static bool top_first(void* _this, void* item);
 	};
 
 	struct minhook_keepalive

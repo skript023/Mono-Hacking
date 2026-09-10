@@ -34,6 +34,7 @@ namespace big
             sub->add_option<bool_option<bool>>("infinite_stamina"_hash);
             sub->add_option<bool_option<bool>>("allowed_command"_hash);
             sub->add_option<bool_slider_int_option>("inventory_size"_hash, "inventory_height"_hash, 1);
+            sub->add_option<bool_option<bool>>("Fill Inventory Top First", "Items added to inventory will fill slots from the top down instead of bottom.", &g_settings.self.inventory_top_first);
             sub->add_option<bool_slider_float_option>("enable_raise_skill"_hash, "raise_skill"_hash, 1.f);
             sub->add_option<bool_slider_float_option>("max_food_health"_hash, "food_hp"_hash, 1000.f);
             sub->add_option<bool_slider_float_option>("max_body_armor"_hash, "num_body_armor"_hash, 10.f);
@@ -47,14 +48,15 @@ namespace big
         
         canvas::add_submenu<regular_submenu>("Inventory", "SubmenuInventory"_hash, [](regular_submenu* sub)
         {
+            sub->add_option<bool_option<bool>>("Fill Inventory Top First", "Items added to inventory will fill slots from the top down instead of bottom.", &g_settings.self.inventory_top_first);
             sub->add_option<bool_slider_int_option>("override_drop"_hash, "drop_amount"_hash);
             sub->add_option<bool_option<bool>>("override_selected"_hash);
             if (features::_override_selected.get_state())
             {
                 sub->add_option<number_option<float>>("durability"_hash);
-                sub->add_option<number_option<float>>("quality"_hash);
-                sub->add_option<number_option<float>>("stack"_hash);
-                sub->add_option<number_option<float>>("variant"_hash);
+				sub->add_option<number_option<int>>("quality"_hash);
+				sub->add_option<number_option<int>>("stack"_hash);
+				sub->add_option<number_option<int>>("variant"_hash);
             }
         });
         
