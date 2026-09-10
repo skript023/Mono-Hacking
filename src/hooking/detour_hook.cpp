@@ -11,6 +11,11 @@ namespace big
 		m_target(target),
 		m_detour(detour)
 	{
+		if (!m_target)
+		{
+			throw std::runtime_error(std::format("Failed to create hook '{}': target function pointer is null", m_name));
+		}
+
 		fix_hook_address();
 
 		if (auto status = MH_CreateHook(m_target, m_detour, &m_original); status != MH_OK)

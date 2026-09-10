@@ -1,4 +1,5 @@
-﻿#pragma once
+#pragma once
+#include <optional>
 #include "mono/mono.hpp"
 #include <pointers.hpp>
 #include "class/mono_list.hpp"
@@ -762,5 +763,219 @@ namespace big::unity
 
 		// Controller is not connected
 		return false;
+	}
+
+	inline MonoObject* get_minimap()
+	{
+		static MonoMethod* get_inst = mono::get_method("Minimap", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			return mono::invoke_method(get_inst, nullptr, nullptr);
+		}
+
+		MonoClass* klass = mono::get_class("Minimap", "assembly_valheim");
+		if (!klass) return nullptr;
+
+		MonoClassField* field = mono::get_field(klass, "s_instance");
+		if (!field) field = mono::get_field(klass, "m_instance");
+
+		if (field)
+		{
+			void* static_data = mono::get_static_field_data(klass);
+			if (static_data)
+			{
+				uint32_t offset = mono::get_field_offset(field);
+				void* ptr_addr = (void*)((uintptr_t)static_data + offset);
+				if (ptr_addr && *(MonoObject**)ptr_addr)
+					return *(MonoObject**)ptr_addr;
+			}
+		}
+
+		return nullptr;
+	}
+
+	inline void teleport_to_world_point(Vector3 pos)
+	{
+		MonoObject* minimap = get_minimap();
+		if (minimap)
+		{
+			static MonoMethod* debug_teleport = mono::get_method("Minimap", "DebugTeleport", 1, "assembly_valheim");
+			if (debug_teleport)
+			{
+				void* args[1] = { &pos };
+				mono::invoke_method(debug_teleport, minimap, args);
+				return;
+			}
+		}
+
+		MonoObject* player = get_local_player();
+		if (player)
+		{
+			static MonoMethod* tele_method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
+			if (tele_method)
+			{
+				Vector3 target = Vector3(pos.x, pos.y + 2.0f, pos.z);
+				static MonoMethod* get_transform = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
+				static MonoMethod* get_rotation = mono::get_method("Transform", "get_rotation", 0, "UnityEngine.CoreModule", "UnityEngine");
+				Quaternions rot(0.f, 0.f, 0.f, 1.f);
+				if (get_transform && get_rotation)
+				{
+					MonoObject* trans = mono::invoke_method(get_transform, player, nullptr);
+					if (trans)
+					{
+						MonoObject* rot_obj = mono::invoke_method(get_rotation, trans, nullptr);
+						if (rot_obj)
+							rot = *reinterpret_cast<Quaternions*>(mono::object_unbox(rot_obj));
+					}
+				}
+				bool distant = true;
+				void* args[3] = { &target, &rot, &distant };
+				mono::invoke_method(tele_method, player, args);
+			}
+		}
+	}
+
+	struct map_pin_info
+	{
+		std::string name;
+		Vector3 pos{};
+		int type{ 0 };
+	};
+
+	inline std::optional<Vector3> get_last_ping()
+	{
+		MonoObject* minimap = get_minimap();
+		if (!minimap) return std::nullopt;
+
+		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
+		if (!minimap_class) return std::nullopt;
+
+		MonoClassField* field = mono::get_field(minimap_class, "m_pingPins");
+		if (!field) return std::nullopt;
+
+		MonoObject* ping_list = nullptr;
+		mono::get_field_value(minimap, field, &ping_list);
+		if (!ping_list) return std::nullopt;
+
+		auto pings = list_to_vector(ping_list);
+		if (pings.empty()) return std::nullopt;
+
+		MonoObject* last_pin = pings.back();
+		if (!last_pin) return std::nullopt;
+
+		MonoClass* pin_class = mono::object_get_class(last_pin);
+		if (!pin_class) return std::nullopt;
+
+		MonoClassField* pos_field = mono::get_field(pin_class, "m_pos");
+		if (!pos_field) return std::nullopt;
+
+		Vector3 pos{};
+		mono::get_field_value(last_pin, pos_field, &pos);
+		return pos;
+	}
+
+	inline std::optional<Vector3> get_death_pin()
+	{
+		MonoObject* minimap = get_minimap();
+		if (!minimap) return std::nullopt;
+
+		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
+		if (!minimap_class) return std::nullopt;
+
+		MonoClassField* field = mono::get_field(minimap_class, "m_deathPin");
+		if (!field) return std::nullopt;
+
+		MonoObject* pin = nullptr;
+		mono::get_field_value(minimap, field, &pin);
+		if (!pin) return std::nullopt;
+
+		MonoClass* pin_class = mono::object_get_class(pin);
+		if (!pin_class) return std::nullopt;
+
+		MonoClassField* pos_field = mono::get_field(pin_class, "m_pos");
+		if (!pos_field) return std::nullopt;
+
+		Vector3 pos{};
+		mono::get_field_value(pin, pos_field, &pos);
+		return pos;
+	}
+
+	inline std::optional<Vector3> get_spawn_pin()
+	{
+		MonoObject* minimap = get_minimap();
+		if (!minimap) return std::nullopt;
+
+		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
+		if (!minimap_class) return std::nullopt;
+
+		MonoClassField* field = mono::get_field(minimap_class, "m_spawnPointPin");
+		if (!field) return std::nullopt;
+
+		MonoObject* pin = nullptr;
+		mono::get_field_value(minimap, field, &pin);
+		if (!pin) return std::nullopt;
+
+		MonoClass* pin_class = mono::object_get_class(pin);
+		if (!pin_class) return std::nullopt;
+
+		MonoClassField* pos_field = mono::get_field(pin_class, "m_pos");
+		if (!pos_field) return std::nullopt;
+
+		Vector3 pos{};
+		mono::get_field_value(pin, pos_field, &pos);
+		return pos;
+	}
+
+	inline std::vector<map_pin_info> get_all_map_pins()
+	{
+		std::vector<map_pin_info> result;
+		MonoObject* minimap = get_minimap();
+		if (!minimap) return result;
+
+		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
+		if (!minimap_class) return result;
+
+		MonoClassField* field = mono::get_field(minimap_class, "m_pins");
+		if (!field) return result;
+
+		MonoObject* pin_list = nullptr;
+		mono::get_field_value(minimap, field, &pin_list);
+		if (!pin_list) return result;
+
+		auto pins = list_to_vector(pin_list);
+
+		static MonoClassField* pos_field = nullptr;
+		static MonoClassField* name_field = nullptr;
+		static MonoClassField* type_field = nullptr;
+
+		for (auto* pin_obj : pins)
+		{
+			if (!pin_obj) continue;
+			if (!pos_field || !name_field || !type_field)
+			{
+				MonoClass* pin_class = mono::object_get_class(pin_obj);
+				if (pin_class)
+				{
+					pos_field = mono::get_field(pin_class, "m_pos");
+					name_field = mono::get_field(pin_class, "m_name");
+					type_field = mono::get_field(pin_class, "m_type");
+				}
+			}
+
+			map_pin_info info{};
+			if (pos_field) mono::get_field_value(pin_obj, pos_field, &info.pos);
+			if (type_field) mono::get_field_value(pin_obj, type_field, &info.type);
+			if (name_field)
+			{
+				MonoString* str = nullptr;
+				mono::get_field_value(pin_obj, name_field, &str);
+				if (str)
+				{
+					info.name = mono::from_mono_string(str);
+				}
+			}
+			result.push_back(std::move(info));
+		}
+		return result;
 	}
 }

@@ -20,7 +20,7 @@ namespace big
 		detour_hook::add<hooks::set_cursor_pos>("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>());
 		detour_hook::add<hooks::convert_thread_to_fiber>("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>());
 		
-		detour_hook::add<hooks::is_teleportable>("Humanoid::IsTeleportable", mono::get_compile_method("Humanoid", "IsTeleportable", 0, "assembly_valheim"));
+		detour_hook::add<hooks::is_teleportable>("Inventory::IsTeleportable", mono::get_compile_method("Inventory", "IsTeleportable", 1, "assembly_valheim"));
 		detour_hook::add<hooks::update>("Player::Update", mono::get_compile_method("Player", "Update", 0, "assembly_valheim"));
 		detour_hook::add<hooks::create_tomb_stone>("Player::CreateTombStone", mono::get_compile_method("Player", "CreateTombStone", 0, "assembly_valheim"));
 		detour_hook::add<hooks::is_debug_flying>("Player::IsDebugFlying", mono::get_compile_method("Player", "IsDebugFlying", 0, "assembly_valheim"));
@@ -43,6 +43,7 @@ namespace big
 		detour_hook::add<hooks::is_known_material>("Player::IsKnownMaterial", mono::get_compile_method("Player", "IsKnownMaterial", 1, "assembly_valheim"));
 		detour_hook::add<hooks::drop_item>("ItemDrop::DropItem", mono::get_compile_method("ItemDrop", "DropItem", 4, "assembly_valheim"));
 		detour_hook::add<hooks::rpc_use_stamina>("Player::RPC_UseStamina", mono::get_compile_method("Player", "RPC_UseStamina", 2, "assembly_valheim"));
+		detour_hook::add<hooks::on_map_middle_click>("Minimap::OnMapMiddleClick", mono::get_compile_method("Minimap", "OnMapMiddleClick", 1, "assembly_valheim"));
 
 		g_hooking = this;
 	}

@@ -1,0 +1,8 @@
+is_global = true
+build_property.RootNamespace = assembly_valheim
+build_property.ProjectDir = L:\Coding\Mono Hacking\references\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.CsWinRTUseWindowsUIXamlProjections = false
+build_property.EffectiveAnalysisLevelStyle = 
+build_property.EnableCodeStyleSeverity = 

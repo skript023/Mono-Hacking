@@ -35,6 +35,7 @@ namespace big
 		}
 		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
         MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
+        MonoMethod* get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const;
         MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
         MonoClass* get_class_from_method_impl(MonoMethod* method) const;
         MonoClassField* get_field_impl(const char* className, const char* fieldName, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
@@ -93,6 +94,10 @@ namespace big
         static MonoMethod* get_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
         {
 			return get_instance().get_method_impl(className, methodName, param_count, assemblyName, nameSpace);
+		};
+        static MonoMethod* get_method_overload(const char* className, const char* methodName, int param_count = -1, const char* returnTypeName = nullptr, const char* paramTypeName = nullptr, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
+        {
+			return get_instance().get_method_overload_impl(className, methodName, param_count, returnTypeName, paramTypeName, assemblyName, nameSpace);
 		};
         static MonoClass* get_class(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
 		{
@@ -331,10 +336,18 @@ namespace big
 
         mono_thread_attach_t mono_thread_attach = nullptr;
         mono_get_root_domain_t mono_get_root_domain = nullptr;
+        mono_domain_get_t mono_domain_get = nullptr;
         mono_domain_assembly_open_t mono_domain_assembly_open = nullptr;
         mono_assembly_get_image_t mono_assembly_get_image = nullptr;
         mono_class_from_name_t mono_class_from_name = nullptr;
         mono_class_get_method_from_name_t mono_class_get_method_from_name = nullptr;
+        mono_class_get_methods_t mono_class_get_methods = nullptr;
+        mono_method_get_name_t mono_method_get_name = nullptr;
+        mono_method_signature_t mono_method_signature = nullptr;
+        mono_signature_get_param_count_t mono_signature_get_param_count = nullptr;
+        mono_signature_get_return_type_t mono_signature_get_return_type = nullptr;
+        mono_signature_get_params_t mono_signature_get_params = nullptr;
+        mono_type_get_name_t mono_type_get_name = nullptr;
         mono_compile_method_t mono_compile_method = nullptr;
         mono_runtime_invoke_t mono_runtime_invoke = nullptr;
 		mono_object_unbox_t mono_object_unbox = nullptr;
@@ -352,6 +365,7 @@ namespace big
 		mono_class_get_name_t mono_class_get_name = nullptr;
 		mono_class_get_namespace_t mono_class_get_namespace = nullptr;
 		mono_string_to_utf8_t mono_string_to_utf8 = nullptr;
+		mono_string_new_t mono_string_new = nullptr;
 		mono_string_new_utf16_t mono_string_new_utf16 = nullptr;
 		mono_array_addr_with_size_t mono_array_addr_with_size = nullptr;
 		mono_array_length_t mono_array_length = nullptr;

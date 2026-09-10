@@ -1,0 +1,97 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>assembly_valheim</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net40</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_googleanalytics">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\assembly_googleanalytics.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="assembly_utils">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\assembly_utils.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ClothModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.ClothModule.dll</HintPath>
+    </Reference>
+    <Reference Include="SoftReferenceableAssets">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\SoftReferenceableAssets.dll</HintPath>
+    </Reference>
+    <Reference Include="Splatform">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\Splatform.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_postprocessing">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\assembly_postprocessing.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_sunshafts">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\assembly_sunshafts.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="gui_framework">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\gui_framework.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_guiutils">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\assembly_guiutils.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="com.rlabrecque.steamworks.net">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\com.rlabrecque.steamworks.net.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\System.Net.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="PlayFab">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\PlayFab.dll</HintPath>
+    </Reference>
+    <Reference Include="PlayFabParty">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\PlayFabParty.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AIModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.AIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ScreenCaptureModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.ScreenCaptureModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestTextureModule">
+      <HintPath>I:\Steam\steamapps\common\Valheim\Valheim_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

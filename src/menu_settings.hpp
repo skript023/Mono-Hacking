@@ -41,8 +41,9 @@ namespace big
 			bool always_wind{ false };
 			bool no_weight{ false };
 			bool allow_pickup_fish{ false };
+			bool map_click_teleport{ true };
 
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead)
+			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport)
 		} self;
 
 		struct window

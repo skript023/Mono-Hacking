@@ -14,6 +14,13 @@ namespace big
 		mono_assembly_get_image = module.get_export("mono_assembly_get_image").as<mono_assembly_get_image_t>();
 		mono_class_from_name = module.get_export("mono_class_from_name").as<mono_class_from_name_t>();
 		mono_class_get_method_from_name = module.get_export("mono_class_get_method_from_name").as<mono_class_get_method_from_name_t>();
+		mono_class_get_methods = module.get_export("mono_class_get_methods").as<mono_class_get_methods_t>();
+		mono_method_get_name = module.get_export("mono_method_get_name").as<mono_method_get_name_t>();
+		mono_method_signature = module.get_export("mono_method_signature").as<mono_method_signature_t>();
+		mono_signature_get_param_count = module.get_export("mono_signature_get_param_count").as<mono_signature_get_param_count_t>();
+		mono_signature_get_return_type = module.get_export("mono_signature_get_return_type").as<mono_signature_get_return_type_t>();
+		mono_signature_get_params = module.get_export("mono_signature_get_params").as<mono_signature_get_params_t>();
+		mono_type_get_name = module.get_export("mono_type_get_name").as<mono_type_get_name_t>();
 		mono_compile_method = module.get_export("mono_compile_method").as<mono_compile_method_t>();
 		mono_runtime_invoke = module.get_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
 		mono_object_unbox = module.get_export("mono_object_unbox").as<mono_object_unbox_t>();
@@ -29,6 +36,7 @@ namespace big
 		mono_class_get_name = module.get_export("mono_class_get_name").as<mono_class_get_name_t>();
 		mono_class_get_namespace = module.get_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
 		mono_string_to_utf8 = module.get_export("mono_string_to_utf8").as<mono_string_to_utf8_t>();
+		mono_string_new = module.get_export("mono_string_new").as<mono_string_new_t>();
 		mono_string_new_utf16 = module.get_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
 		mono_array_addr_with_size = module.get_export("mono_array_addr_with_size").as<mono_array_addr_with_size_t>();
 		mono_array_length = module.get_export("mono_array_length").as<mono_array_length_t>();
@@ -39,9 +47,11 @@ namespace big
 		// Attach thread to prevent crashes
 		mono_thread_attach = module.get_export("mono_thread_attach").as<mono_thread_attach_t>();
 		mono_get_root_domain = module.get_export("mono_get_root_domain").as<mono_get_root_domain_t>();
+		mono_domain_get = module.get_export("mono_domain_get").as<mono_domain_get_t>();
 
 		// Melampirkan thread ini ke domain Mono root agar aman
-		mono_thread_attach(mono_get_root_domain());
+		if (mono_thread_attach && mono_get_root_domain)
+			mono_thread_attach(mono_get_root_domain());
 
 		this->initalized = true;
 	}
@@ -49,9 +59,12 @@ namespace big
 	void mono::ensure_thread_attached_impl() const
 	{
 		static thread_local bool attached = false;
-		if (!attached)
+		if (!attached && mono_thread_attach)
 		{
-			mono_thread_attach(mono_get_root_domain());
+			MonoDomain* domain = mono_domain_get ? mono_domain_get() : nullptr;
+			if (!domain && mono_get_root_domain) domain = mono_get_root_domain();
+			if (domain)
+				mono_thread_attach(domain);
 			attached = true;
 		}
 	}
@@ -141,6 +154,63 @@ namespace big
 		}
 
 		return mono_class_get_method_from_name(klass, methodName, param_count);
+	}
+
+	MonoMethod* mono::get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const
+	{
+		if (!mono_class_get_methods || !mono_method_get_name || !mono_method_signature)
+			return nullptr;
+
+		MonoClass* klass = get_class_impl(className, assemblyName, nameSpace);
+		if (!klass)
+		{
+			LOG(WARNING) << "Failed to get class: " << className << " method name: " << methodName << " from assembly: " << assemblyName;
+			return nullptr;
+		}
+
+		void* iter = nullptr;
+		MonoMethod* method = nullptr;
+		while ((method = mono_class_get_methods(klass, &iter)) != nullptr)
+		{
+			const char* name = mono_method_get_name(method);
+			if (!name || strcmp(name, methodName) != 0)
+				continue;
+
+			MonoMethodSignature* sig = mono_method_signature(method);
+			if (!sig)
+				continue;
+
+			if (param_count >= 0 && mono_signature_get_param_count && mono_signature_get_param_count(sig) != (uint32_t)param_count)
+				continue;
+
+			if (returnTypeName && mono_signature_get_return_type && mono_type_get_name)
+			{
+				MonoType* ret_type = mono_signature_get_return_type(sig);
+				if (!ret_type)
+					continue;
+
+				char* ret_name = mono_type_get_name(ret_type);
+				if (!ret_name || !strstr(ret_name, returnTypeName))
+					continue;
+			}
+
+			if (paramTypeName && mono_signature_get_params && mono_type_get_name)
+			{
+				void* p_iter = nullptr;
+				MonoType* p_type = mono_signature_get_params(sig, &p_iter);
+				if (!p_type)
+					continue;
+
+				char* p_name = mono_type_get_name(p_type);
+				if (!p_name || !strstr(p_name, paramTypeName))
+					continue;
+			}
+
+			return method;
+		}
+
+		LOG(WARNING) << "Failed to find method overload: " << methodName << " in class: " << className;
+		return nullptr;
 	}
 
 	MonoClass* mono::get_class_impl(const char* className, const char* assemblyName, const char* nameSpace) const
@@ -315,13 +385,23 @@ namespace big
 
 	MonoString* mono::to_mono_string_utf16(std::string const& str) const
 	{
-		MonoDomain* domain = mono_get_root_domain();
+		ensure_thread_attached_impl();
+		MonoDomain* domain = mono_domain_get ? mono_domain_get() : nullptr;
+		if (!domain && mono_get_root_domain) domain = mono_get_root_domain();
+
+		if (mono_string_new && domain)
+		{
+			return mono_string_new(domain, str.c_str());
+		}
+
+		if (!mono_string_new_utf16 || !domain)
+			return nullptr;
 
 		int size_needed = MultiByteToWideChar(
 			CP_UTF8,
 			0,
 			str.c_str(),
-			-1,
+			(int)str.length(),
 			nullptr,
 			0
 		);
@@ -332,12 +412,12 @@ namespace big
 			CP_UTF8,
 			0,
 			str.c_str(),
-			-1,
+			(int)str.length(),
 			wstr.data(),
 			size_needed
 		);
 
-		return mono_string_new_utf16(domain, (mono_unichar2*)wstr.c_str(), (int)wstr.length());
+		return mono_string_new_utf16(domain, (mono_unichar2*)wstr.data(), size_needed);
 	}
 
 	std::filesystem::path mono::get_assembly_path(const char* assemblyName) const

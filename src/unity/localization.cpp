@@ -1,78 +1,124 @@
 #include "localization.hpp"
+#include "script.hpp"
 
 namespace big
 {
 	localization::localization(MonoObject* obj): m_localization(obj)
 	{}
+
 	localization::~localization() noexcept
 	{
-        m_localization = nullptr;
+		m_localization = nullptr;
 	}
+
 	std::string localization::localize(std::string const& text)
 	{
-		auto method = mono::get_method("Localization", "Localize", 1, "assembly_guiutils");
+		if (text.empty())
+			return {};
 
-        if (!method || text.empty())
-        {
-            LOG(FATAL) << "Method not found or parameter empty";
+		if (!m_localization)
+		{
+			auto inst = get_instance();
+			m_localization = inst.m_localization;
+			if (!m_localization)
+				return text;
+		}
 
-            return {};
-        }
+		// Use get_method_overload to specifically match String Localize(String text)
+		// and avoid the ambiguous overload Void Localize(Transform root) which crashes UnityPlayer.dll
+		static auto method = mono::get_method_overload("Localization", "Localize", 1, "String", "String", "assembly_guiutils");
+		if (!method)
+		{
+			LOG(WARNING) << "Failed to find method Localization.Localize(string)";
+			return text;
+		}
 
-        auto ms = mono::to_mono_string(text);
+		TRY_CLAUSE
+		{
+			auto ms = mono::to_mono_string(text);
+			if (!ms)
+				return text;
 
-        auto ret = mono::invoke(method, m_localization, ms);
+			auto ret = mono::invoke(method, m_localization, ms);
+			if (!ret)
+				return text;
 
-        return mono::from_mono_string(reinterpret_cast<MonoString*>(ret));
+			return mono::from_mono_string(reinterpret_cast<MonoString*>(ret));
+		}
+		EXCEPT_CLAUSE
+
+		return text;
 	}
 
 	std::string localization::localize(MonoString* text)
 	{
-		auto method = mono::get_method("Localization", "Localize", 1, "assembly_guiutils");
+		if (!text)
+			return {};
 
-        if (!method || !text)
-        {
-            LOG(FATAL) << "Method not found or parameter empty";
-
-            return {};
-        }
-
-        auto ret = mono::invoke(method, m_localization, text);
-
-        if (!ret) return {};
-
-        return mono::from_mono_string(reinterpret_cast<MonoString*>(ret));
+		std::string str = mono::from_mono_string(text);
+		return localize(str);
 	}
 
 	std::string localization::get_selected_language()
 	{
-		auto method = mono::get_method("Localization", "GetSelectedLanguage", 1, "assembly_guiutils");
+		if (!m_localization)
+		{
+			auto inst = get_instance();
+			m_localization = inst.m_localization;
+			if (!m_localization)
+				return {};
+		}
 
-        if (!method)
-        {
-            LOG(FATAL) << "Method not found or parameter empty";
+		static auto method = mono::get_method("Localization", "GetSelectedLanguage", 0, "assembly_guiutils");
+		if (!method)
+		{
+			LOG(WARNING) << "Failed to find method Localization.GetSelectedLanguage()";
+			return {};
+		}
 
-            return {};
-        }
+		TRY_CLAUSE
+		{
+			auto ret = mono::invoke(method, m_localization);
+			if (!ret)
+				return {};
 
-        auto ret = mono::invoke(method, m_localization);
+			return mono::from_mono_string(reinterpret_cast<MonoString*>(ret));
+		}
+		EXCEPT_CLAUSE
 
-        if (!ret) return {};
-
-        return mono::from_mono_string(reinterpret_cast<MonoString*>(ret));
+		return {};
 	}
 
-    localization localization::get_instance()
+	localization localization::get_instance()
 	{
-		auto method = mono::get_method("Localization", "get_instance", 0, "assembly_guiutils");
+		// 1. Try reading static field m_instance first (pure memory read, zero managed code execution)
+		MonoClass* klass = mono::get_class("Localization", "assembly_guiutils");
+		if (klass)
+		{
+			MonoClassField* field = mono::get_field(klass, "m_instance");
+			if (field)
+			{
+				void* static_data = mono::get_static_field_data(klass);
+				if (static_data)
+				{
+					uint32_t offset = mono::get_field_offset(field);
+					void* ptr_addr = (void*)((uintptr_t)static_data + offset);
+					if (ptr_addr && *(MonoObject**)ptr_addr)
+						return localization(*(MonoObject**)ptr_addr);
+				}
+			}
+		}
 
-        if (!method)
-        {
-            LOG(FATAL) << "Method not found or parameter empty";
+		// 2. Fallback to property getter get_instance
+		static auto method = mono::get_method("Localization", "get_instance", 0, "assembly_guiutils");
+		if (method)
+		{
+			MonoObject* obj = mono::invoke_method(method);
+			if (obj)
+				return localization(obj);
+		}
 
-            return nullptr;
-        }
-
-        return mono::invoke_method(method);
+		return localization(nullptr);
 	}
 }
+

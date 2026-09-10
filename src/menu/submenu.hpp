@@ -24,6 +24,8 @@ namespace big
 		SubmenuMovement,
 		SubmenuTeleport,
 		SubmenuCustomTeleport,
+		SubmenuObjectives,
+		SubmenuWaypoints,
 		SubmenuTest,
 		SubmenuPlayerList,
 		SubmenuSettings,
