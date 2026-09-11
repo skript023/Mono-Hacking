@@ -50,6 +50,16 @@ namespace big
 		detour_hook::add<hooks::private_area_check_access>("PrivateArea::CheckAccess", mono::get_compile_method("PrivateArea", "CheckAccess", 4, "assembly_valheim"));
 		detour_hook::add<hooks::get_attack_draw_percentage>("Humanoid::GetAttackDrawPercentage", mono::get_compile_method("Humanoid", "GetAttackDrawPercentage", 0, "assembly_valheim"));
 		detour_hook::add<hooks::is_weapon_loaded>("Player::IsWeaponLoaded", mono::get_compile_method("Player", "IsWeaponLoaded", 0, "assembly_valheim"));
+		detour_hook::add<hooks::character_rpc_damage>("Character::RPC_Damage", mono::get_compile_method("Character", "RPC_Damage", 2, "assembly_valheim"));
+		detour_hook::add<hooks::player_in_god_mode>("Player::InGodMode", mono::get_compile_method("Player", "InGodMode", 0, "assembly_valheim"));
+		detour_hook::add<hooks::player_in_ghost_mode>("Player::InGhostMode", mono::get_compile_method("Player", "InGhostMode", 0, "assembly_valheim"));
+		detour_hook::add<hooks::player_no_cost_cheat>("Player::NoCostCheat", mono::get_compile_method("Player", "NoCostCheat", 0, "assembly_valheim"));
+		detour_hook::add<hooks::humanoid_drain_durability>("Humanoid::DrainEquipedItemDurability", mono::get_compile_method("Humanoid", "DrainEquipedItemDurability", 2, "assembly_valheim"));
+		detour_hook::add<hooks::player_get_run_speed_factor>("Player::GetRunSpeedFactor", mono::get_compile_method("Player", "GetRunSpeedFactor", 0, "assembly_valheim"));
+		detour_hook::add<hooks::player_get_jog_speed_factor>("Player::GetJogSpeedFactor", mono::get_compile_method("Player", "GetJogSpeedFactor", 0, "assembly_valheim"));
+		detour_hook::add<hooks::attack_modify_damage>("Attack::ModifyDamage", mono::get_compile_method("Attack", "ModifyDamage", 2, "assembly_valheim"));
+		detour_hook::add<hooks::player_can_eat>("Player::CanEat", mono::get_compile_method("Player", "CanEat", 2, "assembly_valheim"));
+		detour_hook::add<hooks::player_eat_food>("Player::EatFood", mono::get_compile_method("Player", "EatFood", 1, "assembly_valheim"));
 
 		g_hooking = this;
 	}

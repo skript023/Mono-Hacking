@@ -7,13 +7,8 @@
 
 namespace big
 {
-    inline void draw_box(Vector3 const& top, Vector3 const& bottom)
+    inline void draw_box(Vector3 const& top_s, Vector3 const& bottom_s)
     {
-        Vector3 top_s, bottom_s;
-
-        if (!unity::world_to_screen(top, top_s)) return;
-        if (!unity::world_to_screen(bottom, bottom_s)) return;
-
         float h = fabsf(bottom_s.y - top_s.y);
         float w = h * 0.5f;
 
@@ -23,17 +18,9 @@ namespace big
         canvas::draw_box(x, y, w, h, 2.f, {255, 255, 255, 255});
     }
 
-    static void draw_health(const Vector3& top, const Vector3& bottom, float hp, float max_hp)
+    static void draw_health(const Vector3& top_s, const Vector3& bottom_s, float hp, float max_hp)
     {
         if (max_hp <= 0.f)
-            return;
-
-        Vector3 top_s{}, bottom_s{};
-
-        if (!unity::world_to_screen(top, top_s))
-            return;
-
-        if (!unity::world_to_screen(bottom, bottom_s))
             return;
 
         float y_top = std::min(top_s.y, bottom_s.y);
@@ -152,13 +139,13 @@ namespace big
             if (data.self)
                 continue;
                 
-            if (_draw_health.get_state() && ( data.type == EEntityType::Character || data.type == EEntityType::Player))
+            if (_draw_health.get_state() && data.top_visible && ( data.type == EEntityType::Character || data.type == EEntityType::Player))
             {
-                draw_health(data.top, data.location, data.health, data.max_health);
+                draw_health(data.top_screen, data.screen, data.health, data.max_health);
             }
-            if (_draw_box.get_state() && ( data.type == EEntityType::Character || data.type == EEntityType::Player))
+            if (_draw_box.get_state() && data.top_visible && ( data.type == EEntityType::Character || data.type == EEntityType::Player))
             {
-                draw_box(data.top, data.location);
+                draw_box(data.top_screen, data.screen);
             }
             if (_draw_line.get_state())
             {

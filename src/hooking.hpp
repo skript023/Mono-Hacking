@@ -57,6 +57,16 @@ namespace big
 		static bool private_area_check_access(Vector3 point, float radius, bool flash, bool wardCheck);
 		static float get_attack_draw_percentage(MonoObject* humanoid);
 		static bool is_weapon_loaded(MonoObject* player);
+		static void character_rpc_damage(MonoObject* character, int64_t sender, MonoObject* hit);
+		static bool player_in_god_mode(MonoObject* player);
+		static bool player_in_ghost_mode(MonoObject* player);
+		static bool player_no_cost_cheat(MonoObject* player);
+		static void humanoid_drain_durability(MonoObject* humanoid, MonoObject* item, float dt);
+		static float player_get_run_speed_factor(MonoObject* player);
+		static float player_get_jog_speed_factor(MonoObject* player);
+		static void attack_modify_damage(MonoObject* attack, MonoObject* hit_data, float damage_factor);
+		static bool player_can_eat(MonoObject* player, MonoObject* item, bool show_messages);
+		static bool player_eat_food(MonoObject* player, MonoObject* item);
 	};
 
 	struct minhook_keepalive

@@ -9,8 +9,9 @@ namespace big
     public:
         food(MonoObject* food);
         ~food() noexcept;
-        
+        MonoObject* get_object() const { return m_food; }
         std::string get_name();
+        std::string get_shared_name();
         float get_time();
         float get_health();
         float get_stamina();

@@ -18,6 +18,8 @@ namespace big
 		Vector3 bottom;
 
 		EEntityType type;
+        Vector3 top_screen{};
+        bool top_visible = false;
     };
 
 	inline TripleBuffer<esp_data> g_esp_data{64};

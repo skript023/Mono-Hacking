@@ -183,7 +183,7 @@ namespace big
 			if constexpr (std::is_same_v<T, std::string>)
 			{
 				MonoString* out{};
-				get_field_value(obj, field, out);
+				get_field_value(obj, field, &out);
 
 				return from_mono_string(out);
 			}
@@ -293,6 +293,10 @@ namespace big
 		{
 			return get_instance().mono_object_get_class(obj);
 		}
+		static MonoObject* object_new(MonoClass* klass)
+		{
+			return get_instance().mono_object_new(get_instance().get_root_domain_impl(), klass);
+		}
 		static MonoMethod* class_get_method_from_name(MonoClass* obj, const char* name, int param)
 		{
 			return get_instance().mono_class_get_method_from_name(obj, name, param);
@@ -352,6 +356,7 @@ namespace big
         mono_runtime_invoke_t mono_runtime_invoke = nullptr;
 		mono_object_unbox_t mono_object_unbox = nullptr;
 		mono_object_get_class_t mono_object_get_class = nullptr;
+		mono_object_new_t mono_object_new = nullptr;
 
         // --- Member untuk Fungsi Class dan Field ---
 

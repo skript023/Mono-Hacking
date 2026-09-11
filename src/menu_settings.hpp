@@ -47,7 +47,17 @@ namespace big
 			bool ward_bypass{ false };
 			bool instant_bow_draw{ false };
 
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw)
+			bool god_mode{ false };
+			bool ghost_mode{ false };
+			bool infinite_durability{ false };
+			bool free_crafting{ false };
+			bool one_hit_resource{ false };
+			float damage_multiplier{ 1.f };
+			float speed_multiplier{ 1.f };
+			float pickup_range{ 2.f };
+			int max_food_slots{ 3 };
+
+			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw, god_mode, ghost_mode, infinite_durability, free_crafting, one_hit_resource, damage_multiplier, speed_multiplier, pickup_range, max_food_slots)
 		} self;
 
 		struct window

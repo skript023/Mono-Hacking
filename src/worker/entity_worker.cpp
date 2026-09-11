@@ -15,12 +15,14 @@ namespace big
 
     void entity_worker::run()
 	{
+		bool had_esp_data = false;
 		while (g_running)
 		{
 			TRY_CLAUSE
 			{
 				if (_esp_enabled.get_state())
 				{
+					had_esp_data = true;
 					auto& back = g_esp_data.back(); back.clear();
 
 					auto self = self::get_player();
@@ -30,7 +32,7 @@ namespace big
 					for (auto character : characters)
 					{
 						auto obj = (uintptr_t)character.get_object();
-						if (!character || obj < 0x10000)
+						if (!character || obj < 0x10000 || character == self)
 							continue;
 
 						player p(character.get_object());
@@ -54,24 +56,31 @@ namespace big
 						if (!unity::world_to_screen(pos, screen))
 							continue;
 
-						auto top = character.get_top_point();
-						auto health = character.get_health();
-						auto max_health = character.get_max_health();
+						Vector3 top{}, top_screen{};
+						bool top_visible = false;
+						if (_draw_box.get_state() || _draw_health.get_state())
+						{
+							top = character.get_top_point();
+							top_visible = unity::world_to_screen(top, top_screen);
+						}
+						auto health = _draw_health.get_state() ? character.get_health() : 0.f;
+						auto max_health = _draw_health.get_state() ? character.get_max_health() : 0.f;
 						auto distance = local_player_pos.distance_in_meters(pos);
 
 						std::string name;
 
-						if (joaat(classname) == "Player"_hash)
+						if (_draw_name.get_state() && joaat(classname) == "Player"_hash)
 						{
 							name = p.get_player_name();
 						}
-						else
+						else if (_draw_name.get_state())
 						{
 							name = character.get_hover_name();
 						}
 
-						char buffer[256];
-						snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
+						char buffer[256]{};
+						if (_draw_name.get_state())
+							snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
 						
 						back.emplace_back(esp_data{
 							character == self,//character == self
@@ -83,11 +92,18 @@ namespace big
 							max_health,
 							top,
 							pos,
-							joaat(classname) == "Player"_hash ? EEntityType::Player : EEntityType::Character
+							joaat(classname) == "Player"_hash ? EEntityType::Player : EEntityType::Character,
+							top_screen,
+							top_visible
 						});
 					}
 
 					g_esp_data.publish();
+				}
+				else if (had_esp_data)
+				{
+					g_esp_data.clear_all();
+					had_esp_data = false;
 				}
 			}  EXCEPT_CLAUSE
 
