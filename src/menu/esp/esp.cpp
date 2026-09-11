@@ -71,10 +71,17 @@ namespace big
         );
     }
 
-    inline void draw_fov_circle(float fov_px)
+    inline void draw_fov_circle(float fov_deg)
     {
-        float screen_w = g_pointers->m_resolution.x;
-        float screen_h = g_pointers->m_resolution.y;
+        float fov_px = unity::fov_degrees_to_pixels(fov_deg);
+
+        float screen_w = (float)unity::get_screen_width();
+        float screen_h = (float)unity::get_screen_height();
+        if (screen_w <= 0.f || screen_h <= 0.f)
+        {
+            screen_w = (float)g_pointers->m_resolution.x;
+            screen_h = (float)g_pointers->m_resolution.y;
+        }
 
         float cx = screen_w * 0.5f;
         float cy = screen_h * 0.5f;
@@ -96,16 +103,16 @@ namespace big
             return;
         }
 
+        if (_draw_fov.get_state())
+        {
+            draw_fov_circle(_aimbot_fov.get_state());
+        }
+
         const auto view = g_esp_data.view();
 
         if (view.empty())
         {
             return;
-        }
-
-        if (_draw_fov.get_state())
-        {
-            draw_fov_circle(_aimbot_fov.get_state());
         }
 
         for (const auto& data : view)

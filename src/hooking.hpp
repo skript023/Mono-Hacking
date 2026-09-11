@@ -52,6 +52,11 @@ namespace big
 		static void rpc_use_stamina(MonoObject* player, long sender, float v);
 		static void on_map_middle_click(MonoObject* minimap, MonoObject* handler);
 		static bool top_first(void* _this, void* item);
+		static float wearntear_get_support(MonoObject* this_ptr);
+		static bool wearntear_have_support(MonoObject* this_ptr);
+		static bool private_area_check_access(Vector3 point, float radius, bool flash, bool wardCheck);
+		static float get_attack_draw_percentage(MonoObject* humanoid);
+		static bool is_weapon_loaded(MonoObject* player);
 	};
 
 	struct minhook_keepalive

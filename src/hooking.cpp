@@ -45,6 +45,11 @@ namespace big
 		detour_hook::add<hooks::rpc_use_stamina>("Player::RPC_UseStamina", mono::get_compile_method("Player", "RPC_UseStamina", 2, "assembly_valheim"));
 		detour_hook::add<hooks::on_map_middle_click>("Minimap::OnMapMiddleClick", mono::get_compile_method("Minimap", "OnMapMiddleClick", 1, "assembly_valheim"));
 		detour_hook::add<hooks::top_first>("Inventory::TopFirst", mono::get_compile_method("Inventory", "TopFirst", 1, "assembly_valheim"));
+		detour_hook::add<hooks::wearntear_get_support>("WearNTear::GetSupport", mono::get_compile_method("WearNTear", "GetSupport", 0, "assembly_valheim"));
+		detour_hook::add<hooks::wearntear_have_support>("WearNTear::HaveSupport", mono::get_compile_method("WearNTear", "HaveSupport", 0, "assembly_valheim"));
+		detour_hook::add<hooks::private_area_check_access>("PrivateArea::CheckAccess", mono::get_compile_method("PrivateArea", "CheckAccess", 4, "assembly_valheim"));
+		detour_hook::add<hooks::get_attack_draw_percentage>("Humanoid::GetAttackDrawPercentage", mono::get_compile_method("Humanoid", "GetAttackDrawPercentage", 0, "assembly_valheim"));
+		detour_hook::add<hooks::is_weapon_loaded>("Player::IsWeaponLoaded", mono::get_compile_method("Player", "IsWeaponLoaded", 0, "assembly_valheim"));
 
 		g_hooking = this;
 	}

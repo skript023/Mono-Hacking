@@ -530,6 +530,45 @@ namespace big::unity
 		return true;
 	}
 
+	inline float get_camera_fov()
+	{
+		static MonoMethod* get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static MonoMethod* get_fov = mono::get_method("Camera", "get_fieldOfView", 0, "UnityEngine.CoreModule", "UnityEngine");
+		if (!get_main || !get_fov)
+			return 65.f;
+
+		auto camera = mono::invoke_method(get_main, nullptr, nullptr);
+		if (!camera)
+			return 65.f;
+
+		auto result = mono::invoke_method(get_fov, camera, nullptr);
+		if (!result)
+			return 65.f;
+
+		return *reinterpret_cast<float*>(mono::object_unbox(result));
+	}
+
+	inline float fov_degrees_to_pixels(float fov_degrees)
+	{
+		float screen_h = (float)unity::get_screen_height();
+		if (screen_h <= 0.f)
+			screen_h = (float)g_pointers->m_resolution.y;
+		if (screen_h <= 0.f)
+			screen_h = 1080.f;
+
+		float cam_fov = get_camera_fov();
+		if (cam_fov <= 1.f || cam_fov >= 179.f)
+			cam_fov = 65.f;
+
+		float half_cam_rad = (cam_fov * 0.5f) * (3.14159265359f / 180.f);
+		float focal_length = (screen_h * 0.5f) / tanf(half_cam_rad);
+
+		float clamped_fov = std::clamp(fov_degrees, 0.1f, 170.f);
+		float half_target_rad = (clamped_fov * 0.5f) * (3.14159265359f / 180.f);
+
+		return focal_length * tanf(half_target_rad);
+	}
+
 	inline std::vector<MonoObject*> get_all_characters()
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
@@ -977,5 +1016,127 @@ namespace big::unity
 			result.push_back(std::move(info));
 		}
 		return result;
+	}
+
+	inline MonoObject* get_game()
+	{
+		static MonoMethod* get_inst = mono::get_method("Game", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			return mono::invoke_method(get_inst, nullptr, nullptr);
+		}
+
+		MonoClass* klass = mono::get_class("Game", "assembly_valheim");
+		if (!klass) return nullptr;
+
+		MonoClassField* field = mono::get_field(klass, "s_instance");
+		if (!field) field = mono::get_field(klass, "m_instance");
+
+		if (field)
+		{
+			void* static_data = mono::get_static_field_data(klass);
+			if (static_data)
+			{
+				uint32_t offset = mono::get_field_offset(field);
+				void* ptr_addr = (void*)((uintptr_t)static_data + offset);
+				if (ptr_addr && *(MonoObject**)ptr_addr)
+					return *(MonoObject**)ptr_addr;
+			}
+		}
+
+		return nullptr;
+	}
+
+	inline void explore_all_map()
+	{
+		MonoObject* minimap = get_minimap();
+		if (minimap)
+		{
+			static MonoMethod* method = mono::get_method("Minimap", "ExploreAll", 0, "assembly_valheim");
+			if (method)
+			{
+				mono::invoke_method(method, minimap, nullptr);
+				LOG(INFO) << "ExploreAll executed successfully";
+			}
+		}
+	}
+
+	inline void reset_map()
+	{
+		MonoObject* minimap = get_minimap();
+		if (minimap)
+		{
+			static MonoMethod* method = mono::get_method("Minimap", "Reset", 0, "assembly_valheim");
+			if (method)
+			{
+				mono::invoke_method(method, minimap, nullptr);
+				LOG(INFO) << "Reset map executed successfully";
+			}
+		}
+	}
+
+	inline void discover_closest_location(std::string_view name, std::string_view pin_name, int pin_type, bool show_map = false, bool discover_all = false)
+	{
+		MonoObject* game = get_game();
+		if (!game)
+		{
+			LOG(WARNING) << "Game instance not found for discover_closest_location";
+			return;
+		}
+
+		auto local_player = get_local_player();
+		Vector3 pos = local_player ? get_position(local_player) : Vector3{ 0.f, 0.f, 0.f };
+
+		static MonoMethod* method = mono::get_method("Game", "DiscoverClosestLocation", 6, "assembly_valheim");
+		if (!method)
+		{
+			LOG(WARNING) << "Failed to find Game::DiscoverClosestLocation";
+			return;
+		}
+
+		MonoString* mono_name = mono::to_mono_string(std::string(name));
+		MonoString* mono_pin = mono::to_mono_string(std::string(pin_name));
+
+		void* args[6] = {
+			mono_name,
+			&pos,
+			mono_pin,
+			&pin_type,
+			&show_map,
+			&discover_all
+		};
+
+		mono::invoke_method(method, game, args);
+	}
+
+	inline void discover_bosses_and_traders()
+	{
+		struct boss_entry
+		{
+			const char* location_name;
+			const char* pin_name;
+			int pin_type;
+		};
+
+		static const boss_entry entries[] = {
+			{ "Eikthyrnir", "Eikthyr", 9 },
+			{ "GDKing", "The Elder", 9 },
+			{ "Bonemass", "Bonemass", 9 },
+			{ "Dragonqueen", "Moder", 9 },
+			{ "GoblinKing", "Yagluth", 9 },
+			{ "SeekerQueen", "The Queen", 9 },
+			{ "Fader", "Fader", 9 },
+			{ "Vendor_BlackForest", "Haldor", 2 },
+			{ "Hildir_camp", "Hildir", 16 },
+			{ "Hildir_crypt", "Hildir Crypt", 17 },
+			{ "Hildir_cave", "Hildir Cave", 17 },
+			{ "Hildir_tower", "Hildir Tower", 18 }
+		};
+
+		for (const auto& entry : entries)
+		{
+			discover_closest_location(entry.location_name, entry.pin_name, entry.pin_type, false, false);
+		}
+		LOG(INFO) << "Discover bosses and traders requested";
 	}
 }

@@ -44,6 +44,9 @@ namespace big
             sub->add_option<bool_slider_float_option>("eitr"_hash, "eitr_amount"_hash, 5.f);
             sub->add_option<bool_slider_float_option>("stamina_regen"_hash, "stamina_regen_amount"_hash, 5.f);
             sub->add_option<bool_slider_float_option>("eitr_regen"_hash, "eitr_regen_amount"_hash, 5.f);
+            sub->add_option<bool_option<bool>>("Infinite Building Stability", "Pieces never collapse from lack of support.", &g_settings.self.infinite_stability);
+            sub->add_option<bool_option<bool>>("Ward / Guard Stone Bypass", "Bypass all player wards and guard stones.", &g_settings.self.ward_bypass);
+            sub->add_option<bool_option<bool>>("Instant Bow & Crossbow", "Instant full bow draw and instant crossbow reload.", &g_settings.self.instant_bow_draw);
         });
         
         canvas::add_submenu<regular_submenu>("Inventory", "SubmenuInventory"_hash, [](regular_submenu* sub)
@@ -66,6 +69,9 @@ namespace big
             sub->add_option<reguler_option>("tamed_all_deer"_hash);
             sub->add_option<reguler_option>("tamed_all_boar"_hash);
             sub->add_option<reguler_option>("tamed_all_wolf"_hash);
+            sub->add_option<reguler_option>("Explore Entire Map", "Reveal all fog of war on the minimap.", [] { unity::explore_all_map(); });
+            sub->add_option<reguler_option>("Reset Map Fog", "Reset map exploration fog.", [] { unity::reset_map(); });
+            sub->add_option<reguler_option>("Reveal All Bosses & Traders", "Pin all 7 boss altars and traders to the minimap.", [] { unity::discover_bosses_and_traders(); });
         });
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuPlayerList, [](regular_submenu* sub)

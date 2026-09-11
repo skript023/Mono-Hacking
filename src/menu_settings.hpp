@@ -43,8 +43,11 @@ namespace big
 			bool allow_pickup_fish{ false };
 			bool map_click_teleport{ true };
 			bool inventory_top_first{ true };
+			bool infinite_stability{ false };
+			bool ward_bypass{ false };
+			bool instant_bow_draw{ false };
 
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first)
+			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw)
 		} self;
 
 		struct window
