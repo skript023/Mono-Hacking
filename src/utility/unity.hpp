@@ -486,15 +486,21 @@ namespace big::unity
 	inline int get_screen_width()
 	{
 		static MonoMethod* method = mono::get_method("Screen", "get_width", 0, "UnityEngine.CoreModule", "UnityEngine");
+		if (!method) return g_pointers ? g_pointers->m_resolution.x : 1920;
 		auto result = mono::invoke_method(method, nullptr, nullptr);
-		return *(int*)mono::object_unbox(result);
+		if (!result) return g_pointers ? g_pointers->m_resolution.x : 1920;
+		auto ptr = mono::object_unbox(result);
+		return ptr ? *(int*)ptr : (g_pointers ? g_pointers->m_resolution.x : 1920);
 	}
 
 	inline int get_screen_height()
 	{
 		static MonoMethod* method = mono::get_method("Screen", "get_height", 0, "UnityEngine.CoreModule", "UnityEngine");
+		if (!method) return g_pointers ? g_pointers->m_resolution.y : 1080;
 		auto result = mono::invoke_method(method, nullptr, nullptr);
-		return *(int*)mono::object_unbox(result);
+		if (!result) return g_pointers ? g_pointers->m_resolution.y : 1080;
+		auto ptr = mono::object_unbox(result);
+		return ptr ? *(int*)ptr : (g_pointers ? g_pointers->m_resolution.y : 1080);
 	}
 
 	inline bool world_to_screen(Vector3 const& world, Vector3& out)
@@ -530,37 +536,18 @@ namespace big::unity
 		return true;
 	}
 
-	inline float get_camera_fov()
+	inline float fov_degrees_to_pixels(float fov_degrees, float screen_h = 0.f)
 	{
-		static MonoMethod* get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule", "UnityEngine");
-		static MonoMethod* get_fov = mono::get_method("Camera", "get_fieldOfView", 0, "UnityEngine.CoreModule", "UnityEngine");
-		if (!get_main || !get_fov)
-			return 65.f;
-
-		auto camera = mono::invoke_method(get_main, nullptr, nullptr);
-		if (!camera)
-			return 65.f;
-
-		auto result = mono::invoke_method(get_fov, camera, nullptr);
-		if (!result)
-			return 65.f;
-
-		return *reinterpret_cast<float*>(mono::object_unbox(result));
-	}
-
-	inline float fov_degrees_to_pixels(float fov_degrees)
-	{
-		float screen_h = (float)unity::get_screen_height();
 		if (screen_h <= 0.f)
-			screen_h = (float)g_pointers->m_resolution.y;
-		if (screen_h <= 0.f)
-			screen_h = 1080.f;
+		{
+			if (g_pointers)
+				screen_h = (float)g_pointers->m_resolution.y;
+			if (screen_h <= 0.f)
+				screen_h = 1080.f;
+		}
 
-		float cam_fov = get_camera_fov();
-		if (cam_fov <= 1.f || cam_fov >= 179.f)
-			cam_fov = 65.f;
-
-		float half_cam_rad = (cam_fov * 0.5f) * (3.14159265359f / 180.f);
+		constexpr float cam_fov = 65.f; // Standard Valheim camera FOV
+		constexpr float half_cam_rad = (cam_fov * 0.5f) * (3.14159265359f / 180.f);
 		float focal_length = (screen_h * 0.5f) / tanf(half_cam_rad);
 
 		float clamped_fov = std::clamp(fov_degrees, 0.1f, 170.f);

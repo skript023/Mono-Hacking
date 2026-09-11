@@ -73,39 +73,66 @@ namespace big
 
     inline void draw_fov_circle(float fov_deg)
     {
-        float fov_px = unity::fov_degrees_to_pixels(fov_deg);
+        float screen_w = 0.f;
+        float screen_h = 0.f;
 
-        float screen_w = (float)unity::get_screen_width();
-        float screen_h = (float)unity::get_screen_height();
+        if (ImGui::GetCurrentContext())
+        {
+            screen_w = ImGui::GetIO().DisplaySize.x;
+            screen_h = ImGui::GetIO().DisplaySize.y;
+        }
+
         if (screen_w <= 0.f || screen_h <= 0.f)
         {
-            screen_w = (float)g_pointers->m_resolution.x;
-            screen_h = (float)g_pointers->m_resolution.y;
+            if (g_pointers)
+            {
+                screen_w = (float)g_pointers->m_resolution.x;
+                screen_h = (float)g_pointers->m_resolution.y;
+            }
         }
+
+        if (screen_w <= 0.f || screen_h <= 0.f)
+        {
+            screen_w = 1920.f;
+            screen_h = 1080.f;
+        }
+
+        float fov_px = unity::fov_degrees_to_pixels(fov_deg, screen_h);
+        if (fov_px <= 0.f || !std::isfinite(fov_px))
+            fov_px = 150.f;
 
         float cx = screen_w * 0.5f;
         float cy = screen_h * 0.5f;
 
-        canvas::draw_circle(cx, cy, fov_px, { 255, 255, 255, 255 }, 64);
+        auto* draw_list = ImGui::GetForegroundDrawList();
+        if (!draw_list)
+            return;
+
+        // Outer dark outline for high contrast against any background
+        draw_list->AddCircle(ImVec2(cx, cy), fov_px, IM_COL32(0, 0, 0, 220), 64, 3.0f);
+        // Bright white circle
+        draw_list->AddCircle(ImVec2(cx, cy), fov_px, IM_COL32(255, 255, 255, 255), 64, 1.5f);
+        // Small center dot for crosshair reference
+        draw_list->AddCircleFilled(ImVec2(cx, cy), 2.5f, IM_COL32(0, 0, 0, 220));
+        draw_list->AddCircleFilled(ImVec2(cx, cy), 1.5f, IM_COL32(255, 255, 255, 255));
     }
     
     void esp::draw_esp()
 	{
         using namespace features;
 
-        float width = static_cast<float>(g_pointers->m_resolution.x / 2);
-        float height = static_cast<float>(g_pointers->m_resolution.y / 2);
-
-        static const Color white = { 255, 255, 255, 255 };
+        // FOV circle draws if Draw FOV is enabled OR Silent Aimbot is enabled
+        if (_draw_fov.get_state() || _aimbot_enabled.get_state())
+        {
+            float fov = _aimbot_fov.get_state();
+            if (fov < 1.0f)
+                fov = 20.0f;
+            draw_fov_circle(fov);
+        }
 
         if (!_esp_enabled.get_state())
         {
             return;
-        }
-
-        if (_draw_fov.get_state())
-        {
-            draw_fov_circle(_aimbot_fov.get_state());
         }
 
         const auto view = g_esp_data.view();
@@ -114,6 +141,11 @@ namespace big
         {
             return;
         }
+
+        float width = static_cast<float>(g_pointers->m_resolution.x / 2);
+        float height = static_cast<float>(g_pointers->m_resolution.y / 2);
+
+        static const Color white = { 255, 255, 255, 255 };
 
         for (const auto& data : view)
         {

@@ -99,6 +99,7 @@ namespace big
             sub->add_option<bool_option<bool>>("draw_name"_hash);
             sub->add_option<bool_option<bool>>("draw_health"_hash);
             sub->add_option<bool_option<bool>>("draw_box"_hash);
+            sub->add_option<bool_option<bool>>("draw_fov"_hash);
         });
 
         canvas::add_submenu<regular_submenu>("Aimbot", "SubmenuAimbot"_hash, [](regular_submenu* sub)

@@ -14,7 +14,7 @@ namespace big::features
 	inline bool_command _draw_corner_box("draw_corner_box", "ESP Corner Box", "ESP must be enabled", false);
 	inline bool_command _draw_box_3d("draw_box_3d", "ESP Box 3D", "ESP must be enabled", false);
 	inline bool_command _draw_team("draw_team", "ESP Team", "ESP must be enabled", false);
-	inline bool_command _draw_fov("draw_fov", "Draw FOV", "Draw max aim angle", false);
+	inline bool_command _draw_fov("draw_fov", "Draw FOV", "Draw max aim angle", true);
 	inline bool_command _draw_anim("draw_anim", "Draw Animation", "Draw animation", false);
 
     inline bool_command _aimbot_enabled("aimbot", "Silent Aimbot", "Silent Aimbot", false);
