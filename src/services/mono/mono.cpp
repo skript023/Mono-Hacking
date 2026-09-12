@@ -6,53 +6,79 @@ namespace big
 {
 	void mono::init_impl()
 	{
-		// Implementation details for initializing Mono
-		auto module = memory::module("mono-2.0-bdwgc.dll");
+		if (initalized)
+			return;
+
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(120);
+		auto wait_for = [&](auto ready, const char* stage)
+		{
+			LOG(INFO) << "Waiting for Mono: " << stage;
+			while (!ready())
+			{
+				if (!g_running)
+					throw std::runtime_error("Mono initialization cancelled.");
+				if (std::chrono::steady_clock::now() >= deadline)
+					throw std::runtime_error(std::string("Mono initialization timed out waiting for ") + stage);
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+		};
+
+		HMODULE runtime = nullptr;
+		wait_for([&] { return (runtime = GetModuleHandleA("mono-2.0-bdwgc.dll")) != nullptr; }, "runtime DLL");
+		auto require_export = [&](const char* name)
+		{
+			auto address = GetProcAddress(runtime, name);
+			if (!address)
+				throw std::runtime_error(std::string("Missing Mono export: ") + name);
+			return memory::handle(address);
+		};
 
 		// Necessary functions to get method addresses
-		mono_domain_assembly_open = module.get_export("mono_domain_assembly_open").as<mono_domain_assembly_open_t>();
-		mono_assembly_get_image = module.get_export("mono_assembly_get_image").as<mono_assembly_get_image_t>();
-		mono_class_from_name = module.get_export("mono_class_from_name").as<mono_class_from_name_t>();
-		mono_class_get_method_from_name = module.get_export("mono_class_get_method_from_name").as<mono_class_get_method_from_name_t>();
-		mono_class_get_methods = module.get_export("mono_class_get_methods").as<mono_class_get_methods_t>();
-		mono_method_get_name = module.get_export("mono_method_get_name").as<mono_method_get_name_t>();
-		mono_method_signature = module.get_export("mono_method_signature").as<mono_method_signature_t>();
-		mono_signature_get_param_count = module.get_export("mono_signature_get_param_count").as<mono_signature_get_param_count_t>();
-		mono_signature_get_return_type = module.get_export("mono_signature_get_return_type").as<mono_signature_get_return_type_t>();
-		mono_signature_get_params = module.get_export("mono_signature_get_params").as<mono_signature_get_params_t>();
-		mono_type_get_name = module.get_export("mono_type_get_name").as<mono_type_get_name_t>();
-		mono_compile_method = module.get_export("mono_compile_method").as<mono_compile_method_t>();
-		mono_runtime_invoke = module.get_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
-		mono_object_unbox = module.get_export("mono_object_unbox").as<mono_object_unbox_t>();
-		mono_object_get_class = module.get_export("mono_object_get_class").as<mono_object_get_class_t>();
-		mono_object_new = module.get_export("mono_object_new").as<mono_object_new_t>();
+		mono_domain_assembly_open = require_export("mono_domain_assembly_open").as<mono_domain_assembly_open_t>();
+		mono_assembly_get_image = require_export("mono_assembly_get_image").as<mono_assembly_get_image_t>();
+		mono_class_from_name = require_export("mono_class_from_name").as<mono_class_from_name_t>();
+		mono_class_get_method_from_name = require_export("mono_class_get_method_from_name").as<mono_class_get_method_from_name_t>();
+		mono_class_get_methods = require_export("mono_class_get_methods").as<mono_class_get_methods_t>();
+		mono_method_get_name = require_export("mono_method_get_name").as<mono_method_get_name_t>();
+		mono_method_signature = require_export("mono_method_signature").as<mono_method_signature_t>();
+		mono_signature_get_param_count = require_export("mono_signature_get_param_count").as<mono_signature_get_param_count_t>();
+		mono_signature_get_return_type = require_export("mono_signature_get_return_type").as<mono_signature_get_return_type_t>();
+		mono_signature_get_params = require_export("mono_signature_get_params").as<mono_signature_get_params_t>();
+		mono_type_get_name = require_export("mono_type_get_name").as<mono_type_get_name_t>();
+		mono_compile_method = require_export("mono_compile_method").as<mono_compile_method_t>();
+		mono_runtime_invoke = require_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
+		mono_object_unbox = require_export("mono_object_unbox").as<mono_object_unbox_t>();
+		mono_object_get_class = require_export("mono_object_get_class").as<mono_object_get_class_t>();
+		mono_object_new = require_export("mono_object_new").as<mono_object_new_t>();
 
-		mono_class_get_field_from_name = module.get_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
-		mono_field_get_value = module.get_export("mono_field_get_value").as<mono_field_get_value_t>();
-		mono_field_set_value = module.get_export("mono_field_set_value").as<mono_field_set_value_t>();
-		mono_method_get_class = module.get_export("mono_method_get_class").as<mono_method_get_class_t>();
-		mono_class_vtable = module.get_export("mono_class_vtable").as<mono_class_vtable_t>();
-		mono_vtable_get_static_field_data = module.get_export("mono_vtable_get_static_field_data").as<mono_vtable_get_static_field_data_t>();
-		mono_field_get_offset = module.get_export("mono_field_get_offset").as<mono_field_get_offset_t>();
-		mono_class_get_name = module.get_export("mono_class_get_name").as<mono_class_get_name_t>();
-		mono_class_get_namespace = module.get_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
-		mono_string_to_utf8 = module.get_export("mono_string_to_utf8").as<mono_string_to_utf8_t>();
-		mono_string_new = module.get_export("mono_string_new").as<mono_string_new_t>();
-		mono_string_new_utf16 = module.get_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
-		mono_array_addr_with_size = module.get_export("mono_array_addr_with_size").as<mono_array_addr_with_size_t>();
-		mono_array_length = module.get_export("mono_array_length").as<mono_array_length_t>();
-		mono_core::mono_array_addr_with_size = module.get_export("mono_array_addr_with_size").as<mono_core::mono_array_addr_with_size_t>();
-		mono_core::mono_array_length = module.get_export("mono_array_length").as<mono_core::mono_array_length_t>();
-		mono_free = module.get_export("mono_free").as<mono_free_t>();
+		mono_class_get_field_from_name = require_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
+		mono_field_get_value = require_export("mono_field_get_value").as<mono_field_get_value_t>();
+		mono_field_set_value = require_export("mono_field_set_value").as<mono_field_set_value_t>();
+		mono_method_get_class = require_export("mono_method_get_class").as<mono_method_get_class_t>();
+		mono_class_vtable = require_export("mono_class_vtable").as<mono_class_vtable_t>();
+		mono_vtable_get_static_field_data = require_export("mono_vtable_get_static_field_data").as<mono_vtable_get_static_field_data_t>();
+		mono_field_get_offset = require_export("mono_field_get_offset").as<mono_field_get_offset_t>();
+		mono_class_get_name = require_export("mono_class_get_name").as<mono_class_get_name_t>();
+		mono_class_get_namespace = require_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
+		mono_string_to_utf8 = require_export("mono_string_to_utf8").as<mono_string_to_utf8_t>();
+		mono_string_new = require_export("mono_string_new").as<mono_string_new_t>();
+		mono_string_new_utf16 = require_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
+		mono_array_addr_with_size = require_export("mono_array_addr_with_size").as<mono_array_addr_with_size_t>();
+		mono_array_length = require_export("mono_array_length").as<mono_array_length_t>();
+		mono_core::mono_array_addr_with_size = require_export("mono_array_addr_with_size").as<mono_core::mono_array_addr_with_size_t>();
+		mono_core::mono_array_length = require_export("mono_array_length").as<mono_core::mono_array_length_t>();
+		mono_free = require_export("mono_free").as<mono_free_t>();
 
 		// Attach thread to prevent crashes
-		mono_thread_attach = module.get_export("mono_thread_attach").as<mono_thread_attach_t>();
-		mono_get_root_domain = module.get_export("mono_get_root_domain").as<mono_get_root_domain_t>();
-		mono_domain_get = module.get_export("mono_domain_get").as<mono_domain_get_t>();
+		mono_thread_attach = require_export("mono_thread_attach").as<mono_thread_attach_t>();
+		mono_get_root_domain = require_export("mono_get_root_domain").as<mono_get_root_domain_t>();
+		mono_domain_get = require_export("mono_domain_get").as<mono_domain_get_t>();
 
-		// Melampirkan thread ini ke domain Mono root agar aman
-		if (mono_thread_attach && mono_get_root_domain)
-			mono_thread_attach(mono_get_root_domain());
+		// A loaded DLL alone does not mean the host has initialized the runtime.
+		auto get_main_thread = require_export("mono_thread_get_main").as<MonoThread* (*)()>();
+		auto get_corlib = require_export("mono_get_corlib").as<MonoImage* (*)()>();
+		wait_for([&] { return mono_get_root_domain() && get_main_thread() && get_corlib(); }, "root domain, main thread and corlib");
+		ensure_thread_attached_impl();
 
 		this->initalized = true;
 	}
@@ -60,14 +86,14 @@ namespace big
 	void mono::ensure_thread_attached_impl() const
 	{
 		static thread_local bool attached = false;
-		if (!attached && mono_thread_attach)
-		{
-			MonoDomain* domain = mono_domain_get ? mono_domain_get() : nullptr;
-			if (!domain && mono_get_root_domain) domain = mono_get_root_domain();
-			if (domain)
-				mono_thread_attach(domain);
-			attached = true;
-		}
+		if (attached)
+			return;
+		if (!mono_thread_attach || !mono_get_root_domain)
+			throw std::runtime_error("Mono thread attachment requested before initialization.");
+		auto domain = mono_get_root_domain();
+		if (!domain || !mono_thread_attach(domain))
+			throw std::runtime_error("Failed to attach current thread to Mono.");
+		attached = true;
 	}
 
 	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
@@ -87,6 +113,7 @@ namespace big
 		if (!assemblyName)
 			return nullptr;
 
+		ensure_thread_attached_impl();
 		std::scoped_lock lock(m_image_cache_mutex);
 		if (auto it = m_image_cache.find(assemblyName); it != m_image_cache.end())
 			return it->second;

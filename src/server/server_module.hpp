@@ -21,21 +21,25 @@ namespace big
 
             // Dedicated heartbeat thread running every 15s independently of game state
             m_heartbeat_thread = std::thread([this]() {
-                while (g_running)
+                while (g_running && !m_stopping)
                 {
-                    for (int i = 0; i < 15 && g_running; ++i)
+                    for (int i = 0; i < 15 && g_running && !m_stopping; ++i)
                     {
                         std::this_thread::sleep_for(1s);
                     }
-                    if (!g_running) break;
-                    run();
+                    if (!g_running || m_stopping) break;
+                    try { run(); }
+                    catch (const std::exception& ex) {
+                        LOG(WARNING) << "[Server] Heartbeat error: " << ex.what();
+                    }
                 }
+                OPENSSL_thread_stop();
             });
         }
 
         ~server_module() noexcept
         {
-            g_server_module->shutdown();
+            shutdown();
         }
 
         alpha_service* get_alpha() { return m_alpha_service.get(); }
@@ -54,6 +58,7 @@ namespace big
     private:
         void shutdown()
         {
+            m_stopping = true;
             if (m_heartbeat_thread.joinable())
             {
                 m_heartbeat_thread.join();
@@ -65,6 +70,7 @@ namespace big
         }
     private:
         std::shared_ptr<alpha_service> m_alpha_service;
+        std::atomic<bool> m_stopping{false};
         std::thread m_heartbeat_thread;
     };
 }

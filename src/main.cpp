@@ -50,6 +50,9 @@ DWORD APIENTRY main_thread(LPVOID)
 		g_settings.load();
 		LOG(INFO) << "Settings initialized.";
 		
+		mono::init();
+		LOG(INFO) << "Mono initialized.";
+
 		auto pointers_instance = std::make_unique<pointers>();
 		LOG(INFO) << "Pointers initialized.";
 
@@ -61,9 +64,6 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		auto thread_pool_instance = std::make_unique<thread_pool>();
 		LOG(INFO) << "Thread Pool initialized.";
-
-		mono::init();
-		LOG(INFO) << "Mono initialized.";
 
 		auto hooking_instance = std::make_unique<hooking>();
 		LOG(INFO) << "Hooking initialized.";
@@ -134,6 +134,9 @@ DWORD APIENTRY main_thread(LPVOID)
 		MessageBoxA(nullptr, ex.what(), nullptr, MB_OK | MB_ICONEXCLAMATION);
 	}
 
+	// This DLL owns a static OpenSSL instance; all networking threads are gone.
+	OPENSSL_cleanup();
+	LOG(INFO) << "OpenSSL cleaned up. Releasing DLL.";
 	LOG(INFO) << "Farewell!";
 	logger::destroy();
 

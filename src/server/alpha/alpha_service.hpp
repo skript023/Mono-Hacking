@@ -26,6 +26,8 @@ namespace big
 
 		void init_connection()
 		{
+			if (m_alpha_gateway) m_alpha_gateway->disconnect();
+			m_auth_invalidated = false;
 			m_auth_info = auth_client::authenticate();
 			if (!m_auth_info.success)
 			{
@@ -49,8 +51,7 @@ namespace big
 				else if (message.find("Unauthorized WebSocket connection") != std::string::npos)
 				{
 					LOG(WARNING) << "[AlphaService] Unauthorized connection. Invalidating session token for re-auth...";
-					m_auth_info.token.clear();
-					m_auth_info.success = false;
+					m_auth_invalidated = true;
 				}
 				else if (!message.empty())
 				{
@@ -78,7 +79,12 @@ namespace big
 
 		bool auto_reconnect()
 		{
-			if (!m_alpha_gateway || !m_alpha_gateway->is_connected())
+			if (m_auth_invalidated.exchange(false))
+			{
+				m_auth_info.token.clear();
+				m_auth_info.success = false;
+			}
+			if (!m_auth_info.success || !m_alpha_gateway || !m_alpha_gateway->is_connected())
 			{
 				if (!m_auth_info.success || m_auth_info.token.empty())
 				{
@@ -104,6 +110,7 @@ namespace big
 		}
 
 	private:
+		std::atomic<bool> m_auth_invalidated{false};
 		ServerAuthInfo m_auth_info;
 		std::shared_ptr<socket_client> m_alpha_gateway;
 		Gateway m_event;

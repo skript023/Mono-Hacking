@@ -20,6 +20,8 @@ set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")   # opsional
 set(OPENSSL_LIBRARIES "${OPENSSL_ROOT_DIR}/lib")         # opsional
 set(ZLIB_LIBRARIES "${OPENSSL_LIBRARIES}/zlib.lib")
 
+# Networking cleanup owns the OpenSSL instance embedded in this DLL.
+set(OPENSSL_USE_STATIC_LIBS TRUE)
 find_package(OpenSSL REQUIRED)
 
 get_target_property(ssl_loc OpenSSL::SSL LOCATION)

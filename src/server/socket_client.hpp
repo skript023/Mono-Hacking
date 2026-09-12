@@ -4,7 +4,8 @@
 
 #include "client_ws.hpp"
 #include "client_wss.hpp"
-#include "thread_pool.hpp"
+#include <thread>
+#include <atomic>
 #include "enums/connection_status.hpp"
 #include "hooking.hpp"
 #include "services/notification/notification_service.hpp"
@@ -31,6 +32,7 @@ namespace big
 
         bool connect()
         {
+            std::lock_guard lifecycle_lock(m_lifecycle_mutex);
             if (m_connection_status == eConnectionStatus::CONNECTED)
             {
                 LOG(INFO) << "[SocketClient] Already connected.";
@@ -47,28 +49,14 @@ namespace big
                 m_client_wss = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WSS>>(m_endpoint, false);
                 m_client_wss->config.header.emplace("User-Agent", "Valheim/1.0");
                 setup_wss_handlers();
-                g_thread_pool->push([this] {
-                    try {
-                        m_client_wss->start();
-                    } catch (const std::exception& ex) {
-                        LOG(WARNING) << "[SocketClient] WSS error: " << ex.what();
-                        m_connection_status = eConnectionStatus::DISCONNECT;
-                    }
-                });
+                start_client(m_client_wss);
             }
             else
             {
                 m_client_ws = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WS>>(m_endpoint);
                 m_client_ws->config.header.emplace("User-Agent", "Valheim/1.0");
                 setup_ws_handlers();
-                g_thread_pool->push([this] {
-                    try {
-                        m_client_ws->start();
-                    } catch (const std::exception& ex) {
-                        LOG(WARNING) << "[SocketClient] WS error: " << ex.what();
-                        m_connection_status = eConnectionStatus::DISCONNECT;
-                    }
-                });
+                start_client(m_client_ws);
             }
 
             return true;
@@ -76,18 +64,17 @@ namespace big
 
         void disconnect()
         {
-            if (m_client_wss)
-            {
-                m_client_wss->stop();
-                m_active_conn_wss.reset();
-                m_client_wss.reset();
-            }
-            if (m_client_ws)
-            {
-                m_client_ws->stop();
-                m_active_conn_ws.reset();
-                m_client_ws.reset();
-            }
+            std::lock_guard lifecycle_lock(m_lifecycle_mutex);
+            if (m_client_wss) m_client_wss->stop();
+            if (m_client_ws) m_client_ws->stop();
+            if (m_io_context) m_io_context->stop();
+            // All callbacks capturing this must finish before client/service destruction.
+            if (m_io_thread.joinable()) m_io_thread.join();
+            m_active_conn_wss.reset();
+            m_active_conn_ws.reset();
+            m_client_wss.reset();
+            m_client_ws.reset();
+            m_io_context.reset();
             m_connection_status = eConnectionStatus::DISCONNECT;
         }
 
@@ -99,20 +86,14 @@ namespace big
 
         void send_message(const std::string& message)
         {
-            if (m_connection_status != eConnectionStatus::CONNECTED)
-            {
-                LOG(WARNING) << "[SocketClient] Cannot send message, not connected.";
-                return;
-            }
-
-            if (m_is_ssl && m_active_conn_wss)
-            {
-                m_active_conn_wss->send(message);
-            }
-            else if (!m_is_ssl && m_active_conn_ws)
-            {
-                m_active_conn_ws->send(message);
-            }
+            std::lock_guard lifecycle_lock(m_lifecycle_mutex);
+            if (!m_io_context || !is_connected()) return;
+            // Connection pointers and SSL writes belong to the I/O thread.
+            asio::post(*m_io_context, [this, message] {
+                if (!is_connected()) return;
+                if (m_is_ssl && m_active_conn_wss) m_active_conn_wss->send(message);
+                else if (!m_is_ssl && m_active_conn_ws) m_active_conn_ws->send(message);
+            });
         }
 
         void on_message_received(MessageCallback callback)
@@ -123,6 +104,7 @@ namespace big
 
         void on_force_logout(KickCallback callback)
         {
+            std::lock_guard lock(m_mutex);
             m_kick_callback = std::move(callback);
         }
 
@@ -137,6 +119,27 @@ namespace big
         }
 
     private:
+        template<typename Client>
+        void start_client(const std::shared_ptr<Client>& client)
+        {
+            m_io_context = std::make_shared<asio::io_context>();
+            client->io_service = m_io_context;
+            // With an external context start() only schedules connection setup.
+            // Complete it before disconnect() can stop the context; start() restarts
+            // stopped contexts, so racing start against stop can hang a join.
+            client->start();
+            m_io_thread = std::thread([this, context = m_io_context] {
+                try {
+                    auto work = asio::make_work_guard(*context);
+                    context->run();
+                } catch (const std::exception& ex) {
+                    LOG(WARNING) << "[SocketClient] I/O error: " << ex.what();
+                    m_connection_status = eConnectionStatus::DISCONNECT;
+                }
+                OPENSSL_thread_stop();
+            });
+        }
+
         void handle_incoming_text(const std::string& text)
         {
             // Check for FORCE_LOGOUT event from server (Single active device enforcement)
@@ -156,10 +159,12 @@ namespace big
                 LOG(FATAL) << "[SocketClient] *** FORCE_LOGOUT: " << reason << " ***";
                 notification::info("Security Alert", reason);
                 
-                if (m_kick_callback)
+                KickCallback kick;
                 {
-                    m_kick_callback(reason);
+                    std::lock_guard lock(m_mutex);
+                    kick = m_kick_callback;
                 }
+                if (kick) kick(reason);
 
                 // Immediate safety shutdown: disable hooks & stop running
                 
@@ -235,7 +240,10 @@ namespace big
         MessageCallback m_message_callback;
         KickCallback m_kick_callback;
         std::recursive_mutex m_mutex;
-        eConnectionStatus m_connection_status;
+        std::atomic<eConnectionStatus> m_connection_status;
+        std::recursive_mutex m_lifecycle_mutex;
+        std::shared_ptr<asio::io_context> m_io_context;
+        std::thread m_io_thread;
     };
 }
 
