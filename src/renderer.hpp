@@ -1,40 +1,57 @@
 #pragma once
 #include "common.hpp"
 #include <imgui.h>
-
+#include "render/render_backend.hpp"
 namespace big
 {
+	enum class renderer_api
+	{
+		unknown,
+		dx11,
+		vulkan
+	};
+	class render_dx11;
 	class renderer
 	{
-	public:
-		explicit renderer();
-		~renderer();
+		std::unique_ptr<render_dx11> m_dx11;
+		render_backend* m_backend = nullptr;
+		renderer_api m_api = renderer_api::unknown;
 
+	public:
+		renderer();
+		~renderer();
+		void attach();
+		// DLLs are candidates only. Confirm the API from an actual game presentation.
+		static bool has_vulkan()
+		{
+			return GetModuleHandleW(L"vulkan-1.dll") != nullptr;
+		}
+		static bool has_dx11()
+		{
+			return GetModuleHandleW(L"d3d11.dll") != nullptr;
+		}
+		renderer_api api() const
+		{
+			return m_api;
+		}
 		bool m_init = false;
 		bool init(IDXGISwapChain* swapchain);
 		void imgui_init();
-
-		void on_present();
-
+		void on_present(IDXGISwapChain* swapchain);
 		void pre_reset();
-		void post_reset(IDXGISwapChain* this_);
-		void merge_icon_with_latest_font(float font_size, bool FontDataOwnedByAtlas = false);
-
-		void load_texture(ID3D11Device* resource);
-		void process_hwnd();
+		void post_reset(IDXGISwapChain* swapchain);
+		bool owns_dx11(IDXGISwapChain* swapchain) const;
+		bool begin_vulkan(render_backend* backend);
+		void finish_init();
+		void release_vulkan();
+		void draw_frame();
+		ImTextureID upload_rgba(const unsigned char* pixels, int width, int height);
+		void merge_icon_with_latest_font(float font_size, bool owned = false);
 		void wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
-		bool LoadTextureFromFile(const char* filename, ID3D11Device* d3dDevice, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height);
-	public:
 		ImFont* m_font = nullptr;
 		ImFont* m_ui_manager_font = nullptr;
 		ImFont* m_monospace_font = nullptr;
-
-		HWND m_window = NULL;
-	private:
-		ID3D11Device* m_d3d_device = nullptr;
-		ID3D11DeviceContext* m_d3d_context = nullptr;
-		ID3D11RenderTargetView* m_d3d_render_target = nullptr;
+		HWND m_window = nullptr;
 	};
-
-	inline renderer *g_renderer{};
+	inline renderer* g_renderer{};
 }

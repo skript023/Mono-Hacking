@@ -245,7 +245,7 @@ namespace big
 		void draw_description();
 		void draw_side_panel_window(const char* id, float x, float y, float width, float height, std::function<void()> content);
 		void draw_rect(float x, float y, float width, float height, Color color, ImDrawList* draw_list = ImGui::GetBackgroundDrawList());
-		void draw_sprite(ID3D11ShaderResourceView* image, float x, float y, float width, float height, Color color, ImDrawList* drawlist = ImGui::GetBackgroundDrawList());
+		void draw_sprite(ImTextureID image, float x, float y, float width, float height, Color color, ImDrawList* drawlist = ImGui::GetBackgroundDrawList());
 		void draw_sprite(D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle, float x, float y, float width, float height, Color color, ImDrawList* drawlist = ImGui::GetBackgroundDrawList());
 		void draw_left_text(const char* text, float x, float y, Color color, ImFont* font, ImDrawList* draw_list = ImGui::GetForegroundDrawList());
 		void draw_centered_text(const char* text, float x, float y, Color color, ImFont* font, ImDrawList* draw_list = ImGui::GetForegroundDrawList());

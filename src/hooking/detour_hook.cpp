@@ -7,10 +7,12 @@
 namespace big
 {
 	detour_hook::detour_hook(const std::string_view name, void* target, void* detour) :
-		detour_base(name),
-		m_target(target),
-		m_detour(detour)
+	    detour_base(name),
+	    m_target(target),
+	    m_detour(detour)
 	{
+		LOG(INFO) << "Creating hook: " << m_name << " at " << m_target;
+		Logger::FlushQueue();
 		if (!m_target)
 		{
 			throw std::runtime_error(std::format("Failed to create hook '{}': target function pointer is null", m_name));
@@ -36,30 +38,23 @@ namespace big
 
 	bool detour_hook::enable()
 	{
-		if (m_enabled) return true;
-
-		if (auto status = MH_QueueEnableHook(m_target); status != MH_OK)
-		{
-			throw std::runtime_error(std::format("Failed to enable hook 0x{:X} ({})", reinterpret_cast<std::uintptr_t>(m_target), MH_StatusToString(status)));
-
+		if (m_enabled)
 			return true;
-		}
-
-		return false;
+		const auto status = MH_QueueEnableHook(m_target);
+		if (status != MH_OK)
+			throw std::runtime_error(std::format("Failed to enable hook '{}' ({})", m_name, MH_StatusToString(status)));
+		m_enabled = true;
+		return true;
 	}
-
 	bool detour_hook::disable()
 	{
-		if (!m_enabled) return false;
-
-		if (auto status = MH_QueueDisableHook(m_target); status != MH_OK)
-		{
-			LOG(FATAL) << "Failed to disable hook '" << m_name << "'.";
-
+		if (!m_enabled)
 			return true;
-		}
-
-		return false;
+		const auto status = MH_QueueDisableHook(m_target);
+		if (status != MH_OK)
+			return false;
+		m_enabled = false;
+		return true;
 	}
 
 	void detour_hook::enable_immediately() const
@@ -85,9 +80,7 @@ namespace big
 
 	DWORD exp_handler(PEXCEPTION_POINTERS exp, const std::string_view name)
 	{
-		return exp->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION
-			? EXCEPTION_EXECUTE_HANDLER
-			: EXCEPTION_CONTINUE_SEARCH;
+		return exp->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH;
 	}
 
 	void detour_hook::fix_hook_address()
@@ -105,10 +98,9 @@ namespace big
 		}
 		__except (exp_handler(GetExceptionInformation(), m_name))
 		{
-			[this]()
-				{
-					throw std::runtime_error(std::format("Failed to fix hook address for '{}'", m_name));
-				}();
+			[this]() {
+				throw std::runtime_error(std::format("Failed to fix hook address for '{}'", m_name));
+			}();
 		}
 	}
 }

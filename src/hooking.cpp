@@ -12,62 +12,88 @@
 
 namespace big
 {
-	hooking::hooking()
+	template<auto callback>
+	void add_mono_hook(std::string_view name, const char* class_name, const char* method_name, int parameter_count, const char* assembly, const char* namespace_name = "")
 	{
-		detour_hook::add<hooks::swapchain_present>("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index));
-		detour_hook::add<hooks::swapchain_resizebuffers>("SwapChainResizeBuffers", graphic_manager::get_method_table(hooks::swapchain_resizebuffers_index));
+		LOG(INFO) << "Resolving hook: " << name;
+		Logger::FlushQueue();
+		auto target = mono::get_compile_method(class_name, method_name, parameter_count, assembly, namespace_name);
+		detour_hook::add<callback>(name, target);
+	}
+
+	hooking::hooking()
+	try
+	{
+		if (graphic_manager::get_method_table(hooks::swapchain_present_index))
+		{
+			detour_hook::add<hooks::swapchain_present>("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index));
+			detour_hook::add<hooks::swapchain_resizebuffers>("SwapChainResizeBuffers", graphic_manager::get_method_table(hooks::swapchain_resizebuffers_index));
+		}
+
 
 		detour_hook::add<hooks::set_cursor_pos>("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>());
 		detour_hook::add<hooks::convert_thread_to_fiber>("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>());
-		
-		detour_hook::add<hooks::is_teleportable>("Inventory::IsTeleportable", mono::get_compile_method("Inventory", "IsTeleportable", 1, "assembly_valheim"));
-		detour_hook::add<hooks::update>("Player::Update", mono::get_compile_method("Player", "Update", 0, "assembly_valheim"));
-		detour_hook::add<hooks::create_tomb_stone>("Player::CreateTombStone", mono::get_compile_method("Player", "CreateTombStone", 0, "assembly_valheim"));
-		detour_hook::add<hooks::is_debug_flying>("Player::IsDebugFlying", mono::get_compile_method("Player", "IsDebugFlying", 0, "assembly_valheim"));
-		detour_hook::add<hooks::update_guardian_power>("Player::UpdateGuardianPower", mono::get_compile_method("Player", "UpdateGuardianPower", 1, "assembly_valheim"));
-		detour_hook::add<hooks::is_under_roof>("Cover::IsUnderRoof", mono::get_compile_method("Cover", "IsUnderRoof", 1, "assembly_utils"));
-		detour_hook::add<hooks::update_water>("Character::UpdateWater", mono::get_compile_method("Character", "UpdateWater", 1, "assembly_valheim"));
-		detour_hook::add<hooks::on_selected_item>("InventoryGui::OnSelectedItem", mono::get_compile_method("InventoryGui", "OnSelectedItem", 4, "assembly_valheim"));
-		detour_hook::add<hooks::get_weight>("ItemDrop::ItemData::GetWeight", mono::get_compile_method("ItemDrop/ItemData", "GetWeight", 1, "assembly_valheim"));
-		detour_hook::add<hooks::set_alerted>("AnimalAI::SetAlerted", mono::get_compile_method("AnimalAI", "SetAlerted", 1, "assembly_valheim"));
-		detour_hook::add<hooks::is_wind_controll_active>("Ship::IsWindControllActive", mono::get_compile_method("Ship", "IsWindControllActive", 0, "assembly_valheim"));
-		detour_hook::add<hooks::is_out_of_water>("Fish::IsOutOfWater", mono::get_compile_method("Fish", "IsOutOfWater", 0, "assembly_valheim"));
-		detour_hook::add<hooks::raise_skill>("Player::RaiseSkill", mono::get_compile_method("Player", "RaiseSkill", 2, "assembly_valheim"));
-		detour_hook::add<hooks::take_input>("PlayerController::TakeInput", mono::get_compile_method("PlayerController", "TakeInput", 1, "assembly_valheim"));
-		detour_hook::add<hooks::get_body_armor>("Player::GetBodyArmor", mono::get_compile_method("Player", "GetBodyArmor", 0, "assembly_valheim"));
-		detour_hook::add<hooks::have_empty_slot>("Inventory::HaveEmptySlot", mono::get_compile_method("Inventory", "HaveEmptySlot", 0, "assembly_valheim"));
-		detour_hook::add<hooks::allowed_command>("Terminal::ConsoleCommand::IsValid", mono::get_compile_method("Terminal/ConsoleCommand", "IsValid", 2, "assembly_valheim"));
-		detour_hook::add<hooks::camera_render>("Camera::Render", mono::get_compile_method("Camera", "Render", 0, "UnityEngine.CoreModule", "UnityEngine"));
-		detour_hook::add<hooks::get_projectile_spawn_point>("Attack::GetProjectileSpawnPoint", mono::get_compile_method("Attack", "GetProjectileSpawnPoint", 2, "assembly_valheim"));
-		detour_hook::add<hooks::on_hit>("Projectile::OnHit", mono::get_compile_method("Projectile", "OnHit", 4, "assembly_valheim"));
-		detour_hook::add<hooks::is_known_material>("Player::IsKnownMaterial", mono::get_compile_method("Player", "IsKnownMaterial", 1, "assembly_valheim"));
-		detour_hook::add<hooks::drop_item>("ItemDrop::DropItem", mono::get_compile_method("ItemDrop", "DropItem", 4, "assembly_valheim"));
-		detour_hook::add<hooks::rpc_use_stamina>("Player::RPC_UseStamina", mono::get_compile_method("Player", "RPC_UseStamina", 2, "assembly_valheim"));
-		detour_hook::add<hooks::on_map_middle_click>("Minimap::OnMapMiddleClick", mono::get_compile_method("Minimap", "OnMapMiddleClick", 1, "assembly_valheim"));
-		detour_hook::add<hooks::top_first>("Inventory::TopFirst", mono::get_compile_method("Inventory", "TopFirst", 1, "assembly_valheim"));
-		detour_hook::add<hooks::wearntear_get_support>("WearNTear::GetSupport", mono::get_compile_method("WearNTear", "GetSupport", 0, "assembly_valheim"));
-		detour_hook::add<hooks::wearntear_have_support>("WearNTear::HaveSupport", mono::get_compile_method("WearNTear", "HaveSupport", 0, "assembly_valheim"));
-		detour_hook::add<hooks::private_area_check_access>("PrivateArea::CheckAccess", mono::get_compile_method("PrivateArea", "CheckAccess", 4, "assembly_valheim"));
-		detour_hook::add<hooks::get_attack_draw_percentage>("Humanoid::GetAttackDrawPercentage", mono::get_compile_method("Humanoid", "GetAttackDrawPercentage", 0, "assembly_valheim"));
-		detour_hook::add<hooks::is_weapon_loaded>("Player::IsWeaponLoaded", mono::get_compile_method("Player", "IsWeaponLoaded", 0, "assembly_valheim"));
-		detour_hook::add<hooks::character_rpc_damage>("Character::RPC_Damage", mono::get_compile_method("Character", "RPC_Damage", 2, "assembly_valheim"));
-		detour_hook::add<hooks::player_in_god_mode>("Player::InGodMode", mono::get_compile_method("Player", "InGodMode", 0, "assembly_valheim"));
-		detour_hook::add<hooks::player_in_ghost_mode>("Player::InGhostMode", mono::get_compile_method("Player", "InGhostMode", 0, "assembly_valheim"));
-		detour_hook::add<hooks::player_no_cost_cheat>("Player::NoCostCheat", mono::get_compile_method("Player", "NoCostCheat", 0, "assembly_valheim"));
-		detour_hook::add<hooks::humanoid_drain_durability>("Humanoid::DrainEquipedItemDurability", mono::get_compile_method("Humanoid", "DrainEquipedItemDurability", 2, "assembly_valheim"));
-		detour_hook::add<hooks::player_get_run_speed_factor>("Player::GetRunSpeedFactor", mono::get_compile_method("Player", "GetRunSpeedFactor", 0, "assembly_valheim"));
-		detour_hook::add<hooks::player_get_jog_speed_factor>("Player::GetJogSpeedFactor", mono::get_compile_method("Player", "GetJogSpeedFactor", 0, "assembly_valheim"));
-		detour_hook::add<hooks::attack_modify_damage>("Attack::ModifyDamage", mono::get_compile_method("Attack", "ModifyDamage", 2, "assembly_valheim"));
-		detour_hook::add<hooks::player_can_eat>("Player::CanEat", mono::get_compile_method("Player", "CanEat", 2, "assembly_valheim"));
-		detour_hook::add<hooks::player_eat_food>("Player::EatFood", mono::get_compile_method("Player", "EatFood", 1, "assembly_valheim"));
+
+		add_mono_hook<hooks::is_teleportable>("Inventory::IsTeleportable", "Inventory", "IsTeleportable", 1, "assembly_valheim");
+		add_mono_hook<hooks::update>("Player::Update", "Player", "Update", 0, "assembly_valheim");
+		add_mono_hook<hooks::create_tomb_stone>("Player::CreateTombStone", "Player", "CreateTombStone", 0, "assembly_valheim");
+		add_mono_hook<hooks::is_debug_flying>("Player::IsDebugFlying", "Player", "IsDebugFlying", 0, "assembly_valheim");
+		add_mono_hook<hooks::update_guardian_power>("Player::UpdateGuardianPower", "Player", "UpdateGuardianPower", 1, "assembly_valheim");
+		add_mono_hook<hooks::is_under_roof>("Cover::IsUnderRoof", "Cover", "IsUnderRoof", 1, "assembly_utils");
+		add_mono_hook<hooks::update_water>("Character::UpdateWater", "Character", "UpdateWater", 1, "assembly_valheim");
+		add_mono_hook<hooks::on_selected_item>("InventoryGui::OnSelectedItem", "InventoryGui", "OnSelectedItem", 4, "assembly_valheim");
+		add_mono_hook<hooks::get_weight>("ItemDrop::ItemData::GetWeight", "ItemDrop/ItemData", "GetWeight", 1, "assembly_valheim");
+		add_mono_hook<hooks::set_alerted>("AnimalAI::SetAlerted", "AnimalAI", "SetAlerted", 1, "assembly_valheim");
+		add_mono_hook<hooks::is_wind_controll_active>("Ship::IsWindControllActive", "Ship", "IsWindControllActive", 0, "assembly_valheim");
+		add_mono_hook<hooks::is_out_of_water>("Fish::IsOutOfWater", "Fish", "IsOutOfWater", 0, "assembly_valheim");
+		add_mono_hook<hooks::raise_skill>("Player::RaiseSkill", "Player", "RaiseSkill", 2, "assembly_valheim");
+		add_mono_hook<hooks::take_input>("PlayerController::TakeInput", "PlayerController", "TakeInput", 1, "assembly_valheim");
+		add_mono_hook<hooks::get_body_armor>("Player::GetBodyArmor", "Player", "GetBodyArmor", 0, "assembly_valheim");
+		add_mono_hook<hooks::have_empty_slot>("Inventory::HaveEmptySlot", "Inventory", "HaveEmptySlot", 0, "assembly_valheim");
+		add_mono_hook<hooks::allowed_command>("Terminal::ConsoleCommand::IsValid", "Terminal/ConsoleCommand", "IsValid", 2, "assembly_valheim");
+		add_mono_hook<hooks::camera_render>("Camera::Render", "Camera", "Render", 0, "UnityEngine.CoreModule", "UnityEngine");
+		add_mono_hook<hooks::get_projectile_spawn_point>("Attack::GetProjectileSpawnPoint", "Attack", "GetProjectileSpawnPoint", 2, "assembly_valheim");
+		add_mono_hook<hooks::on_hit>("Projectile::OnHit", "Projectile", "OnHit", 4, "assembly_valheim");
+		add_mono_hook<hooks::is_known_material>("Player::IsKnownMaterial", "Player", "IsKnownMaterial", 1, "assembly_valheim");
+		add_mono_hook<hooks::drop_item>("ItemDrop::DropItem", "ItemDrop", "DropItem", 4, "assembly_valheim");
+		add_mono_hook<hooks::rpc_use_stamina>("Player::RPC_UseStamina", "Player", "RPC_UseStamina", 2, "assembly_valheim");
+		add_mono_hook<hooks::on_map_middle_click>("Minimap::OnMapMiddleClick", "Minimap", "OnMapMiddleClick", 1, "assembly_valheim");
+		add_mono_hook<hooks::top_first>("Inventory::TopFirst", "Inventory", "TopFirst", 1, "assembly_valheim");
+		add_mono_hook<hooks::wearntear_get_support>("WearNTear::GetSupport", "WearNTear", "GetSupport", 0, "assembly_valheim");
+		add_mono_hook<hooks::wearntear_have_support>("WearNTear::HaveSupport", "WearNTear", "HaveSupport", 0, "assembly_valheim");
+		add_mono_hook<hooks::private_area_check_access>("PrivateArea::CheckAccess", "PrivateArea", "CheckAccess", 4, "assembly_valheim");
+		add_mono_hook<hooks::get_attack_draw_percentage>("Humanoid::GetAttackDrawPercentage", "Humanoid", "GetAttackDrawPercentage", 0, "assembly_valheim");
+		add_mono_hook<hooks::is_weapon_loaded>("Player::IsWeaponLoaded", "Player", "IsWeaponLoaded", 0, "assembly_valheim");
+		add_mono_hook<hooks::character_rpc_damage>("Character::RPC_Damage", "Character", "RPC_Damage", 2, "assembly_valheim");
+		add_mono_hook<hooks::player_in_god_mode>("Player::InGodMode", "Player", "InGodMode", 0, "assembly_valheim");
+		add_mono_hook<hooks::player_in_ghost_mode>("Player::InGhostMode", "Player", "InGhostMode", 0, "assembly_valheim");
+		add_mono_hook<hooks::player_no_cost_cheat>("Player::NoCostCheat", "Player", "NoCostCheat", 0, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_drain_durability>("Humanoid::DrainEquipedItemDurability", "Humanoid", "DrainEquipedItemDurability", 2, "assembly_valheim");
+		add_mono_hook<hooks::player_get_run_speed_factor>("Player::GetRunSpeedFactor", "Player", "GetRunSpeedFactor", 0, "assembly_valheim");
+		add_mono_hook<hooks::player_get_jog_speed_factor>("Player::GetJogSpeedFactor", "Player", "GetJogSpeedFactor", 0, "assembly_valheim");
+		add_mono_hook<hooks::attack_modify_damage>("Attack::ModifyDamage", "Attack", "ModifyDamage", 2, "assembly_valheim");
+		add_mono_hook<hooks::player_can_eat>("Player::CanEat", "Player", "CanEat", 2, "assembly_valheim");
+		add_mono_hook<hooks::player_eat_food>("Player::EatFood", "Player", "EatFood", 1, "assembly_valheim");
 
 		g_hooking = this;
+	}
+
+	catch (const std::exception& e)
+	{
+		LOG(WARNING) << "Hook initialization failed: " << e.what();
+		Logger::FlushQueue();
+		while (!detour_base::hooks().empty())
+			delete detour_base::hooks().back();
+		throw;
 	}
 
 	hooking::~hooking()
 	{
 		if (m_enabled)
 			disable();
+
+		while (!detour_base::hooks().empty())
+			delete detour_base::hooks().back();
 
 		g_hooking = nullptr;
 	}
@@ -92,10 +118,8 @@ namespace big
 		detour_base::disable_all();
 		MH_ApplyQueued();
 
-		for (auto it : detour_base::hooks())
-		{
-			delete it;
-		}
+		while (!detour_base::hooks().empty())
+			delete detour_base::hooks().back();
 	}
 
 	minhook_keepalive::minhook_keepalive()

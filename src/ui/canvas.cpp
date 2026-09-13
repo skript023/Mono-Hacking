@@ -646,13 +646,14 @@ namespace big
 		draw_list->AddRectFilled(Rect.Max, Rect.Min, IM_COL32(color.r, color.g, color.b, color.a));
 	}
 
-	void canvas::draw_sprite(ID3D11ShaderResourceView* image, float x, float y, float width, float height, Color color, ImDrawList* drawlist)
+	void canvas::draw_sprite(ImTextureID image, float x, float y, float width, float height, Color color, ImDrawList* drawlist)
 	{
 		const auto Position = ImVec2(x, y);
 		const auto Size = ImVec2(width, height);
 		const auto Rect = get_rect(Position, Size);
 
-		drawlist->AddImage((void*)image,
+		if (!image) return;
+		drawlist->AddImage(image,
 			Rect.Min,
 			Rect.Max,
 			ImVec2(0, 0), ImVec2(1, 1),

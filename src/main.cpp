@@ -2,6 +2,7 @@
 #include "hooking.hpp"
 #include "pointers.hpp"
 #include "renderer.hpp"
+#include "render/render_vulkan.hpp"
 #include "benchmark.hpp"
 #include "script_mgr.hpp"
 #include "fiber_pool.hpp"
@@ -22,8 +23,14 @@ DWORD APIENTRY main_thread(LPVOID)
 {
 	using namespace big;
 
-	while (!FindWindow(WINDOW_CLASS, WINDOW_NAME))
-		std::this_thread::sleep_for(8s);
+	auto minhook_instance = std::make_unique<minhook_keepalive>();
+    // Capture device creation before waiting for Unity's window and Mono startup.
+    do
+    {
+        render_vulkan::start_capture();
+        if (FindWindow(WINDOW_CLASS, WINDOW_NAME)) break;
+        std::this_thread::sleep_for(10ms);
+    } while (g_running);
 
 	benchmark initialization_benchmark("Initialization");
 
@@ -82,6 +89,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		LOG(INFO) << "Scripts registered.";
 
 		g_hooking->enable();
+        g_renderer->attach();
 		LOG(INFO) << "Hooking enabled.";
 
 		initialization_benchmark.get_runtime();
@@ -94,7 +102,8 @@ DWORD APIENTRY main_thread(LPVOID)
 			std::this_thread::sleep_for(1s);
 		}
 
-		g_hooking->disable();
+		render_vulkan::detach();
+        g_hooking->disable();
 		LOG(INFO) << "Hooking disabled.";
 
 		std::this_thread::sleep_for(1000ms);
@@ -133,6 +142,9 @@ DWORD APIENTRY main_thread(LPVOID)
 		LOG(WARNING) << ex.what();
 		MessageBoxA(nullptr, ex.what(), nullptr, MB_OK | MB_ICONEXCLAMATION);
 	}
+
+	render_vulkan::stop_capture();
+    minhook_instance.reset();
 
 	// This DLL owns a static OpenSSL instance; all networking threads are gone.
 	OPENSSL_cleanup();

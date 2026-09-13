@@ -60,19 +60,6 @@ namespace big
 
 		this->add_wndproc_callback([this](HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) { wndproc(hwnd, msg, wparam, lparam); });
 
-		this->add_texture([this](ID3D11Device* device) {
-			if (!load_from_memory(quantum_green, _ARRAYSIZE(quantum_green), device, &m_header, &m_header_size.x, &m_header_size.y))
-				LOG(WARNING) << "Unable to load image header";
-			else
-				LOG(INFO) << "Texture Loaded " << m_header;
-		});
-
-		this->add_texture([this](ID3D11Device* device) {
-			if (!load_from_memory(toggle_texture, _ARRAYSIZE(toggle_texture), device, &m_toggle, &m_toggle_size.x, &m_toggle_size.y))
-				LOG(WARNING) << "Unable to load image toggle";
-			else
-				LOG(INFO) << "Texture Loaded " << m_toggle;
-		});
 
 		view::register_submenu();
 		LOG(INFO) << "DirectX Callback Registered.";
@@ -153,10 +140,6 @@ namespace big
 		m_wndproc_callbacks.emplace_back(std::move(callback));
 	}
 
-	void gui::add_texture(texture_callbacks&& callback)
-	{
-		m_texture_callbacks.emplace_back(std::move(callback));
-	}
 
 	void gui::dx_on_opened()
 	{
@@ -178,143 +161,19 @@ namespace big
 		canvas::handle_input();
 	}
 
-	bool gui::load_from_file(const char* filename, ID3D11Device* d3dDevice, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
-	{
-		LOG(INFO) << "Loading texture from " << filename;
-
-		int image_width = 0;
-		int image_height = 0;
-		unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
-		if (image_data == NULL)
-		{
-			LOG(WARNING) << "Failed to load image: " << stbi_failure_reason();
-
-			return false;
-		}
-
-		// Create texture
-		D3D11_TEXTURE2D_DESC desc;
-		ZeroMemory(&desc, sizeof(desc));
-		desc.Width = image_width;
-		desc.Height = image_height;
-		desc.MipLevels = 1;
-		desc.ArraySize = 1;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.SampleDesc.Count = 1;
-		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		desc.CPUAccessFlags = 0;
-
-		ID3D11Texture2D* pTexture = nullptr;
-		D3D11_SUBRESOURCE_DATA subResource;
-		subResource.pSysMem = image_data;
-		subResource.SysMemPitch = desc.Width * 4;
-		subResource.SysMemSlicePitch = 0;
-
-		HRESULT hr = d3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
-		if (FAILED(hr))
-		{
-			LOG(WARNING) << "Failed to create texture. HRESULT: " << hr;
-			stbi_image_free(image_data);
-
-			return false;
-		}
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		ZeroMemory(&srvDesc, sizeof(srvDesc));
-		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MipLevels = desc.MipLevels;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-
-		hr = d3dDevice->CreateShaderResourceView(pTexture, &srvDesc, out_srv);
-		if (FAILED(hr))
-		{
-			LOG(WARNING) << "Failed to create shader resource view. HRESULT: " << hr;
-			pTexture->Release();
-			stbi_image_free(image_data);
-
-			return false;
-		}
-
-		pTexture->Release();
-		*out_width = image_width;
-		*out_height = image_height;
-		stbi_image_free(image_data);
-
-		LOG(INFO) << "Loaded texture " << filename << " with dimensions: " << image_width << "x" << image_height;
-
-		return true;
-	}
-
-	bool gui::load_from_memory(const unsigned char* buffer, int buffer_size, ID3D11Device* d3dDevice, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
-	{
-		int image_width = 0;
-		int image_height = 0;
-		unsigned char* image_data = stbi_load_from_memory(buffer, buffer_size, &image_width, &image_height, NULL, 4);
-		if (image_data == NULL)
-		{
-			LOG(WARNING) << "Failed to load image: " << stbi_failure_reason();
-
-			return false;
-		}
-
-		D3D11_TEXTURE2D_DESC desc;
-		ZeroMemory(&desc, sizeof(desc));
-		desc.Width = image_width;
-		desc.Height = image_height;
-		desc.MipLevels = 1;
-		desc.ArraySize = 1;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.SampleDesc.Count = 1;
-		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		desc.CPUAccessFlags = 0;
-
-		ID3D11Texture2D* pTexture = nullptr;
-		D3D11_SUBRESOURCE_DATA subResource;
-		subResource.pSysMem = image_data;
-		subResource.SysMemPitch = desc.Width * 4;
-		subResource.SysMemSlicePitch = 0;
-
-		HRESULT hr = d3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
-		if (FAILED(hr))
-		{
-			LOG(WARNING) << "Failed to create texture. HRESULT: " << hr;
-			stbi_image_free(image_data);
-
-			return false;
-		}
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		ZeroMemory(&srvDesc, sizeof(srvDesc));
-		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MipLevels = desc.MipLevels;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-
-		hr = d3dDevice->CreateShaderResourceView(pTexture, &srvDesc, out_srv);
-		if (FAILED(hr))
-		{
-			LOG(WARNING) << "Failed to create shader resource view. HRESULT: " << hr;
-			pTexture->Release();
-			stbi_image_free(image_data);
-
-			return false;
-		}
-
-		pTexture->Release();
-		*out_width = image_width;
-		*out_height = image_height;
-		stbi_image_free(image_data);
-
-		return true;
-	}
-
-	void gui::destroy_texture(ID3D11ShaderResourceView** tex_resources)
-	{
-		(*tex_resources)->Release();
-		*tex_resources = NULL;
-	}
-
+    void gui::load_textures()
+    {
+        auto load = [](const unsigned char* bytes, int size, ImTextureID& id, ImageDimensions& dimensions)
+        {
+            int width = 0, height = 0;
+            auto pixels = stbi_load_from_memory(bytes, size, &width, &height, nullptr, 4);
+            if (!pixels) { LOG(WARNING) << "Cannot decode menu texture"; return; }
+            id = g_renderer->upload_rgba(pixels, width, height);
+            stbi_image_free(pixels);
+            if (id) dimensions = {width, height};
+            else LOG(WARNING) << "Cannot upload menu texture";
+        };
+        load(quantum_green, sizeof(quantum_green), m_header, m_header_size);
+        load(toggle_texture, sizeof(toggle_texture), m_toggle, m_toggle_size);
+    }
 }

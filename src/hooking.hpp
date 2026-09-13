@@ -86,7 +86,7 @@ namespace big
 		void disable();
 	private:
 		bool m_enabled{};
-		minhook_keepalive m_minhook_keepalive;
+
 
 		WNDPROC m_og_wndproc;
 	};

@@ -37,6 +37,7 @@ include(scripts/json.cmake)
 include(scripts/g3log.cmake)
 
 message("\nFetching custom modules")
+include(scripts/vulkan.cmake)
 include(scripts/imgui.cmake)
 include(scripts/stbi.cmake)
 include(scripts/asio.cmake)
@@ -84,7 +85,7 @@ target_include_directories(Valheim PRIVATE
 )
 
 target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(Valheim PRIVATE minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
+target_link_libraries(Valheim PRIVATE Vulkan::Headers minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
 
 # Warnings as errors
 #set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)
@@ -107,4 +108,33 @@ target_compile_options(Valheim PRIVATE
 
 if (NOT ${CROSSCOMPILE})
     add_subdirectory(injector)
+endif()
+
+option(BUILD_RENDERER_SMOKE_TESTS "Build standalone GPU renderer smoke tests" OFF)
+if(BUILD_RENDERER_SMOKE_TESTS)
+    add_executable(renderer_smoke tests/renderer/smoke.cpp src/render/render_dx11.cpp src/render/render_vulkan.cpp)
+    target_include_directories(renderer_smoke PRIVATE tests/renderer/stubs src/render "${imgui_SOURCE_DIR}")
+    # Keep test processes away from the trainer version.dll during DLL resolution.
+    set_target_properties(renderer_smoke PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/renderer-tests")
+    target_compile_features(renderer_smoke PRIVATE cxx_std_23)
+    target_compile_definitions(renderer_smoke PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(renderer_smoke PRIVATE imgui minhook Vulkan::Headers d3d11 dxgi user32 gdi32 dwmapi)
+    enable_testing()
+    add_test(NAME renderer_dx11 COMMAND renderer_smoke dx11)
+    add_test(NAME renderer_vulkan COMMAND renderer_smoke vulkan)
+    add_test(NAME renderer_vulkan_late COMMAND renderer_smoke vulkan-late)
+    add_test(NAME renderer_vulkan_late2 COMMAND renderer_smoke vulkan-late2)
+    set_tests_properties(renderer_dx11 renderer_vulkan renderer_vulkan_late renderer_vulkan_late2 PROPERTIES WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/renderer-tests" TIMEOUT 30)
+endif()
+
+option(BUILD_STARTUP_TESTS "Build startup lifecycle regression tests" OFF)
+if(BUILD_STARTUP_TESTS)
+    enable_testing()
+    add_executable(startup_lifecycle tests/startup/lifecycle.cpp src/thread_pool.cpp src/hooking/detour_base.cpp)
+    target_include_directories(startup_lifecycle PRIVATE tests/startup src)
+    target_precompile_headers(startup_lifecycle PRIVATE tests/startup/common.hpp)
+    target_compile_features(startup_lifecycle PRIVATE cxx_std_23)
+    set_target_properties(startup_lifecycle PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/renderer-tests")
+    add_test(NAME startup_lifecycle COMMAND startup_lifecycle)
+    set_tests_properties(startup_lifecycle PROPERTIES TIMEOUT 30 WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/renderer-tests")
 endif()

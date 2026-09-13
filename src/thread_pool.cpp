@@ -2,7 +2,8 @@
 
 namespace big
 {
-	thread_pool::thread_pool() : m_accept_jobs(true)
+	thread_pool::thread_pool() :
+	    m_accept_jobs(true)
 	{
 		this->m_managing_thread = std::thread(&thread_pool::create, this);
 
@@ -11,6 +12,7 @@ namespace big
 
 	thread_pool::~thread_pool()
 	{
+		destroy();
 		g_thread_pool = nullptr;
 	}
 
@@ -27,7 +29,8 @@ namespace big
 
 	void thread_pool::destroy()
 	{
-		this->m_managing_thread.join();
+		if (this->m_managing_thread.joinable())
+			this->m_managing_thread.join();
 
 		{
 			std::unique_lock lock(m_lock);
@@ -36,7 +39,8 @@ namespace big
 		this->m_data_condition.notify_all();
 
 		for (auto& thread : m_thread_pool)
-			thread.join();
+			if (thread.joinable())
+				thread.join();
 
 		m_thread_pool.clear();
 	}
@@ -47,6 +51,8 @@ namespace big
 		{
 			{
 				std::unique_lock lock(this->m_lock);
+				if (!m_accept_jobs)
+					return;
 				this->m_job_stack.push(std::move(func));
 			}
 			this->m_data_condition.notify_all();
@@ -59,13 +65,14 @@ namespace big
 		{
 			std::unique_lock lock(this->m_lock);
 
-			this->m_data_condition.wait(lock, [this]()
-			{
+			this->m_data_condition.wait(lock, [this]() {
 				return !this->m_job_stack.empty() || !this->m_accept_jobs;
 			});
 
-			if (!this->m_accept_jobs) break;
-			if (this->m_job_stack.empty()) continue;
+			if (!this->m_accept_jobs)
+				break;
+			if (this->m_job_stack.empty())
+				continue;
 
 			std::function<void()> job = std::move(this->m_job_stack.top());
 			this->m_job_stack.pop();
@@ -77,7 +84,8 @@ namespace big
 			}
 			catch (const std::exception& e)
 			{
-				LOG(WARNING) << "Exception thrown while executing job in thread:" << std::endl << e.what();
+				LOG(WARNING) << "Exception thrown while executing job in thread:" << std::endl
+				             << e.what();
 			}
 		}
 

@@ -12,6 +12,7 @@ file(GLOB SRC_IMGUI
     "${imgui_SOURCE_DIR}/*.cpp"
     "${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp"
     "${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp"
     "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp"
 )
 
@@ -22,3 +23,6 @@ target_include_directories(imgui PRIVATE
     "${imgui_SOURCE_DIR}/backends"
     "${imgui_SOURCE_DIR}/misc/cpp"
 )
+
+target_link_libraries(imgui PRIVATE Vulkan::Headers)
+target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_NO_PROTOTYPES)

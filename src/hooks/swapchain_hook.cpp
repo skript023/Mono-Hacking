@@ -11,8 +11,8 @@ namespace big
 		{
 			if (g_running)
 			{
-				if ((g_renderer->m_init || g_renderer->init(this_)))
-					g_renderer->on_present();
+				if (!(flags & DXGI_PRESENT_TEST))
+                    g_renderer->on_present(this_);
 			}
 
 			return detour_base::get_original<hooks::swapchain_present>()(this_, sync_interval, flags);
@@ -25,17 +25,15 @@ namespace big
 	{
 		TRY_CLAUSE
 		{
-			if (g_running)
+			if (g_running && g_renderer->owns_dx11(this_))
 			{
 				g_renderer->pre_reset();
 
 				auto result = detour_base::get_original<hooks::swapchain_resizebuffers>()
 					(this_, buffer_count, width, height, new_format, swapchain_flags);
 
-				if (SUCCEEDED(result))
-				{
-					g_renderer->post_reset(this_);
-				}
+				// On failure the original backbuffer is still available.
+                g_renderer->post_reset(this_);
 
 				return result;
 			}
