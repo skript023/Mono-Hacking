@@ -103,21 +103,22 @@ namespace quantum_ui
 				action = c.activate;
 			break;
 		}
-		default:
-			ImGui::TextUnformatted(c.label.c_str());
-			if (ImGui::Button(c.kind == control_kind::submenu ? "Open page  >" : "Run action", {-1, 34}))
-				action = c.activate;
-			if (ImGui::IsItemHovered())
-				ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-			break;
-		}
-		if (!c.description.empty())
-		{
-			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-			ImGui::PushTextWrapPos(0);
-			ImGui::TextUnformatted(c.description.c_str());
-			ImGui::PopTextWrapPos();
-			ImGui::PopStyleColor();
+		case control_kind::submenu:
+        {
+            const std::string label = c.label + "  >";
+            if (ImGui::Button(label.c_str(), {-1, 42}))
+                action = c.activate;
+            if (ImGui::IsItemHovered())
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            break;
+        }
+        default:
+            ImGui::TextUnformatted(c.label.c_str());
+            if (ImGui::Button("Run action", {-1, 34}))
+                action = c.activate;
+            if (ImGui::IsItemHovered())
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            break;
 		}
 		if (c.draw_details)
 			c.draw_details();

@@ -154,6 +154,31 @@ namespace quantum_ui
 				ImGui::SetNextItemWidth(-1);
 				ImGui::InputTextWithHint("##search", "Search this page...", search_.data(), search_.size());
 				ImGui::Dummy({0, 10});
+				                bool has_submenus = false;
+                for (const auto& c : model.controls)
+                    has_submenus |= c.kind == control_kind::submenu;
+                if (has_submenus)
+                {
+                    ImGui::BeginGroup();
+                    for (std::size_t i = 0; i < model.controls.size(); ++i)
+                    {
+                        const auto& c = model.controls[i];
+                        if (c.kind != control_kind::submenu)
+                            continue;
+                        ImGui::PushID(c.id.c_str());
+                        if (i != 0)
+                            ImGui::SameLine(0, 8);
+                        if (ImGui::Button(c.label.c_str(), {ImGui::CalcTextSize(c.label.c_str()).x + 34.f, 34.f}))
+                        {
+                            if (c.activate && result.kind == event_kind::none)
+                                pending = c.activate;
+                            result = {event_kind::option, i};
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::EndGroup();
+                    ImGui::Dummy({0, 8});
+                }
 				ImGui::PushID(model.id.c_str());
 				if (ImGui::BeginChild("##options", {0, 0}, 0, ImGuiWindowFlags_NoBackground))
 				{
@@ -164,6 +189,8 @@ namespace quantum_ui
 						for (std::size_t i = 0; i < model.controls.size(); ++i)
 						{
 							const auto& c = model.controls[i];
+							if (c.kind == control_kind::submenu)
+							    continue;
 							if (!matches(c.label + " " + c.description, search_.data()))
 								continue;
 							++shown;
@@ -180,13 +207,15 @@ namespace quantum_ui
 								}
 							}
 							ImGui::EndChild();
+                            if (ImGui::IsItemHovered() && !c.description.empty())
+                                ImGui::SetTooltip("%s", c.description.c_str());
 							ImGui::PopStyleVar();
 							ImGui::Dummy({0, 4});
 							ImGui::PopID();
 						}
 						ImGui::EndTable();
 					}
-					if (!shown)
+					if (!shown && !has_submenus)
 						ImGui::TextDisabled(model.controls.empty() ? "No options on this page." : "No matching options.");
 				}
 				ImGui::EndChild();

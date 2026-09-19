@@ -60,7 +60,7 @@ namespace quantum_ui
 				text(label, tx + (tab_widths_[s] - ImGui::CalcTextSize(label.c_str()).x) * .5f, y + 14, color(a ? colors.selection_text : colors.text));
 				tx += tab_widths_[s];
 			}
-			draw->AddLine({x, y + 64}, {x + width, y + 64}, color(colors.accent), 2);
+			//draw->AddLine({x, y + 64}, {x + width, y + 64}, color(colors.accent), 2);
 			y += 45;
 		}
 		const auto total = model.controls.size(), selected = total ? std::min(model.selected_option, total - 1) : 0, visible = std::min(total, (std::size_t)std::max(1, settings.rows));
@@ -105,8 +105,9 @@ namespace quantum_ui
 			}
 			if (slider)
 			{
-				float l = x + width - 205, r = x + width - 125;
-				double mn = std::min(c.minimum, c.maximum), mx = std::max(c.minimum, c.maximum);
+				const float slider_width = std::clamp(width * 0.30f, 110.f, 180.f);
+                const float r = x + width - 58.f, l = r - slider_width;
+                double mn = std::min(c.minimum, c.maximum), mx = std::max(c.minimum, c.maximum);
 				float q = mx > mn ? float(std::clamp((c.value - mn) / (mx - mn), 0.0, 1.0)) : 0, kn = l + (r - l) * q;
 				draw->AddRectFilled({l, y + rh * .5f - 2}, {r, y + rh * .5f + 2}, color(colors.muted), 2);
 				draw->AddRectFilled({l, y + rh * .5f - 2}, {kn, y + rh * .5f + 2}, color(colors.accent), 2);
@@ -137,7 +138,8 @@ namespace quantum_ui
             const float panel_w = 300.f;
             const float panel_h = std::max(rh + 18.f, ImGui::CalcTextSize(model.controls[selected].description.c_str(), nullptr, false, panel_w - 28.f).y + 24.f);
             draw->AddRectFilled({panel_x, panel_y}, {panel_x + panel_w, panel_y + panel_h}, color(colors.panel));
-            draw->AddRect({panel_x, panel_y}, {panel_x + panel_w, panel_y + panel_h}, color(colors.muted), 4.f, 0, 1.f);
+            const float arrow_y = std::clamp(selected_row_y_ + rh * .5f, panel_y + 14.f, panel_y + panel_h - 14.f);
+            draw->AddTriangleFilled({panel_x, arrow_y - 13.f}, {panel_x - 16.f, arrow_y}, {panel_x, arrow_y + 13.f}, color(colors.panel));
             draw->AddText(ImGui::GetFont(), ImGui::GetFontSize(), {panel_x + 14, panel_y + 12}, color(colors.text), model.controls[selected].description.c_str(), nullptr, panel_w - 28.f);
         }
         y = top + height + 14.f;
