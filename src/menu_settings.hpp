@@ -7,7 +7,7 @@
 
 namespace big
 {
-	class menu_settings 
+	class menu_settings
 	{
 		nlohmann::json default_options;
 		nlohmann::json options;
@@ -64,12 +64,15 @@ namespace big
 		{
 			ImU32 color = 3357612055;
 			float gui_scale = 1.f;
+			float transparency = 1.f;
 
 			ImFont* font_title = nullptr;
 			ImFont* font_sub_title = nullptr;
 			ImFont* font_small = nullptr;
 			ImFont* font_icon = nullptr;
 
+			int layout = 0; // 0: List, 1: Window
+			int theme = 4; // Emerald, Violet, Ocean
 			bool switched_view = true;
 			bool mouse_active = false;
 			bool input = false;
@@ -131,8 +134,11 @@ namespace big
 
 
 			NLOHMANN_DEFINE_TYPE_INTRUSIVE(window,
+				layout,
+				theme,
 				color,
 				gui_scale,
+				transparency,
 				mouse_active,
 				censor,
 				overlay,

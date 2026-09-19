@@ -18,7 +18,7 @@ file(GLOB SRC_IMGUI
 
 add_library(imgui STATIC ${SRC_IMGUI} )
 source_group(TREE ${imgui_SOURCE_DIR} PREFIX "imgui" FILES ${SRC_IMGUI})
-target_include_directories(imgui PRIVATE
+target_include_directories(imgui PUBLIC
     "${imgui_SOURCE_DIR}"
     "${imgui_SOURCE_DIR}/backends"
     "${imgui_SOURCE_DIR}/misc/cpp"

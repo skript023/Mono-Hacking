@@ -6,6 +6,8 @@
 
 #include "abstract_submenu.hpp"
 #include "tabs_menu.hpp"
+#include <quantum_ui/menu.hpp>
+#include <quantum_ui/navigation.hpp>
 
 namespace big
 {
@@ -42,7 +44,8 @@ namespace big
 	class canvas
 	{
 		std::vector<std::unique_ptr<abstract_submenu>> m_all_tabs;
-		std::vector<std::vector<abstract_submenu*>> m_tab_submenu_stack;
+		quantum_ui::navigation<abstract_submenu*> m_navigation;
+		quantum_ui::menu m_menu_view;
 
 		static canvas& instance()
 		{
@@ -58,12 +61,15 @@ namespace big
 		static void add_submenu(TArgs&&... args) { instance().add_submenu_impl<SubmenuType>(std::forward<TArgs>(args)...); }
 		template <typename TabmenuType, typename... Args>
 		static void add_tab(Args&&... args) { instance().add_tab_impl<TabmenuType>(std::forward<Args>(args)...); }
-		static void set_bool_option(bool v) { instance().m_bool_option = v; }
-		static void set_bool_slider_float(bool v) { instance().m_bool_slider_float_option = v; }
-		static void set_bool_slider_int(bool v) { instance().m_bool_slider_int_option = v; }
+
+
+
 		static void switch_to_submenu(std::uint32_t id) { instance().switch_to_submenu_impl(id); }
 		static void switch_to_tabmenu(std::uint32_t id) { instance().switch_to_tabmenu_impl(id); }
 		static bool is_opened() { return instance().m_opened; }
+        static bool uses_mouse() { return is_opened() && instance().m_mouse_enabled.load(); }
+        static bool captures_game_input() { return is_opened() && instance().m_capture_game.load(); }
+        static bool captures_message(UINT msg);
 		static void draw_line(float x1, float y1, float x2, float y2, Color color, float thickness) { instance().draw_line_impl(x1, y1, x2, y2, color, thickness); }
 		static void draw_stroke_text(float x, float y, Color color, std::string_view str) { instance().draw_stroke_text_impl(x, y, color, str); }
 		static void draw_filled_rect(float x, float y, float w, float h, Color color) { instance().draw_filled_rect_impl(x, y, w, h, color); }
@@ -91,10 +97,7 @@ namespace big
 		void add_submenu_impl(TArgs&&... args)
 		{
 			auto sub = std::make_unique<SubmenuType>(std::forward<TArgs>(args)...);
-			if (m_submenu_stack.empty())
-			{
-				m_submenu_stack.push(sub.get());
-			}
+			m_navigation.set_root(sub.get());
 
 			m_all_submenu.push_back(std::move(sub));
 		}
@@ -103,19 +106,10 @@ namespace big
 		void add_tab_impl(Args&&... args)
 		{
 			auto tab = std::make_unique<TabmenuType>(std::forward<Args>(args)...);
-
-			if (m_submenu_stack.empty())
-			{
-				m_submenu_stack.push(tab.get());
-			}
 			// register tab
 			m_all_tabs.push_back(std::move(tab));
 
-			// buat stack submenu default utk tab ini
-			m_tab_submenu_stack.emplace_back();
-			m_tab_submenu_stack.back().push_back(
-			    m_all_tabs.back().get() // root submenu = tab itself
-			);
+			m_navigation.add_tab(m_all_tabs.back().get());
 		}
 
 		void switch_to_submenu_impl(std::uint32_t id)
@@ -124,13 +118,7 @@ namespace big
 			{
 				if (sub->get_id() == id)
 				{
-					// push ke stack TAB AKTIF
-					m_tab_submenu_stack[m_selected_tab].push_back(sub.get());
-
-					// sync global draw stack
-					m_submenu_stack.pop();
-					for (auto* s : m_tab_submenu_stack[m_selected_tab])
-						m_submenu_stack.push(s);
+					m_navigation.push(sub.get());
 
 					return;
 				}
@@ -143,16 +131,16 @@ namespace big
 			{
 				if (m_all_tabs[i]->get_id() == id)
 				{
-					m_selected_tab = i;
-
-					// restore submenu stack milik tab ini
-					m_submenu_stack.pop();
-					for (auto* sub : m_tab_submenu_stack[i])
-						m_submenu_stack.push(sub);
+					m_navigation.select_tab(i);
 
 					return;
 				}
 			}
+		}
+
+		const std::vector<abstract_submenu*>& active_history() const
+		{
+			return m_navigation.path();
 		}
 
 		void tick_impl();
@@ -174,55 +162,18 @@ namespace big
 	public:
 		std::mutex m_mutex;
 
-		bool m_opened = true;
-		bool m_bool_option = false;
-		bool m_bool_slider_int_option = false;
-		bool m_bool_slider_float_option = false;
+		std::atomic_bool m_opened{true};
+        std::atomic_bool m_mouse_enabled{false};
+        std::atomic_bool m_capture_game{false};
 
-		// Offsets
-		Vector2 m_padding = { 7.f, 11.f };
-
-		// Header
-		float m_header_height = 100.f;
-		Color m_header_background_color{ 255, 255, 255, 255 };
-
-		// Submenu bar
-		float m_submenu_bar_height = 45.f;
-
-		// Tabbar
-		size_t m_selected_tab{ 0 };
-		
-
-		// Options
-		float m_option_height = 45.f;
-		float m_submenu_rect_width = 10.f;
-
-		// Smooth Scrolling
-		float lerp(float a, float b, float t)
-		{
-			return a + t * (b - a);
-		}
-
-		//Scrollbar
-		float m_scrollbar_height = 100.f;
-
-		float m_current_coord = g_settings.window.m_pos.y;
-		float m_current_tab_coord = g_settings.window.m_pos.y;
-
-		// Footer
-		float m_footer_height = 45.f;
-
-		// Description
-		float description_height_padding = 10.f;
-		float description_height = 40.f;
-		
-		float description_padding = 21.f;
-		Color description_sprite_color{ 255, 255, 255, 255 };
+        float m_header_height = 100.f;
+        float m_option_height = 45.f;
 
 		void check_for_input_impl();
 		void handle_input_impl();
 	private:
 		bool m_open_key_pressed = false;
+		bool m_open_was_down = false;
 		bool m_back_key_pressed = false;
 		bool m_enter_key_pressed = false;
 		bool m_up_key_pressed = false;
@@ -233,17 +184,6 @@ namespace big
 		bool m_right_tab_pressed = false;
 		void reset_input();
 
-		float m_draw_base_y{};
-		void draw_header();
-		void draw_tabs(abstract_submenu* sub);
-		void draw_submenu_bar(abstract_submenu* sub);
-		void draw_option(abstract_submenu* sub, abstract_option* opt, bool selected);
-		void draw_slider(float x, float y, float current_value, float min_value, float max_value);
-		void draw_scrollbar(int selected_option, int total_options, int options_per_page);
-		void draw_checkbox(float x, float y, float size, bool is_checked);
-		void draw_footer();
-		void draw_description();
-		void draw_side_panel_window(const char* id, float x, float y, float width, float height, std::function<void()> content);
 		void draw_rect(float x, float y, float width, float height, Color color, ImDrawList* draw_list = ImGui::GetBackgroundDrawList());
 		void draw_sprite(ImTextureID image, float x, float y, float width, float height, Color color, ImDrawList* drawlist = ImGui::GetBackgroundDrawList());
 		void draw_sprite(D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle, float x, float y, float width, float height, Color color, ImDrawList* drawlist = ImGui::GetBackgroundDrawList());
@@ -257,6 +197,6 @@ namespace big
 		void play_sound(const char* name);
 
 		std::vector<std::unique_ptr<abstract_submenu>> m_all_submenu;
-		std::stack<abstract_submenu*, std::vector<abstract_submenu*>> m_submenu_stack;
+
 	};
 }

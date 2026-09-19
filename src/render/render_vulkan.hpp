@@ -1,5 +1,12 @@
 #pragma once
+
+#ifdef RENDERER_SMOKE_TEST
+#include "renderer_test_common.hpp"
+#else
+#include "common.hpp"
+#endif
 #include "render_backend.hpp"
+
 namespace big
 {
 	// Capture supports startup and existing devices through dummy-device hooks.

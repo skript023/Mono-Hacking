@@ -1,4 +1,4 @@
-﻿#include "canvas.hpp"
+#include "canvas.hpp"
 #include "renderer.hpp"
 #include "pointers.hpp"
 #include "fonts/icon_list.hpp"
@@ -7,61 +7,88 @@
 
 namespace big
 {
-	void canvas::tick_impl()
-	{
-		std::lock_guard lock(m_mutex);
 
-		if (m_opened)
-		{
-			m_draw_base_y = g_settings.window.m_pos.y;
-			draw_header();
-			if (!m_submenu_stack.empty())
-			{
-				auto sub = m_submenu_stack.top();
-				sub->reset();
-				sub->execute();
+    void canvas::tick_impl()
+    {
+        std::lock_guard lock(m_mutex);
+        check_for_input_impl();
+        handle_input_impl();
+        m_mouse_enabled = g_settings.window.layout == 1 || g_settings.window.mouse_active;
+        m_capture_game = m_opened && g_settings.window.layout == 1 &&
+            (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard);
+        if (!m_opened || active_history().empty()) return;
 
-				if (!m_all_tabs.empty()) draw_tabs(sub);
+        auto* sub = active_history().back();
+        sub->reset();
+        sub->execute();
+        quantum_ui::page page;
+        page.id = std::to_string(sub->get_id());
+        page.title = sub->get_name();
+        page.selected_tab = m_navigation.selected_tab();
+        page.selected_option = sub->get_selected_option();
+        for (auto& tab : m_all_tabs) page.tabs.emplace_back(tab->get_name());
+        for (auto* parent : active_history()) page.breadcrumbs.emplace_back(parent->get_name());
+        for (std::size_t i = 0; i < sub->get_num_option(); ++i)
+        {
+            auto* opt = sub->get_option(i);
+            if (!opt) continue;
+            auto c = opt->describe_ui();
+            // Label plus occurrence disambiguates duplicate rows without pointer IDs.
+            c.id = c.label + "##" + std::to_string(i);
+            if (opt->get_flag(OptionFlag::SidePanel))
+                c.draw_details = [opt] { opt->draw_side_panel(); };
+            page.controls.push_back(std::move(c));
+        }
+        quantum_ui::set_srgb_output(false);
+        auto theme = quantum_ui::preset_theme(g_settings.window.theme);
+        const float ui_alpha = std::clamp(g_settings.window.transparency, 0.15f, 1.f);
+        theme.background.w *= ui_alpha;
+        theme.panel.w *= ui_alpha;
+        theme.field.w *= ui_alpha;
+        theme.accent.w *= ui_alpha;
+        if (g_settings.window.theme == 3)
+        {
+            const auto& accent = g_settings.window.m_tab_selected_color;
+            theme.accent = {accent.r / 255.f, accent.g / 255.f, accent.b / 255.f, 1.f};
+        }
+        quantum_ui::event event;
+        if (g_settings.window.layout == 1)
+            {
+            bool open = m_opened;
+            event = m_menu_view.draw_window(GAME_NAME "###quantum_menu", page, open, theme);
+            m_opened = open;
+        }
+        else
+        {
+            quantum_ui::list_style style;
+            style.position = {g_settings.window.m_pos.x, g_settings.window.m_pos.y};
+            style.width = g_settings.window.m_width;
+            style.rows = static_cast<int>(g_settings.window.m_option_per_page);
+            style.banner = (ImTextureID)g_gui.m_header;
+            style.banner_height = m_header_height;
+            style.row_height = m_option_height;
+            style.footer = "Astra | Build 1.0.0";
+            m_menu_view.draw_list(page, theme, style);
+        }
+        switch (event.kind)
+        {
+        case quantum_ui::event_kind::tab: m_navigation.select_tab(event.index); break;
+        case quantum_ui::event_kind::back: m_navigation.back(); break;
+        case quantum_ui::event_kind::breadcrumb: m_navigation.to_depth(event.index); break;
+        case quantum_ui::event_kind::option: sub->set_selected_option(event.index); break;
+        default: break;
+        }
+    }
 
-				if (sub->get_num_option() != 0)
-				{
-					draw_rect(
-						g_settings.window.m_pos.x,
-						g_settings.window.m_pos.y + (m_all_tabs.empty() ? (m_header_height * 1.25f) : (m_header_height + (m_submenu_bar_height * 1.5f))),
-						g_settings.window.m_width,
-						m_option_height * (sub->get_num_option() > g_settings.window.m_option_per_page ? g_settings.window.m_option_per_page : sub->get_num_option()),
-						g_settings.window.m_option_unselected_background_color);
-
-					std::size_t startPoint = 0;
-					std::size_t endPoint = sub->get_num_option() > g_settings.window.m_option_per_page ? g_settings.window.m_option_per_page : sub->get_num_option();
-					if (sub->get_num_option() > g_settings.window.m_option_per_page && sub->get_selected_option() >= g_settings.window.m_option_per_page)
-					{
-						startPoint = sub->get_selected_option() - g_settings.window.m_option_per_page + 1;
-						endPoint = sub->get_selected_option() + 1;
-					}
-
-					for (std::size_t i = startPoint, j = 0; i < endPoint; ++i, ++j)
-					{
-						if (i == sub->get_selected_option())
-						{
-							m_current_coord = lerp(m_current_coord, m_draw_base_y + (m_option_height / 2.f), 0.2f);
-							draw_rect(
-								g_settings.window.m_pos.x,
-								m_current_coord,
-								g_settings.window.m_width,
-								m_option_height,
-								g_settings.window.m_option_selected_background_color);
-						}
-
-						draw_option(sub, sub->get_option(i), i == sub->get_selected_option());
-					}
-					draw_scrollbar(sub->get_selected_option(), sub->get_num_option(), g_settings.window.m_option_per_page);
-				}
-				draw_footer();
-				draw_description();
-			}
-		}
-	}
+    bool canvas::captures_message(UINT msg)
+    {
+        if (!uses_mouse() || !ImGui::GetCurrentContext()) return false;
+        const auto& io = ImGui::GetIO();
+        if (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST) return io.WantCaptureMouse;
+        if (msg >= WM_KEYFIRST && msg <= WM_KEYLAST) return io.WantCaptureKeyboard;
+        if (msg == WM_INPUT) return io.WantCaptureMouse || io.WantCaptureKeyboard;
+        return false;
+    }
 
 	void canvas::game_tick()
 	{
@@ -76,7 +103,9 @@ namespace big
 	{
 		reset_input();
 
-		m_open_key_pressed = unity::is_key_pressed(g_settings.window.open_key) || unity::is_controller_pressed(XINPUT_GAMEPAD_BACK);
+		const bool open_down = unity::is_key_pressed(g_settings.window.open_key) || unity::is_controller_pressed(XINPUT_GAMEPAD_BACK);
+        m_open_key_pressed = open_down && !m_open_was_down;
+        m_open_was_down = open_down;
 		m_back_key_pressed = unity::is_key_pressed(g_settings.window.back_key) || unity::is_controller_pressed(XINPUT_GAMEPAD_B);
 		m_enter_key_pressed = unity::is_key_pressed(g_settings.window.enter_key) || unity::is_controller_pressed(XINPUT_GAMEPAD_A);
 		m_up_key_pressed = unity::is_key_pressed(g_settings.window.up_key) || unity::is_controller_pressed(XINPUT_GAMEPAD_DPAD_UP);
@@ -93,11 +122,13 @@ namespace big
 		openTimer.SetDelay(std::chrono::milliseconds(g_settings.window.m_open_delay));
 		if (m_open_key_pressed && openTimer.Update())
 		{
-			m_opened ^= true;
+			m_opened = !m_opened;
 
 			if (g_settings.window.m_sounds)
 				play_sound(m_opened ? "SELECT" : "BACK");
 		}
+
+		if (ImGui::GetIO().WantTextInput) return;
 
 		static Timer backTimer(0ms);
 		backTimer.SetDelay(std::chrono::milliseconds(g_settings.window.m_back_delay));
@@ -106,19 +137,20 @@ namespace big
 			if (g_settings.window.m_sounds)
 				play_sound("BACK");
 
-			if (m_submenu_stack.size() <= 1)
+			if (active_history().size() <= 1)
 			{
 				return;
 			}
 			else
 			{
-				m_submenu_stack.pop();
+				m_navigation.back();
 			}
+			return;
 		}
 
-		if (m_opened && !m_submenu_stack.empty())
+		if (m_opened && !active_history().empty())
 		{
-			auto sub = m_submenu_stack.top();
+			auto sub = active_history().back();
 
 			static Timer enterTimer(0ms);
 			enterTimer.SetDelay(std::chrono::milliseconds(g_settings.window.m_enter_delay));
@@ -129,6 +161,7 @@ namespace big
 
 				if (const auto opt = sub->get_option(sub->get_selected_option()))
 					opt->handle_action(OptionAction::EnterPress);
+				return;
 			}
 
 			static Timer upTimer(0ms);
@@ -176,23 +209,23 @@ namespace big
 			static Timer tabSwitchTimer(0ms);
 			tabSwitchTimer.SetDelay(std::chrono::milliseconds(g_settings.window.m_tabbar_switch)); // Delay between switches
 
-			if (m_right_tab_pressed && tabSwitchTimer.Update())
+			if (!m_all_tabs.empty() && m_right_tab_pressed && tabSwitchTimer.Update())
 			{
-				if (m_selected_tab < m_all_tabs.size() - 1)
+				if (m_navigation.selected_tab() < m_all_tabs.size() - 1)
 				{
-					m_selected_tab += 1;
 
-					switch_to_tabmenu(m_all_tabs[m_selected_tab]->get_id());
+
+					switch_to_tabmenu(m_all_tabs[m_navigation.selected_tab() + 1]->get_id());
 				}
 			}
 
-			if (m_left_tab_pressed && tabSwitchTimer.Update())
+			if (!m_all_tabs.empty() && m_left_tab_pressed && tabSwitchTimer.Update())
 			{
-				if (m_selected_tab > 0)
+				if (m_navigation.selected_tab() > 0)
 				{
-					m_selected_tab -= 1;
 
-					switch_to_tabmenu(m_all_tabs[m_selected_tab]->get_id());
+
+					switch_to_tabmenu(m_all_tabs[m_navigation.selected_tab() - 1]->get_id());
 				}
 			}
 		}
@@ -207,434 +240,7 @@ namespace big
 		m_down_key_pressed = false;
 		m_left_key_pressed = false;
 		m_right_key_pressed = false;
-	}
-
-	void canvas::draw_header()
-	{
-		draw_sprite(
-			g_gui.m_header,
-			g_settings.window.m_pos.x,
-			m_draw_base_y + (m_submenu_bar_height / 2.f) - 5.f,
-			g_settings.window.m_width,
-			m_header_height,
-			m_header_background_color);
-
-		if (m_all_tabs.empty())
-		{
-			float line_y = m_draw_base_y + m_header_height;
-			draw_rect(g_settings.window.m_pos.x, line_y + 19.f, g_settings.window.m_width, 2.0f, Color(255, 255, 255, 255));
-		}
-
-		m_draw_base_y += m_header_height;
-	}
-
-	void canvas::draw_tabs(abstract_submenu* sub)
-	{
-		const size_t total_tabs = m_all_tabs.size();
-		if (total_tabs == 0)
-			return;
-
-		const int max_visible_tabs = 3;
-		const float lerp_speed = 0.15f;
-
-		// =================================
-		// Calculate visible window
-		// =================================
-		static size_t start_index = 0;
-
-		if (total_tabs > max_visible_tabs)
-		{
-			if (m_selected_tab < start_index)
-				start_index = m_selected_tab;
-			else if (m_selected_tab >= start_index + max_visible_tabs)
-				start_index = m_selected_tab - (max_visible_tabs - 1);
-
-			if (start_index + max_visible_tabs > total_tabs)
-				start_index = total_tabs - max_visible_tabs;
-		}
-		else
-		{
-			start_index = 0;
-		}
-
-		const size_t end_index =
-		    std::min(start_index + max_visible_tabs, total_tabs);
-
-		const size_t visible_count = end_index - start_index;
-
-		// =================================
-		// Layout (ALWAYS 3 slots)
-		// =================================
-		const float total_width = g_settings.window.m_width;
-		const float base_width = total_width / max_visible_tabs;
-
-		const float selected_width_target = base_width * 1.4f;
-		const float normal_width_target =
-		    (total_width - selected_width_target) / (max_visible_tabs - 1);
-
-		// =================================
-		// Animation state (per visible slot)
-		// =================================
-		static std::vector<float> anim_w;
-		if (anim_w.size() != visible_count)
-			anim_w.assign(visible_count, base_width);
-
-		// =================================
-		// Draw tabs
-		// =================================
-		float x = g_settings.window.m_pos.x;
-		float y = m_draw_base_y + (m_submenu_bar_height / 2) - 5.f;
-
-		for (size_t v = 0; v < visible_count; ++v)
-		{
-			const size_t i = start_index + v;
-			const bool is_selected = (i == m_selected_tab);
-
-			const float target_w =
-			    is_selected ? selected_width_target : normal_width_target;
-
-			anim_w[v] = lerp(anim_w[v], target_w, lerp_speed);
-
-			draw_rect(
-			    x,
-			    y,
-			    anim_w[v],
-			    m_submenu_bar_height,
-			    is_selected ? g_settings.window.m_tab_selected_color : g_settings.window.m_tab_unselected_color);
-
-			const char* title =
-			    (is_selected && sub != nullptr) ? sub->get_name() : m_all_tabs[i]->get_name();
-
-			draw_centered_text(
-			    title,
-			    x + anim_w[v] / 2.f,
-			    m_draw_base_y + (m_submenu_bar_height / 2) + 11.f,
-			    is_selected ? g_settings.window.m_tab_selected_text_color : g_settings.window.m_tab_unselected_text_color,
-			    g_renderer->m_font);
-
-			x += anim_w[v];
-		}
-
-		// =================================
-		// Bottom separator
-		// =================================
-		draw_rect(
-		    g_settings.window.m_pos.x,
-		    m_draw_base_y + m_submenu_bar_height + 19.f,
-		    total_width,
-		    2.f,
-		    Color(255, 255, 255, 255));
-
-		m_draw_base_y += m_submenu_bar_height;
-	}
-
-	void canvas::draw_submenu_bar(abstract_submenu* sub)
-	{
-		char leftText[64] = {};
-		std::strncpy(&leftText[0], sub->get_name(), sizeof(leftText) - 1);
-		std::transform(std::begin(leftText), std::end(leftText), std::begin(leftText), [](char c) { return static_cast<char>(toupper(c)); });
-
-		char centerText[64] = {};
-		std::strncpy(&centerText[0], "Ellohim", sizeof(centerText) - 1);
-		std::transform(std::begin(centerText), std::end(centerText), std::begin(centerText), [](char c) { return static_cast<char>(toupper(c)); });
-
-		char rightText[32] = {};
-		std::snprintf(rightText, sizeof(rightText) - 1, "%zu / %zu", sub->get_selected_option() + 1, sub->get_num_option());
-
-		draw_rect(
-			g_settings.window.m_pos.x,
-			m_draw_base_y + (m_submenu_bar_height / 2.f),
-			g_settings.window.m_width, m_submenu_bar_height,
-			g_settings.window.m_submenu_bar_background_color);
-		draw_left_text(
-			&leftText[0],
-			g_settings.window.m_pos.x + m_padding.x,
-			m_draw_base_y + (m_submenu_bar_height / 2.f) + m_padding.y,
-			g_settings.window.m_submenu_bar_text_color,
-			g_renderer->m_font);
-		draw_centered_text(
-			&centerText[0],
-			g_settings.window.m_pos.x + (g_settings.window.m_width / 2.f),
-			m_draw_base_y + (m_submenu_bar_height / 2.f) + m_padding.y,
-			g_settings.window.m_submenu_bar_text_color,
-			g_renderer->m_font);
-		draw_right_text(
-			&rightText[0],
-			g_settings.window.m_pos.x + (g_settings.window.m_width - m_padding.x),
-			m_draw_base_y + (m_submenu_bar_height / 2.f) + m_padding.y,
-			g_settings.window.m_submenu_bar_text_color,
-			g_renderer->m_font);
-
-		m_draw_base_y += m_submenu_bar_height;
-	}
-
-	void canvas::draw_option(abstract_submenu* sub, abstract_option* opt, bool selected)
-	{
-		if (opt->get_flag(OptionFlag::BoolSliderInt))
-		{
-			draw_checkbox(
-				g_settings.window.m_pos.x + m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
-				30.f,
-				m_bool_slider_int_option
-			);
-		}
-		
-		if (opt->get_flag(OptionFlag::BoolSliderFloat))
-		{
-			draw_checkbox(
-				g_settings.window.m_pos.x + m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
-				30.f,
-				m_bool_slider_float_option
-			);
-		}
-
-		if (opt->get_flag(OptionFlag::Toggle))
-		{
-			draw_checkbox(
-				g_settings.window.m_pos.x + m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y / 2.f),
-				30.f,
-				m_bool_option
-			);
-		}
-
-		auto is_toggle = opt->get_flag(OptionFlag::Toggle) || opt->get_flag(OptionFlag::BoolSliderFloat) || opt->get_flag(OptionFlag::BoolSliderInt);
-
-		draw_left_text(
-			opt->get_left_text(),
-			g_settings.window.m_pos.x + m_padding.x + (is_toggle ? 45.f : 0),
-			m_draw_base_y + (m_option_height / 2.f) + m_padding.y,
-			selected ? g_settings.window.m_option_selected_text_color : g_settings.window.m_option_unselected_text_color,
-			g_renderer->m_font);
-		draw_right_text(
-			opt->get_right_text(),
-			g_settings.window.m_pos.x + (g_settings.window.m_width - m_padding.x),
-			m_draw_base_y + (m_option_height / 2.f) + m_padding.y,
-			selected ? g_settings.window.m_option_selected_text_color : g_settings.window.m_option_unselected_text_color,
-			g_renderer->m_font);
-
-		if (opt->get_flag(OptionFlag::Enterable))
-		{
-			draw_right_text(
-				">>",
-				g_settings.window.m_pos.x + (g_settings.window.m_width - m_padding.x),
-				m_draw_base_y + (m_option_height / 2.f) + m_padding.y,
-				selected ? g_settings.window.m_option_selected_text_color : g_settings.window.m_option_unselected_text_color,
-				g_renderer->m_font);
-		}
-
-		if (opt->get_flag(OptionFlag::BoolSliderInt))
-		{
-			draw_slider(
-				g_settings.window.m_pos.x + (g_settings.window.m_width * 0.45f) - m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y + 4.f),
-				opt->get_integer(), 
-				opt->get_min_integer(), 
-				opt->get_max_integer());
-		}
-		
-		if (opt->get_flag(OptionFlag::BoolSliderFloat))
-		{
-			draw_slider(
-				g_settings.window.m_pos.x + (g_settings.window.m_width * 0.45f) - m_padding.x,
-				m_draw_base_y + (m_option_height / 2.f) + (m_padding.y + 4.f),
-				opt->get_float(), 
-				opt->get_min_float(), 
-				opt->get_max_float());
-		}
-
-		if (opt->get_flag(OptionFlag::SidePanel))
-		{
-			draw_side_panel_window(sub->get_name(), g_settings.window.m_width + (g_settings.window.m_pos.x + 30.f), 
-				m_draw_base_y + (m_submenu_bar_height / 2.f) - 5.f, 
-				g_settings.window.m_width, m_option_height * (sub->get_num_option() > g_settings.window.m_option_per_page ? g_settings.window.m_option_per_page : sub->get_num_option()), 
-				[=] {
-				opt->draw_side_panel();
-			});
-		}
-
-		m_draw_base_y += m_option_height;
-	}
-
-	void canvas::draw_slider(float x, float y, float current_value, float min_value, float max_value)
-	{
-		const float slider_width = g_settings.window.m_width * 0.55f;
-		const float slider_height = 10.f;
-		const float knob_size = 10.0f;
-
-		// Normalized (0..1)
-		float normalized_value = (current_value - min_value) / (max_value - min_value);
-		normalized_value = std::clamp(normalized_value, 0.0f, 1.0f);
-
-		float filled_width = normalized_value * slider_width;
-
-		// --- choose colors ---
-		auto track_color = g_settings.window.m_slider_track_color;
-		auto knob_color = g_settings.window.m_slider_knob_color;
-
-		// Draw track
-		draw_rect(x, y, slider_width, slider_height, track_color);
-
-		// Draw filled region
-		draw_rect(x, y, filled_width, slider_height, knob_color);
-
-		// ---- TEXT ----
-		// Center of slider
-		float text_center_x = x + slider_width * 0.5f;
-		float text_center_y = y - 2.5f;
-
-		float knob_x = x + filled_width - knob_size;
-		if (knob_x < x)
-			knob_x = x;
-		float knob_center_x = knob_x + knob_size * 0.5f;
-
-		// Format number (float with 2 decimals, but change if you want)
-		char textbuf[32];
-		snprintf(textbuf, sizeof(textbuf), "%.2f", current_value);
-
-		// If slider is full and black → use white text
-		Color text_color =
-		    (knob_center_x >= text_center_x) ? track_color : knob_color;
-
-		draw_centered_text(textbuf, text_center_x, text_center_y, text_color, g_renderer->m_monospace_font);
-	}
-
-	void canvas::draw_scrollbar(int selected_option, int total_options, int options_per_page)
-	{
-		if (total_options > options_per_page)
-		{
-			const float content_height = m_option_height * options_per_page;
-			const float scrollbar_height = (float)options_per_page / total_options * m_scrollbar_height;
-			const float scrollbar_position = (float)selected_option / total_options * content_height;
-
-			draw_rect(
-				g_settings.window.m_pos.x + (g_settings.window.m_width - m_submenu_rect_width) + 20.f, // X position of scrollbar
-				g_settings.window.m_pos.y + m_header_height + (m_option_height * 1.5f) + scrollbar_position,                // Y position of scrollbar
-				m_submenu_rect_width,                              // Width of scrollbar
-				scrollbar_height,                                  // Height of scrollbar
-				g_settings.window.m_submenu_rect_color,                              // Color of scrollbar
-				ImGui::GetForegroundDrawList()
-			);
-		}
-	}
-
-	void canvas::draw_checkbox(float x, float y, float size, bool is_checked)
-	{
-		const float border_thickness = 1.0f; // Thickness of the white border
-
-		if (!is_checked)
-		{
-			// Draw the border using lines
-			draw_line_impl(x, y, x + size, y, g_settings.window.m_toggle_on_color, border_thickness);                 // Top border
-			draw_line_impl(x, y, x, y + size, g_settings.window.m_toggle_on_color, border_thickness);                 // Left border
-			draw_line_impl(x + size, y, x + size, y + size, g_settings.window.m_toggle_on_color, border_thickness);   // Right border
-			draw_line_impl(x, y + size, x + size, y + size, g_settings.window.m_toggle_on_color, border_thickness);   // Bottom border
-		}
-
-		if (is_checked)
-		{
-			// Draw the inner checkbox background with alpha blending
-			draw_rect(
-				x + border_thickness,              // X position (inside the border)
-				y + border_thickness,              // Y position (inside the border)
-				size - (2 * border_thickness),     // Width (inside the border)
-				size - (2 * border_thickness),     // Height (inside the border)
-				g_settings.window.m_toggle_on_color         // Color of the checkbox background (with alpha)
-			);
-		}
-	}
-
-	void canvas::draw_footer()
-	{
-		// Calculate the position for the line (just above the footer)
-		float line_y = m_draw_base_y + (m_footer_height / 2.f);  // Adjust the offset (2.0f) for the thickness of the line
-
-		// Draw the line on top of the footer
-		draw_rect(
-			g_settings.window.m_pos.x,       // x position (same as the footer)
-			line_y,        // y position (right above the footer)
-			g_settings.window.m_width,       // line width (same as the footer width)
-			2.0f,          // line height (adjust thickness if needed)
-			Color(255, 255, 255, 255)); // You can define a separate color for the line
-
-		draw_rect(
-			g_settings.window.m_pos.x,
-			m_draw_base_y + (m_footer_height / 2.f) + 2.f,
-			g_settings.window.m_width,
-			m_footer_height,
-			g_settings.window.m_footer_background_color);
-
-		draw_left_text(GAME_NAME, g_settings.window.m_pos.x + m_padding.x, m_draw_base_y + (m_footer_height / 2.f) + m_padding.y, Color(255, 255, 255, 255), g_renderer->m_font);
-		draw_right_text("1.0", g_settings.window.m_pos.x + (g_settings.window.m_width - m_padding.x), m_draw_base_y + (m_footer_height / 2.f) + m_padding.y, Color(255, 255, 255, 255), g_renderer->m_font);
-
-		m_draw_base_y += m_footer_height;
-	}
-
-	void canvas::draw_description()
-	{
-		const char* description{};
-
-		if (!m_submenu_stack.empty())
-		{
-			auto sub = m_submenu_stack.top();
-			if (sub->get_num_option())
-			{
-				if (auto opt = sub->get_option(sub->get_selected_option()))
-				{
-					description = opt->get_description();
-				}
-			}
-		}
-
-		if (!description || !*description)
-			return;
-
-		m_draw_base_y += description_height_padding;
-
-		draw_rect(
-			g_settings.window.m_pos.x,
-			m_draw_base_y + (description_height / 2.f),
-			g_settings.window.m_width,
-			description_height,
-			g_settings.window.description_background_color);
-
-		draw_left_text(
-			std::format("{}   {}", ICON_FA_INFO_CIRCLE, description).c_str(),
-			g_settings.window.m_pos.x + m_padding.x,
-			m_draw_base_y + (description_height / 2.f) + description_height_padding,
-			g_settings.window.description_text_color, g_renderer->m_font);
-
-		m_draw_base_y += description_height;
-	}
-
-	void canvas::draw_side_panel_window(const char* id, float x, float y, float width, float height, std::function<void()> content)
-	{
-		ImVec2 pos{x, y};
-
-		ImGui::SetNextWindowPos(pos);
-
-		// WIDTH fixed, HEIGHT auto
-		ImGui::SetNextWindowSize({width, height}, ImGuiCond_Always);
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {10.f, 10.f});
-
-		auto bgcol = g_settings.window.m_option_unselected_background_color;
-
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(bgcol.r, bgcol.g, bgcol.b, bgcol.a));
-		ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(bgcol.r, bgcol.g, bgcol.b, bgcol.a));
-
-		if (ImGui::Begin(id, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
-		{
-			content();
-		}
-
-		ImGui::End();
-
-		ImGui::PopStyleColor(2);
-		ImGui::PopStyleVar(2);
+        m_left_tab_pressed = m_right_tab_pressed = false;
 	}
 
 	void canvas::draw_rect(float x, float y, float width, float height, Color color, ImDrawList* draw_list)
@@ -706,7 +312,7 @@ namespace big
 
 		Vector2 sz = { (static_cast<float>(y) / static_cast<float>(x)) * size, size };
 
-		return sz; 
+		return sz;
 	}
 
 	ImRect canvas::get_rect(ImVec2 pos, ImVec2 size)
@@ -717,7 +323,7 @@ namespace big
 
 	void canvas::play_sound(const char* name)
 	{
-		
+
 	}
 
 	void canvas::draw_stroke_text_impl(float x, float y, Color color, std::string_view str)

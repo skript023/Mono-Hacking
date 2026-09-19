@@ -44,7 +44,7 @@ namespace big
 		bool begin_vulkan(render_backend* backend);
 		void finish_init();
 		void release_vulkan();
-		void draw_frame();
+		void draw_frame(ImVec2 framebuffer_size = {});
 		ImTextureID upload_rgba(const unsigned char* pixels, int width, int height);
 		void merge_icon_with_latest_font(float font_size, bool owned = false);
 		void wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);

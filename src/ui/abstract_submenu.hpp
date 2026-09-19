@@ -21,7 +21,7 @@ namespace big
 
 		void ScrollForward()
 		{
-			if (get_selected_option() < get_num_option() - 1)
+			if (get_num_option() != 0 && get_selected_option() < get_num_option() - 1)
 				set_selected_option(get_selected_option() + 1);
 			else
 				set_selected_option(0);
@@ -29,10 +29,12 @@ namespace big
 
 		void ScrollBackward()
 		{
-			if (get_selected_option() > 0)
+			if (get_num_option() == 0)
+				set_selected_option(0);
+			else if (get_selected_option() > 0 && get_selected_option() < get_num_option())
 				set_selected_option(get_selected_option() - 1);
 			else
-				set_selected_option(get_selected_option() - 1);
+				set_selected_option(get_num_option() - 1);
 		}
 	protected:
 		explicit abstract_submenu() = default;

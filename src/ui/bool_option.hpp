@@ -1,6 +1,5 @@
 #pragma once
 #include "base_option.hpp"
-#include "canvas.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
 
@@ -56,19 +55,18 @@ namespace big
 		}
 
 		bool get_flag(OptionFlag flag) override
-		{
-			if (flag == OptionFlag::Toggle)
-			{
-				if (m_command)
-					canvas::set_bool_option(m_command->get_state());
-				else
-					canvas::set_bool_option(*m_bool);
+        {
+            return flag == OptionFlag::Toggle || Base::get_flag(flag);
+        }
 
-				return true;
-			}
+        quantum_ui::control describe_ui() override
+        {
+            auto c = Base::describe_ui();
+            c.kind = quantum_ui::control_kind::toggle;
+            c.checked = m_command ? m_command->get_state() : (m_bool && *m_bool);
+            return c;
+        }
 
-			return Base::get_flag(flag);
-		}
 	private:
 		BoolType* m_bool;
 		bool_command* m_command{ nullptr };

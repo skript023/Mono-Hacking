@@ -1,5 +1,5 @@
 #pragma once
-#include "common.hpp"
+#include "renderer_test_common.hpp"
 #include "render_backend.hpp"
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>

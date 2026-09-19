@@ -1,4 +1,5 @@
 #pragma once
+#include <quantum_ui/model.hpp>
 enum class OptionAction
 {
 	LeftPress,
@@ -33,6 +34,16 @@ public:
 	virtual void handle_action(OptionAction action) = 0;
 	virtual bool get_flag(OptionFlag flag) = 0;
 	virtual void draw_side_panel() {};
+    virtual quantum_ui::control describe_ui()
+    {
+        quantum_ui::control c;
+        c.label = get_left_text();
+        c.description = get_description();
+        c.value_text = get_right_text();
+        if (get_flag(OptionFlag::Enterable)) c.kind = quantum_ui::control_kind::submenu;
+        c.activate = [this] { handle_action(OptionAction::EnterPress); };
+        return c;
+    }
 
 protected:
 	explicit abstract_option() = default;

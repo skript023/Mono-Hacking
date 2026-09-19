@@ -33,7 +33,7 @@ namespace big
 
 		abstract_option* get_option(std::size_t i) override
 		{
-			if (i > m_options.size())
+			if (i >= m_options.size())
 				return nullptr;
 			return m_options[i].get();
 		}

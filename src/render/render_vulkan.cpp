@@ -5,8 +5,6 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 #include <backends/imgui_impl_vulkan.h>
-#include <mutex>
-#include <unordered_map>
 
 namespace big
 {
@@ -232,21 +230,21 @@ namespace big
 			}
 
 			// Vulkan cannot query the creation description of an existing swapchain.
-			// HorseMenu starts with BGRA8 UNORM and the game window's size. Capture
+			// Use RGBA8 UNORM provisionally with the game window size. Capture
 			// CreateSwapchainKHR thereafter to replace this provisional description.
 			uint32_t count = 0;
 			auto get_formats = instance_function<PFN_vkGetPhysicalDeviceSurfaceFormatsKHR>("vkGetPhysicalDeviceSurfaceFormatsKHR");
 			check(get_formats(physical, probe_surface, &count, nullptr));
 			std::vector<VkSurfaceFormatKHR> formats(count);
 			check(get_formats(physical, probe_surface, &count, formats.data()));
-			bool supports_bgra = false;
+			bool supports_rgba = false;
 			for (const auto& format : formats)
-				supports_bgra |= format.format == VK_FORMAT_B8G8R8A8_UNORM || format.format == VK_FORMAT_UNDEFINED;
-			if (!supports_bgra)
-				throw std::runtime_error("Existing swapchain needs recreation: BGRA8 UNORM fallback is not supported");
+				supports_rgba |= format.format == VK_FORMAT_R8G8B8A8_UNORM || format.format == VK_FORMAT_UNDEFINED;
+			if (!supports_rgba)
+				throw std::runtime_error("Existing swapchain needs recreation: RGBA8 UNORM fallback is not supported");
 
-			swapchains[swapchain] = {g_renderer->m_window, VK_FORMAT_B8G8R8A8_UNORM, extent, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, false, true};
-			LOG(INFO) << "Late Vulkan attachment: using BGRA8 UNORM and current window size until swapchain recreation.";
+			swapchains[swapchain] = {g_renderer->m_window, VK_FORMAT_R8G8B8A8_UNORM, extent, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, false, true};
+			LOG(INFO) << "Late Vulkan attachment: using RGBA8 UNORM and current window size until swapchain recreation.";
 		}
 
 		uint32_t memory_type(uint32_t bits, VkMemoryPropertyFlags required)

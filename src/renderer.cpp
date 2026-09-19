@@ -125,15 +125,21 @@ namespace big
 	{
 		return m_backend ? m_backend->upload_rgba(pixels, width, height) : 0;
 	}
-	void renderer::draw_frame()
+	void renderer::draw_frame(ImVec2 framebuffer_size)
 	{
 		auto& io = ImGui::GetIO();
-		io.MouseDrawCursor = g_settings.window.mouse_active;
-		if (g_settings.window.mouse_active)
+		io.MouseDrawCursor = canvas::uses_mouse();
+		if (canvas::uses_mouse())
 			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
 		else
 			io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
 		ImGui_ImplWin32_NewFrame();
+		if (framebuffer_size.x > 0.f && framebuffer_size.y > 0.f)
+		{
+			if (io.DisplaySize.x <= 0.f || io.DisplaySize.y <= 0.f)
+			 io.DisplaySize = framebuffer_size;
+			io.DisplayFramebufferScale = {framebuffer_size.x / io.DisplaySize.x, framebuffer_size.y / io.DisplaySize.y};
+		}
 		ImGui::NewFrame();
 		for (const auto& cb : g_gui.m_dx_callbacks | std::views::values)
 			cb();
@@ -184,10 +190,9 @@ namespace big
 			g_running = false;
 		}
 
-		canvas::check_for_input();
-		canvas::handle_input();
 
-		if (m_init && canvas::is_opened())
+
+		if (m_init && ImGui::GetCurrentContext())
 		{
 			ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam);
 		}

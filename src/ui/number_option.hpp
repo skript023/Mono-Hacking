@@ -1,6 +1,5 @@
 #pragma once
 #include "base_option.hpp"
-#include "canvas.hpp"
 #include "utility/utility.hpp"
 #include "commands/commands.hpp"
 #include "commands/number_command.hpp"
@@ -140,6 +139,26 @@ namespace big
 
 			Base::handle_action(action);
 		}
+
+        quantum_ui::control describe_ui() override
+        {
+            auto c = Base::describe_ui();
+            c.kind = quantum_ui::control_kind::number;
+            c.value = m_command ? m_command->get_state() : (m_number ? *m_number : NumberType{});
+            c.minimum = m_min;
+            c.maximum = m_max;
+            c.step = m_step;
+            c.integral = std::is_integral_v<NumberType>;
+            c.precision = static_cast<int>(m_precision);
+            c.set_value = [this](double value) {
+                auto next = static_cast<NumberType>(quantum_ui::bounded_value(value, m_min, m_max, std::is_integral_v<NumberType>));
+                if (m_command) m_command->set_state(next);
+                else if (m_number) *m_number = next;
+                if (m_action_on_horizontal && Base::m_action) std::invoke(Base::m_action);
+            };
+            return c;
+        }
+
 	private:
 		char m_prefix[32] = {};
 		char m_suffix[32] = {};

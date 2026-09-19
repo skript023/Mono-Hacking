@@ -157,8 +157,7 @@ namespace big
 		{
 			//if (g_input_service.is_open()) g_input_service.hide();
 		}
-		canvas::check_for_input();
-		canvas::handle_input();
+
 	}
 
     void gui::load_textures()

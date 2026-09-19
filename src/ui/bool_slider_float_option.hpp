@@ -1,6 +1,5 @@
 #pragma once
 #include "base_option.hpp"
-#include "canvas.hpp"
 #include "fiber_pool.hpp"
 
 #include "commands/commands.hpp"
@@ -41,8 +40,8 @@ namespace big
 				return;
 			}
 
-			m_min = m_float_command->get_maximum();
-			m_max = m_float_command->get_minimum();
+			m_min = m_float_command->get_minimum();
+			m_max = m_float_command->get_maximum();
 
 			auto& description = m_bool_command->get_description();
 			auto& text = m_bool_command->get_label();
@@ -64,17 +63,17 @@ namespace big
 			if (m_float_command)
 				return m_float_command->get_state();
 
-			return 0.f;
+			return m_number ? *m_number : 0.f;
 		}
 
 		float get_min_float() override
 		{
-			return m_float_command->get_minimum();
+			return m_min;
 		}
 
 		float get_max_float() override
 		{
-			return m_float_command->get_maximum();
+			return m_max;
 		}
 
 		void handle_action(OptionAction action) override
@@ -141,21 +140,33 @@ namespace big
 		}
 
 		bool get_flag(OptionFlag flag) override
-		{
-			if (flag == OptionFlag::BoolSliderFloat)
-			{
-				if (m_bool_command)
-					canvas::set_bool_slider_float(m_bool_command->get_state());
-				else
-					canvas::set_bool_slider_float(*m_bool);
+        {
+            return flag == OptionFlag::BoolSliderFloat || Base::get_flag(flag);
+        }
 
-				return true;
-			}
+        quantum_ui::control describe_ui() override
+        {
+            auto c = Base::describe_ui();
+            c.kind = quantum_ui::control_kind::toggle_number;
+            c.checked = m_bool_command ? m_bool_command->get_state() : (m_bool && *m_bool);
+            c.value = m_float_command ? m_float_command->get_state() : (m_number ? *m_number : 0);
+            c.minimum = m_min;
+            c.maximum = m_max;
+            c.step = m_step;
+            c.integral = false;
+            c.precision = static_cast<int>(m_precision);
+            c.value_text = std::to_string(c.value);
+            c.set_value = [this](double value) {
+                auto next = static_cast<float>(quantum_ui::bounded_value(value, m_min, m_max, false));
+                if (m_float_command) m_float_command->set_state(next);
+                else if (m_number) *m_number = next;
+                if (m_action_on_horizontal && Base::m_action) std::invoke(Base::m_action);
+            };
+            return c;
+        }
 
-			return Base::get_flag(flag);
-		}
 	private:
-		bool* m_bool;
+		bool* m_bool{};
 		bool m_action_on_horizontal{};
 		float* m_number{};
 		float m_min{};

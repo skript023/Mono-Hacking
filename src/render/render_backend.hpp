@@ -1,5 +1,9 @@
 #pragma once
+#ifdef RENDERER_SMOKE_TEST
+#include "renderer_test_common.hpp"
+#else
 #include "common.hpp"
+#endif
 #include <imgui.h>
 namespace big
 {

@@ -41,8 +41,9 @@ namespace big
 		{
 			MemoryStringStream stream(Base::m_right_text);
 
-			if (m_data)
+			if (m_data && m_position && m_data_size > 0)
 			{
+				if (static_cast<std::size_t>(*m_position) >= static_cast<std::size_t>(m_data_size)) *m_position = 0;
 				stream << m_data[*m_position];
 				stream << " [" << *m_position + 1 << " / " << m_data_size << "]";
 			}
@@ -58,7 +59,7 @@ namespace big
 		{
 			if (action == OptionAction::LeftPress)
 			{
-				if (m_data)
+				if (m_data && m_position && m_data_size > 0)
 				{
 					if (*m_position > 0)
 						--(*m_position);
@@ -71,7 +72,7 @@ namespace big
 			}
 			else if (action == OptionAction::RightPress)
 			{
-				if (m_data)
+				if (m_data && m_position && m_data_size > 0)
 				{
 					if (*m_position < m_data_size - 1)
 						++(*m_position);
@@ -83,7 +84,7 @@ namespace big
 				}
 			}
 
-			if (m_data)
+			if (m_data && m_position && m_data_size > 0)
 				Base::handle_action(action);
 		}
 
@@ -92,6 +93,28 @@ namespace big
 		choose_option& operator=(choose_option const&) = default;
 		choose_option(choose_option&&) = default;
 		choose_option& operator=(choose_option&&) = default;
+
+        quantum_ui::control describe_ui() override
+        {
+            auto c = Base::describe_ui();
+            c.kind = quantum_ui::control_kind::choice;
+            if (m_action_on_horizontal) c.activate = {};
+            c.choice = m_position ? static_cast<int>(*m_position) : -1;
+            if (m_data)
+                for (std::size_t i = 0; i < static_cast<std::size_t>(m_data_size); ++i)
+                {
+                    std::ostringstream text;
+                    text << m_data[i];
+                    c.choices.push_back(text.str());
+                }
+            c.set_choice = [this](int index) {
+                if (!m_position || index < 0 || index >= static_cast<int>(m_data_size)) return;
+                *m_position = static_cast<PositionType>(index);
+                if (m_action_on_horizontal && Base::m_action) std::invoke(Base::m_action);
+            };
+            return c;
+        }
+
 	private:
 		const DataType* m_data{};
 		PositionType m_data_size{};
