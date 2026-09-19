@@ -65,6 +65,9 @@ namespace big
 			ImU32 color = 3357612055;
 			float gui_scale = 1.f;
 			float transparency = 1.f;
+			Color custom_background{ 8, 12, 20, 255 };
+			Color custom_panel{ 15, 24, 38, 255 };
+			Color custom_text{ 225, 235, 250, 255 };
 
 			ImFont* font_title = nullptr;
 			ImFont* font_sub_title = nullptr;
@@ -139,6 +142,9 @@ namespace big
 				color,
 				gui_scale,
 				transparency,
+				custom_background,
+				custom_panel,
+				custom_text,
 				mouse_active,
 				censor,
 				overlay,

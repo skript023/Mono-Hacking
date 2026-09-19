@@ -40,6 +40,27 @@ namespace big
             page.controls.push_back(std::move(c));
         }
         quantum_ui::set_srgb_output(false);
+        static int last_theme = -1;
+        if (last_theme != g_settings.window.theme)
+        {
+            m_menu_view.reset_theme();
+            last_theme = g_settings.window.theme;
+        }
+        std::uint64_t palette_key = static_cast<std::uint64_t>(g_settings.window.theme);
+        if (g_settings.window.theme == 3)
+        {
+            const auto& bg = g_settings.window.custom_background;
+            const auto& panel = g_settings.window.custom_panel;
+            const auto& text = g_settings.window.custom_text;
+            const auto& accent = g_settings.window.m_tab_selected_color;
+            palette_key = (palette_key << 32) ^ (static_cast<std::uint64_t>(bg.r) << 24) ^ (static_cast<std::uint64_t>(bg.g) << 16) ^ (static_cast<std::uint64_t>(bg.b) << 8) ^ (static_cast<std::uint64_t>(panel.r) << 4) ^ static_cast<std::uint64_t>(panel.g) ^ (static_cast<std::uint64_t>(panel.b) << 40) ^ (static_cast<std::uint64_t>(text.r) << 36) ^ (static_cast<std::uint64_t>(text.g) << 28) ^ (static_cast<std::uint64_t>(text.b) << 20) ^ (static_cast<std::uint64_t>(accent.r) << 12) ^ (static_cast<std::uint64_t>(accent.g) << 4) ^ static_cast<std::uint64_t>(accent.b);
+        }
+        static std::uint64_t last_palette = 0;
+        if (last_palette != palette_key)
+        {
+            m_menu_view.reset_theme();
+            last_palette = palette_key;
+        }
         auto theme = quantum_ui::preset_theme(g_settings.window.theme);
         const float ui_alpha = std::clamp(g_settings.window.transparency, 0.15f, 1.f);
         theme.background.w *= ui_alpha;
@@ -48,8 +69,16 @@ namespace big
         theme.accent.w *= ui_alpha;
         if (g_settings.window.theme == 3)
         {
+            const auto& bg = g_settings.window.custom_background;
+            const auto& panel = g_settings.window.custom_panel;
+            const auto& text = g_settings.window.custom_text;
             const auto& accent = g_settings.window.m_tab_selected_color;
-            theme.accent = {accent.r / 255.f, accent.g / 255.f, accent.b / 255.f, 1.f};
+            theme.background = {bg.r / 255.f, bg.g / 255.f, bg.b / 255.f, ui_alpha};
+            theme.panel = {panel.r / 255.f, panel.g / 255.f, panel.b / 255.f, ui_alpha};
+            theme.field = theme.panel;
+            theme.text = {text.r / 255.f, text.g / 255.f, text.b / 255.f, 1.f};
+            theme.muted = {theme.text.x, theme.text.y, theme.text.z, .65f};
+            theme.accent = {accent.r / 255.f, accent.g / 255.f, accent.b / 255.f, ui_alpha};
         }
         quantum_ui::event event;
         if (g_settings.window.layout == 1)

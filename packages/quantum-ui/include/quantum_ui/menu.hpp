@@ -30,5 +30,6 @@ namespace quantum_ui
 	public:
 		event draw_window(const char* id, const page& model, bool& open, const theme& colors);
 		event draw_list(const page& model, const theme& colors, const list_style& style);
+		void reset_theme();
 	};
 }

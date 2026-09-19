@@ -15,7 +15,16 @@ namespace big
 			sub->add_option<number_option<float>>("Transparency", "Opacity of the List and Window UI.", &g_settings.window.transparency, 0.15f, 1.f, 0.05f, 2);
 			sub->add_option<number_option<std::uint8_t>>("Accent Red", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.r, 0, 255);
 			sub->add_option<number_option<std::uint8_t>>("Accent Green", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.g, 0, 255);
-			sub->add_option<number_option<std::uint8_t>>("Accent Blue", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.b, 0, 255);
+					sub->add_option<number_option<std::uint8_t>>("Accent Blue", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.b, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Background R", "Custom theme background red channel.", &g_settings.window.custom_background.r, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Background G", "Custom theme background green channel.", &g_settings.window.custom_background.g, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Background B", "Custom theme background blue channel.", &g_settings.window.custom_background.b, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Panel R", "Custom theme panel red channel.", &g_settings.window.custom_panel.r, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Panel G", "Custom theme panel green channel.", &g_settings.window.custom_panel.g, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Panel B", "Custom theme panel blue channel.", &g_settings.window.custom_panel.b, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Text R", "Custom theme text red channel.", &g_settings.window.custom_text.r, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Text G", "Custom theme text green channel.", &g_settings.window.custom_text.g, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Custom Text B", "Custom theme text blue channel.", &g_settings.window.custom_text.b, 0, 255);
 			sub->add_option<sub_option>("Input", nullptr, SubmenuSettingsInput);
 			sub->add_option<number_option<float>>("List X Position", nullptr, &g_settings.window.m_pos.x, 0.f, 2000.f, 25.f, 2);
 			sub->add_option<number_option<float>>("List Y Position", nullptr, &g_settings.window.m_pos.y, 0.f, 2000.f, 25.f, 2);

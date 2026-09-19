@@ -20,7 +20,7 @@ add_library(quantum_ui_core INTERFACE)
 add_library(quantum_ui::core ALIAS quantum_ui_core)
 target_include_directories(quantum_ui_core INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(quantum_ui_core INTERFACE cxx_std_17)
-add_library(quantum_ui STATIC src/theme.cpp src/widgets.cpp src/window.cpp src/list.cpp)
+add_library(quantum_ui STATIC src/theme.cpp src/widgets.cpp src/window.cpp src/list.cpp src/menu.cpp)
 add_library(quantum_ui::ui ALIAS quantum_ui)
 target_link_libraries(quantum_ui PUBLIC quantum_ui_core ${QUANTUM_UI_IMGUI_TARGET})
 
