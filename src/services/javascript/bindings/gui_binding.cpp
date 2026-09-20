@@ -1,6 +1,6 @@
-﻿#include "gui_binding.hpp"
+#include "gui_binding.hpp"
 #include "menu/submenu.hpp"
-#include "ui/store_mgr.hpp"
+#include <astra/host/menu/store_mgr.hpp>
 
 #pragma warning(disable : 4244)
 namespace big

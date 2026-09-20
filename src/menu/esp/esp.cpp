@@ -1,6 +1,6 @@
 #include "esp.h"
 #include "pointers.hpp"
-#include "ui/canvas.hpp"
+#include "astra/host/canvas.hpp"
 #include "utility/unity.hpp"
 #include "features/features.hpp"
 #include "worker/entity_worker.hpp"

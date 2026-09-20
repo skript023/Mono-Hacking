@@ -1,5 +1,5 @@
 #include "hooking.hpp"
-#include "ui/canvas.hpp"
+#include "astra/host/canvas.hpp"
 
 #include "commands/float_command.hpp"
 #include "commands/bool_command.hpp"

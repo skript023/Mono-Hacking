@@ -39,7 +39,7 @@ include(scripts/g3log.cmake)
 message("\nFetching custom modules")
 include(scripts/vulkan.cmake)
 include(scripts/imgui.cmake)
-include(scripts/quantum_ui.cmake)
+include(scripts/astra.cmake)
 include(scripts/stbi.cmake)
 include(scripts/asio.cmake)
 include(scripts/websocket.cmake)
@@ -64,6 +64,7 @@ else ()
 endif ()
 
 add_library(Valheim MODULE "${SRC_MAIN}")
+target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/canvas.cpp")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET Valheim PROPERTY CXX_STANDARD 23) # 23 Because std::format is not avalible in std:c++20 for some reason. Maybe it's because i use v142 toolset.
@@ -86,7 +87,7 @@ target_include_directories(Valheim PRIVATE
 )
 
 target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(Valheim PRIVATE quantum_ui::ui Vulkan::Headers minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
+target_link_libraries(Valheim PRIVATE astra::ui Vulkan::Headers minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
 
 # Warnings as errors
 #set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)

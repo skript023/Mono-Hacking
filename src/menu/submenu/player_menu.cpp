@@ -95,9 +95,9 @@ namespace big
         
         canvas::add_submenu<regular_submenu>("World", "SubmenuWorld"_hash, [](regular_submenu* sub)
         {
-            sub->add_option<reguler_option>("tamed_all_deer"_hash);
-            sub->add_option<reguler_option>("tamed_all_boar"_hash);
-            sub->add_option<reguler_option>("tamed_all_wolf"_hash);
+            sub->add_option<reguler_option>("Tame All Deer", "Tame all deer in the world.", [] { commands::get_command<command>("tamed_all_deer"_hash)->call(); });
+            sub->add_option<reguler_option>("Tame All Boar", "Tame all boar in the world.", [] { commands::get_command<command>("tamed_all_boar"_hash)->call(); });
+            sub->add_option<reguler_option>("Tame All Wolves", "Tame all wolves in the world.", [] { commands::get_command<command>("tamed_all_wolf"_hash)->call(); });
             sub->add_option<reguler_option>("Explore Entire Map", "Reveal all fog of war on the minimap.", [] { unity::explore_all_map(); });
             sub->add_option<reguler_option>("Reset Map Fog", "Reset map exploration fog.", [] { unity::reset_map(); });
             sub->add_option<reguler_option>("Reveal All Bosses & Traders", "Pin all 7 boss altars and traders to the minimap.", [] { unity::discover_bosses_and_traders(); });

@@ -10,7 +10,7 @@
 #include "memory/pattern.hpp"
 
 #include <imgui.h>
-#include "ui/canvas.hpp"
+#include "astra/host/canvas.hpp"
 #include "javascript/bindings/gui_binding.hpp"
 
 #include "menu/view.hpp"

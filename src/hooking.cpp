@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include "function_types.hpp"
-#include "ui/canvas.hpp"
+#include "astra/host/canvas.hpp"
 #include "hooking.hpp"
 #include "memory/module.hpp"
 #include "pointers.hpp"
