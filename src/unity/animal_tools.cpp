@@ -1,127 +1,28 @@
 #include "animal_tools.hpp"
-#include "unity/character.hpp"
-#include "unity/player.hpp"
-#include "unity/localization.hpp"
-#include "utility/unity.hpp"
-#include "pointers.hpp"
-#include "notification/notification_service.hpp"
 #include "astra/host/canvas.hpp"
+#include "notification/notification_service.hpp"
+#include "pointers.hpp"
+#include "unity/character.hpp"
+#include "unity/localization.hpp"
+#include "unity/player.hpp"
+#include "unity/self.hpp"
+#include "utility/unity.hpp"
 
-#include <imgui.h>
-#include <mutex>
+#include <algorithm>
 #include <chrono>
 #include <format>
-#include <algorithm>
+#include <imgui.h>
+#include <mutex>
 
-namespace big::animal_tools
+namespace big
 {
 	namespace
 	{
-		options g_options;
+		animal_tools::options g_options;
 		std::mutex g_mutex;
-		creature_info g_snapshot;
+		animal_tools::creature_info g_snapshot;
 		std::chrono::steady_clock::time_point g_last_seen{};
 		constexpr auto HYSTERESIS_MS = std::chrono::milliseconds(500);
-
-		MonoClassField* find_field(MonoClass* klass, const char* name)
-		{
-			for (auto k = klass; k != nullptr; k = mono::class_get_parent(k))
-			{
-				if (auto f = mono::get_field(k, name))
-					return f;
-			}
-			return nullptr;
-		}
-
-		MonoMethod* find_method(MonoClass* klass, const char* name, int param_count = 0)
-		{
-			for (auto k = klass; k != nullptr; k = mono::class_get_parent(k))
-			{
-				if (auto m = mono::class_get_method_from_name(k, name, param_count))
-					return m;
-			}
-			return nullptr;
-		}
-
-		template<typename T>
-		T get_field_val(MonoObject* obj, const char* name)
-		{
-			T val{};
-			if (obj)
-			{
-				if (auto f = find_field(mono::object_get_class(obj), name))
-					mono::get_field_value(obj, f, &val);
-			}
-			return val;
-		}
-
-		MonoObject* call_method(MonoObject* obj, const char* name)
-		{
-			if (!obj)
-				return nullptr;
-			auto m = find_method(mono::object_get_class(obj), name, 0);
-			return m ? mono::invoke_method(m, obj, nullptr) : nullptr;
-		}
-
-		template<typename T>
-		T call_value(MonoObject* obj, const char* name)
-		{
-			auto res = call_method(obj, name);
-			return res ? *static_cast<T*>(mono::object_unbox(res)) : T{};
-		}
-
-		MonoObject* get_component(MonoObject* obj, const char* class_name)
-		{
-			if (!obj)
-				return nullptr;
-			auto klass = mono::get_class(class_name, "assembly_valheim");
-			if (!klass)
-				return nullptr;
-			auto type = mono::reflection_type(klass);
-			if (!type)
-				return nullptr;
-
-			static auto comp_method = mono::get_method_overload("Component", "GetComponent", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
-			if (comp_method)
-			{
-				void* args[] = {type};
-				return mono::invoke_method(comp_method, obj, args);
-			}
-			return nullptr;
-		}
-
-		std::string get_creature_name(MonoObject* creature)
-		{
-			if (!creature)
-				return "Unknown";
-
-			auto m = find_method(mono::object_get_class(creature), "GetHoverName", 0);
-			if (m)
-			{
-				auto res = mono::invoke_method(m, creature, nullptr);
-				if (res)
-				{
-					auto str = mono::from_mono_string(reinterpret_cast<MonoString*>(res));
-					if (!str.empty() && str != "unknown")
-						return str;
-				}
-			}
-
-			auto name_field = find_field(mono::object_get_class(creature), "m_name");
-			if (name_field)
-			{
-				MonoString* raw_str = nullptr;
-				mono::get_field_value(creature, name_field, &raw_str);
-				if (raw_str)
-				{
-					auto s = mono::from_mono_string(raw_str);
-					if (!s.empty())
-						return localization::get_instance().localize(s);
-				}
-			}
-
-			return "Creature";
-		}
 
 		void show_center_message(const std::string& msg)
 		{
@@ -138,64 +39,39 @@ namespace big::animal_tools
 			void* args[4] = {&type, ms, &amount, icon};
 			mono::invoke_method(method, player, args);
 		}
-
-		MonoObject* get_hovering_creature()
-		{
-			auto player = unity::get_local_player();
-			if (!player)
-				return nullptr;
-
-			static auto method = mono::get_method("Player", "GetHoverCreature", 0, "assembly_valheim");
-			if (method)
-			{
-				auto res = mono::invoke_method(method, player, nullptr);
-				if (res)
-					return res;
-			}
-
-			static auto field = mono::get_field("Player", "m_hoveringCreature");
-			if (field)
-			{
-				MonoObject* res = nullptr;
-				mono::get_field_value(player, field, &res);
-				if (res)
-					return res;
-			}
-
-			return nullptr;
-		}
 	}
 
-	void set_options(const options& opt)
+	void animal_tools::set_options(const options& opt)
 	{
 		g_options = opt;
 	}
 
-	options get_options()
+	animal_tools::options animal_tools::get_options()
 	{
 		return g_options;
 	}
 
-	creature_info get_snapshot()
+	animal_tools::creature_info animal_tools::get_snapshot()
 	{
 		std::lock_guard lock(g_mutex);
 		return g_snapshot;
 	}
 
-	void update()
+	void animal_tools::update()
 	{
-		auto local_player = unity::get_local_player();
-		if (!local_player)
+		auto local_player_obj = unity::get_local_player();
+		if (!local_player_obj)
 		{
 			std::lock_guard lock(g_mutex);
 			g_snapshot.valid = false;
 			return;
 		}
 
-		auto creature = get_hovering_creature();
+		player local_p(local_player_obj);
+		character target = local_p.get_hover_creature();
 		auto now = std::chrono::steady_clock::now();
 
-		if (!creature)
+		if (!target || !target.get_object())
 		{
 			std::lock_guard lock(g_mutex);
 			if (g_snapshot.valid && (now - g_last_seen) > HYSTERESIS_MS)
@@ -205,8 +81,7 @@ namespace big::animal_tools
 			return;
 		}
 
-		// Don't inspect the local player or dead entities
-		if (creature == local_player || call_value<bool>(creature, "IsPlayer") || call_value<bool>(creature, "IsDead"))
+		if (target == local_p || target.is_player() || target.is_dead())
 		{
 			std::lock_guard lock(g_mutex);
 			g_snapshot.valid = false;
@@ -215,52 +90,50 @@ namespace big::animal_tools
 
 		creature_info info{};
 		info.valid = true;
-		info.character = creature;
-		info.name = get_creature_name(creature);
+		info.character = target.get_object();
+		info.name = target.get_hover_name();
+		if (info.name.empty() || info.name == "unknown")
+			info.name = "Creature";
 
-		int lvl = call_value<int>(creature, "GetLevel");
-		info.level = lvl > 0 ? lvl : 1;
+		info.level = target.get_level();
+		if (info.level <= 0)
+			info.level = 1;
 		info.stars = std::max(0, info.level - 1);
 
-		info.health = call_value<float>(creature, "GetHealth");
-		info.max_health = call_value<float>(creature, "GetMaxHealth");
-		info.is_tamed = call_value<bool>(creature, "IsTamed");
+		info.health = target.get_health();
+		info.max_health = target.get_max_health();
+		info.is_tamed = target.is_tamed();
 
-		info.position = unity::get_position(creature);
-		Vector3 player_pos = unity::get_position(local_player);
-		info.distance = player_pos.distance(info.position);
+		info.position = target.get_position();
+		Vector3 my_pos = local_p.get_position();
+		info.distance = my_pos.distance(info.position);
 
-		// Check Tameable
-		auto tameable = get_component(creature, "Tameable");
-		if (tameable)
+		// Check Tameable component
+		auto tame = target.get_tameable();
+		if (tame)
 		{
 			info.has_tameable = true;
-			info.is_tamed = info.is_tamed || call_value<bool>(tameable, "IsTamed");
-			info.tameness = call_value<int>(tameable, "GetTameness");
-			info.remaining_time = call_value<float>(tameable, "GetRemainingTime");
-			info.is_hungry = call_value<bool>(tameable, "IsHungry");
+			info.is_tamed = info.is_tamed || tame.is_tamed();
+			info.tameness = tame.get_tameness();
+			info.remaining_time = tame.get_remaining_time();
+			info.is_hungry = tame.is_hungry();
 		}
 
-		// Check Procreation
-		auto procreation = get_component(creature, "Procreation");
-		if (procreation)
+		// Check Procreation component
+		auto proc = target.get_procreation();
+		if (proc)
 		{
 			info.has_procreation = true;
-			info.is_pregnant = call_value<bool>(procreation, "IsPregnant");
-			info.love_points = call_value<int>(procreation, "GetLovePoints");
-			int req = get_field_val<int>(procreation, "m_requiredLovePoints");
-			info.required_love_points = req > 0 ? req : 4;
+			info.is_pregnant = proc.is_pregnant();
+			info.love_points = proc.get_love_points();
+			info.required_love_points = proc.get_required_love_points();
 		}
 
-		// Check AI
-		auto ai = call_method(creature, "GetBaseAI");
-		if (!ai)
-			ai = get_component(creature, "MonsterAI");
-		if (!ai)
-			ai = get_component(creature, "BaseAI");
+		// Check MonsterAI component
+		auto ai = target.get_monster_ai();
 		if (ai)
 		{
-			info.is_alerted = call_value<bool>(ai, "IsAlerted");
+			info.is_alerted = ai.is_alerted();
 		}
 
 		std::lock_guard lock(g_mutex);
@@ -268,72 +141,37 @@ namespace big::animal_tools
 		g_last_seen = now;
 	}
 
-	bool tame_creature(MonoObject* creature)
+	bool animal_tools::tame_creature(character creature)
 	{
-		if (!creature || (uintptr_t)creature < 0x10000)
+		if (!creature || !creature.get_object())
 			return false;
 
-		// 1. Claim ownership on ZNetView
-		auto nview = get_field_val<MonoObject*>(creature, "m_nview");
-		if (!nview)
-			nview = get_component(creature, "ZNetView");
+		// 1. Claim ownership on ZNetView if present
+		auto nview = creature.get_nview();
 		if (nview)
 		{
-			call_method(nview, "ClaimOwnership");
+			static auto claim_m = mono::get_method("ZNetView", "ClaimOwnership", 0, "assembly_valheim");
+			if (claim_m)
+				mono::invoke_method(claim_m, nview, nullptr);
 		}
 
 		// 2. Tameable component handling
-		auto tameable = get_component(creature, "Tameable");
-		if (tameable)
+		auto tame = creature.get_tameable();
+		if (tame)
 		{
-			auto dec_m = find_method(mono::object_get_class(tameable), "DecreaseRemainingTime", 1);
-			if (dec_m)
-			{
-				float huge_val = 999999.f;
-				void* args[] = {&huge_val};
-				mono::invoke_method(dec_m, tameable, args);
-			}
-
-			auto tame_m = find_method(mono::object_get_class(tameable), "Tame", 0);
-			if (tame_m)
-			{
-				mono::invoke_method(tame_m, tameable, nullptr);
-			}
+			tame.tame();
 		}
 
 		// 3. AI pacification
-		auto ai = call_method(creature, "GetBaseAI");
-		if (!ai)
-			ai = get_component(creature, "MonsterAI");
-		if (!ai)
-			ai = get_component(creature, "BaseAI");
+		auto ai = creature.get_monster_ai();
 		if (ai)
 		{
-			auto make_tame = find_method(mono::object_get_class(ai), "MakeTame", 0);
-			if (make_tame)
-				mono::invoke_method(make_tame, ai, nullptr);
-
-			auto set_alert = find_method(mono::object_get_class(ai), "SetAlerted", 1);
-			if (set_alert)
-			{
-				bool alert = false;
-				void* args[] = {&alert};
-				mono::invoke_method(set_alert, ai, args);
-			}
-
-			auto reset_patrol = find_method(mono::object_get_class(ai), "ResetPatrolPoint", 0);
-			if (reset_patrol)
-				mono::invoke_method(reset_patrol, ai, nullptr);
+			ai.make_tame();
+			ai.set_alerted(false);
 		}
 
 		// 4. Character SetTamed(true)
-		auto set_tamed = find_method(mono::object_get_class(creature), "SetTamed", 1);
-		if (set_tamed)
-		{
-			bool tamed = true;
-			void* args[] = {&tamed};
-			mono::invoke_method(set_tamed, creature, args);
-		}
+		creature.set_tamed(true);
 
 		// 5. Heal to full if option set
 		if (g_options.heal_on_tame)
@@ -341,14 +179,19 @@ namespace big::animal_tools
 			heal_creature(creature);
 		}
 
-		std::string name = get_creature_name(creature);
+		std::string name = creature.get_hover_name();
 		notification::success("Animal Tamer", std::format("Successfully tamed {}!", name));
 		show_center_message(std::format("{} tamed!", name));
 
 		return true;
 	}
 
-	bool tame_aimed_creature()
+	bool animal_tools::tame_creature(MonoObject* creature)
+	{
+		return tame_creature(character(creature));
+	}
+
+	bool animal_tools::tame_aimed_creature()
 	{
 		auto snap = get_snapshot();
 		if (!snap.valid || !snap.character)
@@ -360,27 +203,25 @@ namespace big::animal_tools
 		return tame_creature(snap.character);
 	}
 
-	bool heal_creature(MonoObject* creature)
+	bool animal_tools::heal_creature(character creature)
 	{
-		if (!creature)
+		if (!creature || !creature.get_object())
 			return false;
 
-		float max_hp = call_value<float>(creature, "GetMaxHealth");
+		float max_hp = creature.get_max_health();
 		if (max_hp <= 0.f)
 			max_hp = 100.f;
 
-		auto set_hp = find_method(mono::object_get_class(creature), "SetHealth", 1);
-		if (set_hp)
-		{
-			void* args[] = {&max_hp};
-			mono::invoke_method(set_hp, creature, args);
-			return true;
-		}
-
-		return false;
+		creature.set_health(max_hp);
+		return true;
 	}
 
-	bool heal_aimed_creature()
+	bool animal_tools::heal_creature(MonoObject* creature)
+	{
+		return heal_creature(character(creature));
+	}
+
+	bool animal_tools::heal_aimed_creature()
 	{
 		auto snap = get_snapshot();
 		if (!snap.valid || !snap.character)
@@ -398,7 +239,7 @@ namespace big::animal_tools
 		return false;
 	}
 
-	int tame_all_in_radius(float radius)
+	int animal_tools::tame_all_in_radius(float radius)
 	{
 		auto local_player = unity::get_local_player();
 		if (!local_player)
@@ -424,7 +265,7 @@ namespace big::animal_tools
 			float dist = my_pos.distance(pos);
 			if (dist <= radius)
 			{
-				if (tame_creature(obj))
+				if (tame_creature(char_wrap))
 					count++;
 			}
 		}
@@ -442,7 +283,7 @@ namespace big::animal_tools
 		return count;
 	}
 
-	void hotkey_tick()
+	void animal_tools::hotkey_tick()
 	{
 		static bool was_down = false;
 		if (!g_options.enable_hotkey)
@@ -462,7 +303,7 @@ namespace big::animal_tools
 		was_down = down;
 	}
 
-	void draw_overlay()
+	void animal_tools::draw_overlay()
 	{
 		if (!g_options.show_inspector)
 			return;

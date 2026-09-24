@@ -4,12 +4,12 @@
 #include "utility/unity.hpp"
 #include <mutex>
 
-namespace big::online_players
+namespace big
 {
 	namespace
 	{
 		std::mutex mutex;
-		snapshot current;
+		online_players::snapshot current;
 		std::chrono::steady_clock::time_point last_update;
 
 		template<typename T>
@@ -42,9 +42,9 @@ namespace big::online_players
 			return zdo_id(mono::invoke_method(method, value.get_object()));
 		}
 
-		snapshot collect()
+		online_players::snapshot collect()
 		{
-			snapshot result;
+			online_players::snapshot result;
 			auto local = unity::get_local_player();
 			if (!local)
 				return result;
@@ -81,7 +81,7 @@ namespace big::online_players
 				if (!info)
 					continue;
 				auto id_field = mono::get_field(mono::object_get_class(info), "m_characterID");
-				entry value;
+				online_players::entry value;
 				value.id = zdo_id(mono::boxed_field(info, id_field));
 				value.name = mono::from_mono_string(field<MonoString*>(info, "m_name"));
 				auto user_info = boxed_member(info, "m_userInfo");
@@ -108,7 +108,7 @@ namespace big::online_players
 				}
 				result.players.push_back(std::move(value));
 			}
-			std::sort(result.players.begin(), result.players.end(), [](const entry& a, const entry& b) {
+			std::sort(result.players.begin(), result.players.end(), [](const online_players::entry& a, const online_players::entry& b) {
 				if (a.local != b.local)
 					return a.local;
 				return a.name == b.name ? a.id < b.id : a.name < b.name;
@@ -117,7 +117,7 @@ namespace big::online_players
 		}
 	}
 
-	void update()
+	void online_players::update()
 	{
 		auto next = collect();
 		std::lock_guard lock(mutex);
@@ -125,7 +125,7 @@ namespace big::online_players
 		last_update = std::chrono::steady_clock::now();
 	}
 
-	snapshot get_snapshot()
+	online_players::snapshot online_players::get_snapshot()
 	{
 		std::lock_guard lock(mutex);
 		if (std::chrono::steady_clock::now() - last_update > std::chrono::seconds(3))
@@ -133,7 +133,7 @@ namespace big::online_players
 		return current;
 	}
 
-	bool teleport_to(const std::string& id)
+	bool online_players::teleport_to(const std::string& id)
 	{
 		if (id.empty() || id == "0:0")
 			return false;

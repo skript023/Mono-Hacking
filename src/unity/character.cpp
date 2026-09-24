@@ -1,27 +1,30 @@
 #include "character.hpp"
 #include "class/vector.hpp"
+#include "monster_ai.hpp"
+#include "procreation.hpp"
+#include "tameable.hpp"
 #include "utility/unity.hpp"
 
 namespace big
 {
-    character::character(MonoObject* character): m_character(character)
+	character::character(MonoObject* character) :
+	    m_character(character)
 	{
-		
 	}
 	character::~character() noexcept
 	{
 		m_character = nullptr;
 		m_hover_name_cache.clear();
 	}
-	MonoObject* character::get_object()
+	MonoObject* character::get_object() const
 	{
 		return m_character;
 	}
 	void character::set_health(float health)
 	{
 		auto method = mono::get_method("Character", "SetHealth", 1, "assembly_valheim");
-		
-		if (!method )
+
+		if (!method)
 		{
 			LOG(WARNING) << "Failed to find method Character::SetHealth";
 
@@ -33,8 +36,8 @@ namespace big
 	void character::set_max_health(float health)
 	{
 		auto method = mono::get_method("Character", "SetMaxHealth", 1, "assembly_valheim");
-		
-		if (!method )
+
+		if (!method)
 		{
 			LOG(WARNING) << "Failed to find method Character::SetMaxHealth";
 
@@ -46,8 +49,8 @@ namespace big
 	void character::set_tamed(bool tamed)
 	{
 		auto method = mono::get_method("Character", "SetTamed", 1, "assembly_valheim");
-		
-		if (!method )
+
+		if (!method)
 		{
 			LOG(WARNING) << "Failed to find method Character::SetTamed";
 
@@ -56,11 +59,53 @@ namespace big
 
 		mono::invoke(method, m_character, tamed);
 	}
+	bool character::is_tamed()
+	{
+		if (!m_character)
+			return false;
+		static auto method = mono::get_method("Character", "IsTamed", 0, "assembly_valheim");
+		if (method)
+		{
+			auto res = mono::invoke_method(method, m_character, nullptr);
+			if (res)
+				return *static_cast<bool*>(mono::object_unbox(res));
+		}
+		static auto klass = mono::get_class("Character", "assembly_valheim");
+		static auto field = klass ? mono::get_field(klass, "m_tamed") : nullptr;
+		if (field)
+		{
+			bool tamed = false;
+			mono::get_field_value(m_character, field, &tamed);
+			return tamed;
+		}
+		return false;
+	}
+	int character::get_level()
+	{
+		if (!m_character)
+			return 1;
+		static auto method = mono::get_method("Character", "GetLevel", 0, "assembly_valheim");
+		if (method)
+		{
+			auto res = mono::invoke_method(method, m_character, nullptr);
+			if (res)
+				return *static_cast<int*>(mono::object_unbox(res));
+		}
+		static auto klass = mono::get_class("Character", "assembly_valheim");
+		static auto field = klass ? mono::get_field(klass, "m_level") : nullptr;
+		if (field)
+		{
+			int lvl = 1;
+			mono::get_field_value(m_character, field, &lvl);
+			return lvl;
+		}
+		return 1;
+	}
 	float character::get_max_health()
 	{
 		static auto method = mono::get_method("Character", "GetMaxHealth", 0, "assembly_valheim");
-		
-		if (!method )
+
+		if (!method)
 		{
 			LOG(WARNING) << "Failed to find method Character::GetMaxHealth";
 
@@ -76,11 +121,10 @@ namespace big
 	std::string character::get_hover_name()
 	{
 		static MonoMethod* method = mono::get_method(
-			"Character",
-			"GetHoverName",
-			0,
-			"assembly_valheim"
-		);
+		    "Character",
+		    "GetHoverName",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !m_character)
 			return "unknown";
@@ -97,11 +141,10 @@ namespace big
 	float character::get_health()
 	{
 		static MonoMethod* method = mono::get_method(
-			"Character",
-			"GetHealth",
-			0,
-			"assembly_valheim"
-		);
+		    "Character",
+		    "GetHealth",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !m_character)
 			return 0.f;
@@ -115,11 +158,10 @@ namespace big
 	bool character::is_dead()
 	{
 		static MonoMethod* method = mono::get_method(
-			"Character",
-			"IsDead",
-			0,
-			"assembly_valheim"
-		);
+		    "Character",
+		    "IsDead",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !m_character)
 			return false;
@@ -161,10 +203,10 @@ namespace big
 			return euler;
 
 		static auto get_transform =
-			mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		    mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 
 		static auto get_euler =
-			mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
+		    mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_transform || !get_euler)
 			return euler;
@@ -233,7 +275,8 @@ namespace big
 
 		auto transform = mono::invoke(method, m_character);
 
-		if (!transform) return Vector3();
+		if (!transform)
+			return Vector3();
 
 		auto obj = mono::invoke(get_position, transform);
 		if (!obj)
@@ -318,5 +361,53 @@ namespace big
 		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
 #endif
 		return mono::list<character>(result);
+	}
+
+	MonoObject* character::get_component(const char* class_name, const char* assembly_name, const char* namespace_name)
+	{
+		if (!m_character)
+			return nullptr;
+		auto klass = mono::get_class(class_name, assembly_name, namespace_name);
+		if (!klass)
+			return nullptr;
+		auto mono_type = mono::reflection_type(klass);
+		if (!mono_type)
+			return nullptr;
+		static auto comp_method = mono::get_method_overload("Component", "GetComponent", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+		if (!comp_method)
+			return nullptr;
+		void* args[1] = {mono_type};
+		return mono::invoke_method(comp_method, m_character, args);
+	}
+
+	MonoObject* character::get_nview()
+	{
+		if (!m_character)
+			return nullptr;
+		static auto klass = mono::get_class("Character", "assembly_valheim");
+		static auto field = klass ? mono::get_field(klass, "m_nview") : nullptr;
+		if (field)
+		{
+			MonoObject* nview = nullptr;
+			mono::get_field_value(m_character, field, &nview);
+			if (nview)
+				return nview;
+		}
+		return get_component("ZNetView");
+	}
+
+	tameable character::get_tameable()
+	{
+		return tameable(get_component("Tameable"));
+	}
+
+	monster_ai character::get_monster_ai()
+	{
+		return monster_ai(get_component("MonsterAI"));
+	}
+
+	procreation character::get_procreation()
+	{
+		return procreation(get_component("Procreation"));
 	}
 }

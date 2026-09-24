@@ -210,7 +210,7 @@ namespace big
 			{
 				std::string title = std::format("Pin {} ({})", boss.display_name, boss.biome);
 				sub->add_option<reguler_option>(title.c_str(), "Send discovery request for this boss.", [boss] {
-					exploration::discover_location(boss.location_name, boss.pin_name, boss.pin_type, exp_cfg.discover_all);
+					exploration::discover_location(boss, exp_cfg.discover_all);
 					notification::success("Boss Tracker", std::format("Pin requested for {}!", boss.display_name));
 				});
 			}
@@ -225,7 +225,7 @@ namespace big
 			{
 				std::string title = std::format("Pin {} ({})", trader.display_name, trader.biome);
 				sub->add_option<reguler_option>(title.c_str(), "Send discovery request for this trader/POI.", [trader] {
-					exploration::discover_location(trader.location_name, trader.pin_name, trader.pin_type, exp_cfg.discover_all);
+					exploration::discover_location(trader, exp_cfg.discover_all);
 					notification::success("Trader Tracker", std::format("Pin requested for {}!", trader.display_name));
 				});
 			}
