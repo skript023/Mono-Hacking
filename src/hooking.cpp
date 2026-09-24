@@ -158,12 +158,13 @@ namespace big
 		if (g_running)
 		{
 			std::lock_guard lock(render_mutex);
-            g_renderer->wndproc(hwnd, msg, wparam, lparam);
-            if (canvas::captures_message(msg))
-            {
-                if (msg == WM_INPUT) return DefWindowProcW(hwnd, msg, wparam, lparam);
-                return 0;
-            }
+			g_renderer->wndproc(hwnd, msg, wparam, lparam);
+			if (canvas::captures_message(msg))
+			{
+				if (msg == WM_INPUT)
+					return DefWindowProcW(hwnd, msg, wparam, lparam);
+				return 0;
+			}
 		}
 
 		return CallWindowProcW(g_hooking->m_og_wndproc, hwnd, msg, wparam, lparam);

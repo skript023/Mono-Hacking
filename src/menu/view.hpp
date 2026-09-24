@@ -18,6 +18,7 @@ namespace big
 			//esp_submenu();
 			setting_submenu();
 		}
+
 	public:
 		static void home();
 		static void js_scripts();
@@ -27,6 +28,7 @@ namespace big
 		static void online_player_panel();
 		static void base_tools_submenu();
 		static void base_tools_panel();
+
 	public:
 		//static void esp_submenu();
 		static void player_submenu();

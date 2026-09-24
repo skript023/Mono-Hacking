@@ -20,7 +20,7 @@ namespace big
 	void main_worker::run()
 	{
 		commands::enable_bool_commands();
-		
+
 		while (g_running)
 		{
 			TRY_CLAUSE
@@ -28,7 +28,8 @@ namespace big
 				update();
 				g_pointers->m_resolution.x = unity::get_screen_width();
 				g_pointers->m_resolution.y = unity::get_screen_height();
-			} EXCEPT_CLAUSE
+			}
+			EXCEPT_CLAUSE
 
 			script::get_current()->yield();
 		}
@@ -42,7 +43,8 @@ namespace big
 				commands::run_looped_command();
 				online_players::update();
 				base_tools::update();
-			} EXCEPT_CLAUSE
+			}
+			EXCEPT_CLAUSE
 
 			script::get_current()->yield(1s);
 		}

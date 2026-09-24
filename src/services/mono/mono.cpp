@@ -1,4 +1,4 @@
-#pragma warning (disable:4311 4312)
+#pragma warning(disable : 4311 4312)
 #include "mono.hpp"
 #include "core.hpp"
 
@@ -10,8 +10,7 @@ namespace big
 			return;
 
 		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(120);
-		auto wait_for = [&](auto ready, const char* stage)
-		{
+		auto wait_for = [&](auto ready, const char* stage) {
 			LOG(INFO) << "Waiting for Mono: " << stage;
 			while (!ready())
 			{
@@ -24,9 +23,11 @@ namespace big
 		};
 
 		HMODULE runtime = nullptr;
-		wait_for([&] { return (runtime = GetModuleHandleA("mono-2.0-bdwgc.dll")) != nullptr; }, "runtime DLL");
-		auto require_export = [&](const char* name)
-		{
+		wait_for([&] {
+			return (runtime = GetModuleHandleA("mono-2.0-bdwgc.dll")) != nullptr;
+		},
+		    "runtime DLL");
+		auto require_export = [&](const char* name) {
 			auto address = GetProcAddress(runtime, name);
 			if (!address)
 				throw std::runtime_error(std::string("Missing Mono export: ") + name);
@@ -80,7 +81,10 @@ namespace big
 		// A loaded DLL alone does not mean the host has initialized the runtime.
 		auto get_main_thread = require_export("mono_thread_get_main").as<MonoThread* (*)()>();
 		auto get_corlib = require_export("mono_get_corlib").as<MonoImage* (*)()>();
-		wait_for([&] { return mono_get_root_domain() && get_main_thread() && get_corlib(); }, "root domain, main thread and corlib");
+		wait_for([&] {
+			return mono_get_root_domain() && get_main_thread() && get_corlib();
+		},
+		    "root domain, main thread and corlib");
 		ensure_thread_attached_impl();
 
 		this->initalized = true;
@@ -418,7 +422,8 @@ namespace big
 	{
 		ensure_thread_attached_impl();
 		MonoDomain* domain = mono_domain_get ? mono_domain_get() : nullptr;
-		if (!domain && mono_get_root_domain) domain = mono_get_root_domain();
+		if (!domain && mono_get_root_domain)
+			domain = mono_get_root_domain();
 
 		if (mono_string_new && domain)
 		{
@@ -429,24 +434,22 @@ namespace big
 			return nullptr;
 
 		int size_needed = MultiByteToWideChar(
-			CP_UTF8,
-			0,
-			str.c_str(),
-			(int)str.length(),
-			nullptr,
-			0
-		);
+		    CP_UTF8,
+		    0,
+		    str.c_str(),
+		    (int)str.length(),
+		    nullptr,
+		    0);
 
 		std::wstring wstr(size_needed, 0);
 
 		MultiByteToWideChar(
-			CP_UTF8,
-			0,
-			str.c_str(),
-			(int)str.length(),
-			wstr.data(),
-			size_needed
-		);
+		    CP_UTF8,
+		    0,
+		    str.c_str(),
+		    (int)str.length(),
+		    wstr.data(),
+		    size_needed);
 
 		return mono_string_new_utf16(domain, (mono_unichar2*)wstr.data(), size_needed);
 	}
@@ -456,4 +459,3 @@ namespace big
 		return std::filesystem::current_path() / std::filesystem::path(std::format("./Valheim_Data/Managed/{}.dll", assemblyName));
 	}
 }
-

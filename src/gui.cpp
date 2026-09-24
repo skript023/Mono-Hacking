@@ -56,11 +56,16 @@ namespace big
 		this->add_dx_callback(view::online_player_panel, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback(view::base_tools_panel, eRenderPriority::INFO_OVERLAY + 1);
 		//this->add_dx_callback(view::draw_overlay, eRenderPriority::INFO_OVERLAY);
-		this->add_dx_callback([this] { this->dx_on_opened(); }, eRenderPriority::MENU);
+		this->add_dx_callback([this] {
+			this->dx_on_opened();
+		},
+		    eRenderPriority::MENU);
 		this->add_dx_callback(view::js_scripts, eRenderPriority::JS);
 		this->add_dx_callback(js_gui::register_gui, eRenderPriority::JS_GUI);
 
-		this->add_wndproc_callback([this](HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) { wndproc(hwnd, msg, wparam, lparam); });
+		this->add_wndproc_callback([this](HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+			wndproc(hwnd, msg, wparam, lparam);
+		});
 
 
 		view::register_submenu();
@@ -128,7 +133,7 @@ namespace big
 
 	bool gui::add_dx_callback(dx_callback callback, uint32_t priority)
 	{
-		if (!m_dx_callbacks.insert({ priority, callback }).second)
+		if (!m_dx_callbacks.insert({priority, callback}).second)
 		{
 			LOG(WARNING) << "Duplicate priority given on DX Callback!";
 
@@ -159,22 +164,26 @@ namespace big
 		{
 			//if (g_input_service.is_open()) g_input_service.hide();
 		}
-
 	}
 
-    void gui::load_textures()
-    {
-        auto load = [](const unsigned char* bytes, int size, ImTextureID& id, ImageDimensions& dimensions)
-        {
-            int width = 0, height = 0;
-            auto pixels = stbi_load_from_memory(bytes, size, &width, &height, nullptr, 4);
-            if (!pixels) { LOG(WARNING) << "Cannot decode menu texture"; return; }
-            id = g_renderer->upload_rgba(pixels, width, height);
-            stbi_image_free(pixels);
-            if (id) dimensions = {width, height};
-            else LOG(WARNING) << "Cannot upload menu texture";
-        };
-        load(quantum_green, sizeof(quantum_green), m_header, m_header_size);
-        load(toggle_texture, sizeof(toggle_texture), m_toggle, m_toggle_size);
-    }
+	void gui::load_textures()
+	{
+		auto load = [](const unsigned char* bytes, int size, ImTextureID& id, ImageDimensions& dimensions) {
+			int width = 0, height = 0;
+			auto pixels = stbi_load_from_memory(bytes, size, &width, &height, nullptr, 4);
+			if (!pixels)
+			{
+				LOG(WARNING) << "Cannot decode menu texture";
+				return;
+			}
+			id = g_renderer->upload_rgba(pixels, width, height);
+			stbi_image_free(pixels);
+			if (id)
+				dimensions = {width, height};
+			else
+				LOG(WARNING) << "Cannot upload menu texture";
+		};
+		load(quantum_green, sizeof(quantum_green), m_header, m_header_size);
+		load(toggle_texture, sizeof(toggle_texture), m_toggle, m_toggle_size);
+	}
 }

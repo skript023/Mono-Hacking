@@ -3,8 +3,10 @@
 
 namespace big
 {
-	localization::localization(MonoObject* obj): m_localization(obj)
-	{}
+	localization::localization(MonoObject* obj) :
+	    m_localization(obj)
+	{
+	}
 
 	localization::~localization() noexcept
 	{
@@ -40,7 +42,7 @@ namespace big
 				return text;
 
 			// Mono reference arguments are passed directly; only value types use their address.
-			void* args[] = { ms };
+			void* args[] = {ms};
 			auto ret = mono::invoke_method(method, m_localization, args);
 			if (!ret)
 				return text;

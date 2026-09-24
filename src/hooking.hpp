@@ -87,12 +87,14 @@ namespace big
 	class hooking
 	{
 		friend hooks;
+
 	public:
 		explicit hooking();
 		~hooking();
 
 		void enable();
 		void disable();
+
 	private:
 		bool m_enabled{};
 

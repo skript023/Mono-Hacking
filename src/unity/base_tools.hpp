@@ -16,8 +16,16 @@ namespace big::base_tools
 		float daylight = .5f;
 		std::string weather;
 	};
-	struct row { std::string name, detail; Vector3 position{}; };
-	struct marker { std::string text; Vector3 screen{}; };
+	struct row
+	{
+		std::string name, detail;
+		Vector3 position{};
+	};
+	struct marker
+	{
+		std::string text;
+		Vector3 screen{};
+	};
 	struct snapshot
 	{
 		bool ready = false;

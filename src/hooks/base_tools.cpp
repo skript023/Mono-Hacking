@@ -22,7 +22,8 @@ namespace big
 	MonoString* hooks::environment_override(MonoObject* object)
 	{
 		auto cfg = base_tools::get_options();
-		if (!cfg.weather.empty()) return mono::to_mono_string(cfg.weather);
+		if (!cfg.weather.empty())
+			return mono::to_mono_string(cfg.weather);
 		return detour_base::get_original<environment_override>()(object);
 	}
 	void hooks::environment_update(MonoObject* object)
@@ -53,14 +54,18 @@ namespace big
 		struct restore_filter
 		{
 			bool previous = base_tools::filtering_stack;
-			~restore_filter() { base_tools::filtering_stack = previous; }
+			~restore_filter()
+			{
+				base_tools::filtering_stack = previous;
+			}
 		} restore;
 		base_tools::filtering_stack = base_tools::begin_stack_response(object) && granted;
 		detour_base::get_original<container_stack_response>()(object, sender, granted);
 	}
 	bool hooks::inventory_add_stack_item(MonoObject* inventory, MonoObject* item)
 	{
-		if (base_tools::filtering_stack && base_tools::protected_item(item)) return false;
+		if (base_tools::filtering_stack && base_tools::protected_item(item))
+			return false;
 		return detour_base::get_original<inventory_add_stack_item>()(inventory, item);
 	}
 }

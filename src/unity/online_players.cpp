@@ -24,7 +24,8 @@ namespace big::online_players
 
 		std::string zdo_id(MonoObject* boxed)
 		{
-			if (!boxed) return {};
+			if (!boxed)
+				return {};
 			auto method = mono::class_get_method_from_name(mono::object_get_class(boxed), "ToString", 0);
 			auto text = mono::invoke_method(method, mono::object_unbox(boxed));
 			return text ? mono::from_mono_string(reinterpret_cast<MonoString*>(text)) : std::string{};
@@ -45,33 +46,40 @@ namespace big::online_players
 		{
 			snapshot result;
 			auto local = unity::get_local_player();
-			if (!local) return result;
+			if (!local)
+				return result;
 			static auto instance_method = mono::get_method("ZNet", "get_instance", 0, "assembly_valheim");
 			static auto roster_method = mono::get_method("ZNet", "GetPlayerList", 0, "assembly_valheim");
 			auto network = mono::invoke_method(instance_method);
-			if (!network) return result;
+			if (!network)
+				return result;
 			auto roster = mono::invoke_method(roster_method, network);
-			if (!roster) return result;
+			if (!roster)
+				return result;
 			auto klass = mono::object_get_class(roster);
 			auto count_method = mono::class_get_method_from_name(klass, "get_Count", 0);
 			auto item_method = mono::class_get_method_from_name(klass, "get_Item", 1);
 			auto count_box = mono::invoke_method(count_method, roster);
-			if (!count_box || !item_method) return result;
+			if (!count_box || !item_method)
+				return result;
 			int count = *static_cast<int*>(mono::object_unbox(count_box));
-			if (count < 0 || count > 4096) return result;
+			if (count < 0 || count > 4096)
+				return result;
 			result.ready = true;
 			auto local_player = player(local);
 			const auto local_id = character_id(local_player);
 			const auto local_position = local_player.get_position();
 			std::unordered_map<std::string, MonoObject*> loaded;
 			for (auto value : player::get_all_players())
-				if (value) loaded.emplace(character_id(value), value.get_object());
+				if (value)
+					loaded.emplace(character_id(value), value.get_object());
 
 			for (int index = 0; index < count; ++index)
 			{
-				void* args[] = { &index };
+				void* args[] = {&index};
 				auto info = mono::invoke_method(item_method, roster, args);
-				if (!info) continue;
+				if (!info)
+					continue;
 				auto id_field = mono::get_field(mono::object_get_class(info), "m_characterID");
 				entry value;
 				value.id = zdo_id(mono::boxed_field(info, id_field));
@@ -83,7 +91,8 @@ namespace big::online_players
 				value.account_id = mono::from_mono_string(field<MonoString*>(platform_id, "m_userID"));
 				value.public_position = field<bool>(info, "m_publicPosition");
 				value.local = !local_id.empty() && local_id != "0:0" && value.id == local_id;
-				if (value.public_position) value.position = field<Vector3>(info, "m_position");
+				if (value.public_position)
+					value.position = field<Vector3>(info, "m_position");
 				if (auto found = loaded.find(value.id); found != loaded.end() && !value.id.empty() && value.id != "0:0")
 				{
 					player entity(found->second);
@@ -100,7 +109,8 @@ namespace big::online_players
 				result.players.push_back(std::move(value));
 			}
 			std::sort(result.players.begin(), result.players.end(), [](const entry& a, const entry& b) {
-				if (a.local != b.local) return a.local;
+				if (a.local != b.local)
+					return a.local;
 				return a.name == b.name ? a.id < b.id : a.name < b.name;
 			});
 			return result;
@@ -125,7 +135,8 @@ namespace big::online_players
 
 	bool teleport_to(const std::string& id)
 	{
-		if (id.empty() || id == "0:0") return false;
+		if (id.empty() || id == "0:0")
+			return false;
 		auto latest = collect();
 		for (const auto& value : latest.players)
 			if (value.id == id && !value.local && value.position)
