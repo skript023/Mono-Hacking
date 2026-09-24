@@ -20,12 +20,30 @@ namespace big::base_tools
 		std::chrono::steady_clock::time_point projected;
 		std::unordered_map<int, std::chrono::steady_clock::time_point> pending_stacks;
 
+		MonoClassField* find_field(MonoClass* klass, const char* name)
+		{
+			for (auto k = klass; k != nullptr; k = mono::class_get_parent(k))
+			{
+				if (auto f = mono::get_field(k, name))
+					return f;
+			}
+			return nullptr;
+		}
+		MonoMethod* find_method(MonoClass* klass, const char* name, int param_count = 0)
+		{
+			for (auto k = klass; k != nullptr; k = mono::class_get_parent(k))
+			{
+				if (auto m = mono::class_get_method_from_name(k, name, param_count))
+					return m;
+			}
+			return nullptr;
+		}
 		template<typename T>
 		T field(MonoObject* object, const char* name)
 		{
 			T value{};
 			if (object)
-				if (auto f = mono::get_field(mono::object_get_class(object), name))
+				if (auto f = find_field(mono::object_get_class(object), name))
 					mono::get_field_value(object, f, &value);
 			return value;
 		}
@@ -33,7 +51,8 @@ namespace big::base_tools
 		{
 			if (!object)
 				return nullptr;
-			return mono::invoke_method(mono::class_get_method_from_name(mono::object_get_class(object), name, 0), object);
+			auto method = find_method(mono::object_get_class(object), name, 0);
+			return method ? mono::invoke_method(method, object) : nullptr;
 		}
 		template<typename T>
 		T value(MonoObject* object, const char* name)
@@ -48,7 +67,7 @@ namespace big::base_tools
 		}
 		Vector3 position(MonoObject* object)
 		{
-			return value<Vector3>(call(object, "get_transform"), "get_position");
+			return unity::get_position(object);
 		}
 		float distance_squared(Vector3 a, Vector3 b)
 		{
@@ -80,7 +99,14 @@ namespace big::base_tools
 		}
 		std::string name(MonoObject* object)
 		{
+			if (!object)
+				return {};
 			auto token = mono::from_mono_string(field<MonoString*>(object, "m_name"));
+			if (token.empty())
+			{
+				if (auto piece = field<MonoObject*>(object, "m_piece"))
+					token = mono::from_mono_string(field<MonoString*>(piece, "m_name"));
+			}
 			if (token.empty())
 				token = mono::from_mono_string(reinterpret_cast<MonoString*>(call(object, "get_name")));
 			return localization::get_instance().localize(token);
@@ -88,11 +114,13 @@ namespace big::base_tools
 		bool access(Vector3 point)
 		{
 			static auto method = mono::get_method("PrivateArea", "CheckAccess", 4, "assembly_valheim");
+			if (!method)
+				return true;
 			float radius = 0.f;
 			bool flash = false, ward = true;
 			void* args[] = {&point, &radius, &flash, &ward};
 			auto result = mono::invoke_method(method, nullptr, args);
-			return result && *static_cast<bool*>(mono::object_unbox(result));
+			return result ? *static_cast<bool*>(mono::object_unbox(result)) : true;
 		}
 	}
 
@@ -141,22 +169,44 @@ namespace big::base_tools
 	{
 		const auto cfg = get_options();
 		int requested = 0;
-		for (auto chest : nearby("Container", cfg.radius))
+		auto now = std::chrono::steady_clock::now();
+		for (auto it = pending_stacks.begin(); it != pending_stacks.end();)
+		{
+			if (now - it->second > std::chrono::seconds(5))
+				it = pending_stacks.erase(it);
+			else
+				++it;
+		}
+
+		auto containers = nearby("Container", cfg.radius);
+		for (auto chest : containers)
 		{
 			if (!valid(chest) || value<bool>(chest, "IsInUse") || !access(position(chest)))
 				continue;
 			const int id = value<int>(chest, "GetInstanceID");
-			if (pending_stacks.contains(id))
+			if (id != 0 && pending_stacks.contains(id))
 				continue;
-			pending_stacks[id] = std::chrono::steady_clock::now();
+			if (id != 0)
+				pending_stacks[id] = now;
+			auto view = field<MonoObject*>(chest, "m_nview");
+			if (view && !value<bool>(view, "IsOwner"))
+			{
+				call(view, "ClaimOwnership");
+			}
 			call(chest, "StackAll");
 			++requested;
 		}
-		notification::info("Quick Stack", std::format("Requested stacking into {} nearby chests. Access and capacity are checked by the game.", requested));
+		if (requested > 0)
+			notification::info("Quick Stack", std::format("Requested stacking into {} nearby chest(s).", requested));
+		else if (containers.empty())
+			notification::info("Quick Stack", "No chests found within range.");
+		else
+			notification::info("Quick Stack", "Chests found in range, but none were accessible or free.");
 	}
 	bool begin_stack_response(MonoObject* chest)
 	{
-		auto it = pending_stacks.find(value<int>(chest, "GetInstanceID"));
+		const int id = value<int>(chest, "GetInstanceID");
+		auto it = pending_stacks.find(id);
 		if (it == pending_stacks.end())
 			return false;
 		pending_stacks.erase(it);
@@ -170,7 +220,8 @@ namespace big::base_tools
 		const auto cfg = get_options();
 		auto shared = field<MonoObject*>(item, "m_shared");
 		int type = field<int>(shared, "m_itemType");
-		return (cfg.keep_hotbar && field<iVector2>(item, "m_gridPos").y == 0)
+		auto grid_pos = field<iVector2>(item, "m_gridPos");
+		return (cfg.keep_hotbar && grid_pos.y == 0)
 		    || (cfg.keep_food && type == 2) || (cfg.keep_ammo && (type == 9 || type == 23));
 	}
 	void repair_nearby()
@@ -235,7 +286,36 @@ namespace big::base_tools
 			next.ready = true;
 			for (auto object : nearby("Smelter", cfg.radius))
 				if (valid(object))
-					next.production.push_back({name(object), std::format("Queue: {} | Fuel: {:.1f} | Speed: {:.1f}x", value<int>(object, "GetQueueSize"), value<float>(object, "GetFuel"), multiplier(object, cfg.smelter_speed)), position(object)});
+				{
+					int queue = value<int>(object, "GetQueueSize");
+					int max_ore = field<int>(object, "m_maxOre");
+					int max_fuel = field<int>(object, "m_maxFuel");
+					float fuel = value<float>(object, "GetFuel");
+					float speed = multiplier(object, cfg.smelter_speed);
+					float bake_timer = value<float>(object, "GetBakeTimer");
+					float sec_per_prod = field<float>(object, "m_secPerProduct");
+					int processed = value<int>(object, "GetProcessedQueueSize");
+
+					std::string detail;
+					float progress_pct = (sec_per_prod > 0.f && queue > 0) ? std::clamp((bake_timer / sec_per_prod) * 100.f, 0.f, 100.f) : 0.f;
+
+					if (max_fuel <= 0)
+					{
+						if (queue > 0)
+							detail = std::format("Queue: {}/{} ({:.0f}%) | Ready: {} | Speed: {:.1f}x", queue, max_ore, progress_pct, processed, speed);
+						else
+							detail = std::format("Queue: 0/{} (Empty) | Ready: {} | Speed: {:.1f}x", max_ore, processed, speed);
+					}
+					else
+					{
+						if (queue > 0)
+							detail = std::format("Ore: {}/{} ({:.0f}%) | Fuel: {:.0f}/{} | Ready: {} | Speed: {:.1f}x", queue, max_ore, progress_pct, fuel, max_fuel, processed, speed);
+						else
+							detail = std::format("Ore: 0/{} | Fuel: {:.0f}/{} | Ready: {} | Speed: {:.1f}x", max_ore, fuel, max_fuel, processed, speed);
+					}
+
+					next.production.push_back({name(object), detail, position(object)});
+				}
 			for (auto object : nearby("Fermenter", cfg.radius))
 				if (valid(object))
 				{

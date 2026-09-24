@@ -351,6 +351,10 @@ namespace big
 		{
 			return get_instance().mono_class_get_namespace(klass);
 		}
+		static MonoClass* class_get_parent(MonoClass* klass)
+		{
+			return get_instance().mono_class_get_parent ? get_instance().mono_class_get_parent(klass) : nullptr;
+		}
 		static void* array_with_size(MonoArray* array, int size, uintptr_t idx)
 		{
 			return get_instance().mono_array_addr_with_size(array, size, idx);
@@ -398,6 +402,7 @@ namespace big
 		// --- Member untuk Fungsi Class dan Field ---
 
 		mono_class_get_field_from_name_t mono_class_get_field_from_name = nullptr;
+		mono_class_get_parent_t mono_class_get_parent = nullptr;
 		mono_field_get_value_t mono_field_get_value = nullptr;
 		mono_field_set_value_t mono_field_set_value = nullptr;
 		mono_method_get_class_t mono_method_get_class = nullptr;

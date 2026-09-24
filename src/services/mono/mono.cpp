@@ -53,6 +53,7 @@ namespace big
 		mono_object_new = require_export("mono_object_new").as<mono_object_new_t>();
 
 		mono_class_get_field_from_name = require_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
+		mono_class_get_parent = require_export("mono_class_get_parent").as<mono_class_get_parent_t>();
 		mono_field_get_value = require_export("mono_field_get_value").as<mono_field_get_value_t>();
 		m_field_get_value_object = require_export("mono_field_get_value_object").as<decltype(m_field_get_value_object)>();
 		m_class_get_type = require_export("mono_class_get_type").as<decltype(m_class_get_type)>();
