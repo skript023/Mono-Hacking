@@ -39,7 +39,9 @@ namespace big
 			if (!ms)
 				return text;
 
-			auto ret = mono::invoke(method, m_localization, ms);
+			// Mono reference arguments are passed directly; only value types use their address.
+			void* args[] = { ms };
+			auto ret = mono::invoke_method(method, m_localization, args);
 			if (!ret)
 				return text;
 
@@ -121,4 +123,3 @@ namespace big
 		return localization(nullptr);
 	}
 }
-

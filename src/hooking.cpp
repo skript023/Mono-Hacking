@@ -68,6 +68,17 @@ namespace big
 		add_mono_hook<hooks::player_in_god_mode>("Player::InGodMode", "Player", "InGodMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_in_ghost_mode>("Player::InGhostMode", "Player", "InGhostMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_no_cost_cheat>("Player::NoCostCheat", "Player", "NoCostCheat", 0, "assembly_valheim");
+		add_mono_hook<hooks::smelter_delta>("Smelter::GetDeltaTime", "Smelter", "GetDeltaTime", 0, "assembly_valheim");
+		add_mono_hook<hooks::fermenter_time>("Fermenter::GetFermentationTime", "Fermenter", "GetFermentationTime", 0, "assembly_valheim");
+		add_mono_hook<hooks::hive_delta>("Beehive::GetTimeSinceLastUpdate", "Beehive", "GetTimeSinceLastUpdate", 0, "assembly_valheim");
+		add_mono_hook<hooks::plant_grow_time>("Plant::GetGrowTime", "Plant", "GetGrowTime", 0, "assembly_valheim");
+		add_mono_hook<hooks::environment_override>("EnvMan::GetEnvironmentOverride", "EnvMan", "GetEnvironmentOverride", 0, "assembly_valheim");
+		add_mono_hook<hooks::environment_update>("EnvMan::FixedUpdate", "EnvMan", "FixedUpdate", 0, "assembly_valheim");
+		add_mono_hook<hooks::container_stack_response>("Container::RPC_StackResponse", "Container", "RPC_StackResponse", 2, "assembly_valheim");
+		add_mono_hook<hooks::inventory_add_stack_item>("Inventory::AddItem(ItemData)", "Inventory", "AddItem", 1, "assembly_valheim");
+		// Older game versions do not have the cheat label or the six-argument overload.
+		if (auto tooltip = mono::get_compile_method("ItemDrop/ItemData", "GetTooltip", 6, "assembly_valheim"))
+			detour_hook::add<hooks::item_get_tooltip>("ItemDrop::ItemData::GetTooltip", tooltip);
 		add_mono_hook<hooks::humanoid_drain_durability>("Humanoid::DrainEquipedItemDurability", "Humanoid", "DrainEquipedItemDurability", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_get_run_speed_factor>("Player::GetRunSpeedFactor", "Player", "GetRunSpeedFactor", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_get_jog_speed_factor>("Player::GetJogSpeedFactor", "Player", "GetJogSpeedFactor", 0, "assembly_valheim");

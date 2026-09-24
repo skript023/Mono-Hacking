@@ -4,9 +4,87 @@
 #include "unity/player.hpp"
 #include "utility/unity.hpp"
 #include "features/features.hpp"
+#include "unity/online_players.hpp"
+#include "fiber_pool.hpp"
+#include "notification/notification_service.hpp"
 
 namespace big
 {
+    namespace
+    {
+        std::string selected_player_id;
+        std::optional<online_players::entry> panel_player;
+        std::string panel_status;
+        int panel_frame = -1;
+
+        void refresh_players()
+        {
+            g_fiber_pool->queue_job([] { online_players::update(); });
+        }
+
+        std::string coordinates(const Vector3& p)
+        {
+            return std::format("{:.1f}, {:.1f}, {:.1f}", p.x, p.y, p.z);
+        }
+
+        void copy_player_text(const std::string& text)
+        {
+            ImGui::SetClipboardText(text.c_str());
+            notification::success("Online Players", "Copied to clipboard.");
+        }
+    }
+
+    void view::online_player_panel()
+    {
+        if (!canvas::is_opened() || panel_frame != ImGui::GetFrameCount()) return;
+        auto* viewport = ImGui::GetMainViewport();
+        const float width = std::min(360.f, viewport->WorkSize.x);
+        ImGui::SetNextWindowPos({viewport->WorkPos.x + viewport->WorkSize.x - width - 16.f,
+                                viewport->WorkPos.y + 32.f}, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({width, std::min(390.f, viewport->WorkSize.y)}, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSizeConstraints({std::min(240.f, width), 180.f}, viewport->WorkSize);
+        if (ImGui::Begin("Player Info", nullptr, ImGuiWindowFlags_NoCollapse))
+        {
+            ImGui::PushTextWrapPos(0.f);
+            if (!panel_player)
+                ImGui::TextUnformatted(panel_status.c_str());
+            else
+            {
+                const auto& p = *panel_player;
+                ImGui::TextUnformatted(p.name.c_str());
+                ImGui::Separator();
+                ImGui::TextUnformatted(p.local ? "You" : "Online player");
+                ImGui::Text("Character ID: %s", p.id.empty() ? "Not available" : p.id.c_str());
+                ImGui::Text("Platform: %s", p.platform.empty() ? "Not available" : p.platform.c_str());
+                if (p.platform == "Steam")
+                    ImGui::Text("Steam ID: %s", p.account_id.empty() ? "Not available" : p.account_id.c_str());
+                else
+                {
+                    ImGui::TextUnformatted("Steam ID: not available for this platform");
+                    if (!p.account_id.empty()) ImGui::Text("Platform account ID: %s", p.account_id.c_str());
+                }
+                ImGui::TextUnformatted(p.loaded ? "Character: loaded nearby" : "Character: outside loaded area / spawning");
+                ImGui::Text("Sharing map position: %s", p.public_position ? "Yes" : "No");
+                if (p.health && p.max_health)
+                    ImGui::Text("Health: %.0f / %.0f", *p.health, *p.max_health);
+                else
+                    ImGui::TextUnformatted("Health: not available outside loaded area");
+                if (p.position)
+                {
+                    ImGui::Text("Position: %s", coordinates(*p.position).c_str());
+                    ImGui::TextUnformatted(p.loaded ? "Position source: loaded character" : "Position source: shared map position");
+                }
+                else
+                    ImGui::TextUnformatted("Position: not shared and character not loaded");
+                if (p.distance) ImGui::Text("Distance: %.1f m", *p.distance);
+                ImGui::Separator();
+                ImGui::TextUnformatted("Updates every second. Shared map positions may lag behind movement.");
+            }
+            ImGui::PopTextWrapPos();
+        }
+        ImGui::End();
+    }
+
     void view::player_submenu()
     {
         canvas::add_tab<regular_submenu>("Home", SubmenuHome, [](regular_submenu* sub)
@@ -14,6 +92,7 @@ namespace big
             sub->add_option<sub_option>("Self", nullptr, "SubmenuSelf"_hash);
             sub->add_option<sub_option>("Inventory", nullptr, "SubmenuInventory"_hash);
             sub->add_option<sub_option>("World", nullptr, "SubmenuWorld"_hash);
+			sub->add_option<sub_option>("Base Tools", "Storage, production, repair, farming and environment.", "BaseTools"_hash);
             sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
             sub->add_option<sub_option>("ESP", nullptr, "SubmenuESP"_hash);
             sub->add_option<sub_option>("Aimbot", nullptr, "SubmenuAimbot"_hash);
@@ -105,19 +184,59 @@ namespace big
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuPlayerList, [](regular_submenu* sub)
         {
-            auto players = player::get_all_splayers();
-            
-            for (auto p : players)
+            const auto roster = online_players::get_snapshot();
+            sub->set_name(std::format("Online Players ({})", roster.players.size()).c_str());
+            panel_frame = ImGui::GetFrameCount();
+            panel_player.reset();
+            panel_status = roster.ready ? "Select a player to see their details." : "Waiting for the session player list. Join a world to load players.";
+            const auto highlighted = sub->get_selected_option();
+            for (std::size_t i = 0; i < roster.players.size(); ++i)
             {
-                sub->add_option<sub_option>(p.get_player_name().c_str(), nullptr, SubmenuSelectedPlayer, [=]{
-                    
+                const auto& p = roster.players[i];
+                if (i == highlighted) panel_player = p;
+                const auto label = p.name + (p.local ? " (You)" : "");
+                sub->add_option<sub_option>(label.c_str(), "Player details and location actions.", SubmenuSelectedPlayer, [id = p.id]{
+                    selected_player_id = id;
                 });
             }
+            sub->add_option<reguler_option>("Refresh Player List", "Read the current session roster again.", refresh_players);
         });
         
         canvas::add_submenu<regular_submenu>("Online Players", SubmenuSelectedPlayer, [](regular_submenu* sub)
         {
-
+            panel_frame = ImGui::GetFrameCount();
+            panel_player.reset();
+            const auto roster = online_players::get_snapshot();
+            const auto found = std::find_if(roster.players.begin(), roster.players.end(), [](const auto& p) {
+                return !selected_player_id.empty() && selected_player_id != "0:0" && p.id == selected_player_id;
+            });
+            if (found == roster.players.end())
+            {
+                sub->set_name("Player Unavailable");
+                panel_status = "Player left, is respawning, or session data is unavailable. Go back and select a player again.";
+                sub->add_option<reguler_option>("Refresh Player List", "Check whether session data is available.", refresh_players);
+                return;
+            }
+            const auto p = *found;
+            panel_player = p;
+            sub->set_name(p.name.c_str());
+            if (!p.local && p.position)
+                sub->add_option<reguler_option>("Teleport to Player", "Move near the latest available player position.", [id = p.id] {
+                    g_fiber_pool->queue_job([id] {
+                        if (online_players::teleport_to(id))
+                            notification::info("Online Players", "Teleport requested.");
+                        else
+                            notification::warning("Online Players", "Player or position is no longer available.");
+                    });
+                });
+            sub->add_option<reguler_option>("Copy Player Name", "Copy this player's name to the clipboard.", [name = p.name] { copy_player_text(name); });
+            sub->add_option<reguler_option>("Copy Character ID", "Copy this character's network ID.", [id = p.id] { copy_player_text(id); });
+            if (!p.account_id.empty())
+                sub->add_option<reguler_option>(p.platform == "Steam" ? "Copy Steam ID" : "Copy Platform Account ID",
+                    "Copy the account ID supplied by the session roster.", [id = p.account_id] { copy_player_text(id); });
+            if (p.position)
+                sub->add_option<reguler_option>("Copy Coordinates", "Copy the displayed X, Y, Z coordinates.", [position = *p.position] { copy_player_text(coordinates(position)); });
+            sub->add_option<reguler_option>("Refresh Player List", "Update player details from the session roster.", refresh_players);
         });
 
         canvas::add_submenu<regular_submenu>("ESP", "SubmenuESP"_hash, [](regular_submenu* sub)

@@ -4,6 +4,8 @@
 #include "utility/unity.hpp"
 
 #include "unity/self.hpp"
+#include "unity/online_players.hpp"
+#include "unity/base_tools.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
 
@@ -13,6 +15,7 @@ namespace big
 	static void update()
 	{
 		self::update();
+		base_tools::hotkey_tick();
 	}
 	void main_worker::run()
 	{
@@ -37,6 +40,8 @@ namespace big
 			TRY_CLAUSE
 			{
 				commands::run_looped_command();
+				online_players::update();
+				base_tools::update();
 			} EXCEPT_CLAUSE
 
 			script::get_current()->yield(1s);

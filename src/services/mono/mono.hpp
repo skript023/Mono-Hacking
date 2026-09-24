@@ -293,6 +293,18 @@ namespace big
 		{
 			return get_instance().mono_object_get_class(obj);
 		}
+		static MonoObject* boxed_field(MonoObject* obj, MonoClassField* field)
+		{
+			if (!obj || !field) return nullptr;
+			auto& instance = get_instance();
+			return instance.m_field_get_value_object(instance.get_root_domain_impl(), field, obj);
+		}
+		static MonoObject* reflection_type(MonoClass* klass)
+		{
+			if (!klass) return nullptr;
+			auto& instance = get_instance();
+			return instance.m_type_get_object(instance.get_root_domain_impl(), instance.m_class_get_type(klass));
+		}
 		static MonoObject* object_new(MonoClass* klass)
 		{
 			return get_instance().mono_object_new(get_instance().get_root_domain_impl(), klass);
@@ -337,6 +349,9 @@ namespace big
 		}
 	private:
         // --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
+		MonoObject* (*m_field_get_value_object)(MonoDomain*, MonoClassField*, MonoObject*) = nullptr;
+		MonoType* (*m_class_get_type)(MonoClass*) = nullptr;
+		MonoObject* (*m_type_get_object)(MonoDomain*, MonoType*) = nullptr;
 
         mono_thread_attach_t mono_thread_attach = nullptr;
         mono_get_root_domain_t mono_get_root_domain = nullptr;

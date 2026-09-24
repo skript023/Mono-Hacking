@@ -53,6 +53,8 @@ namespace big
 		this->add_dx_callback(esp::draw_esp, eRenderPriority::ESP);
 		this->add_dx_callback(view::draw_input, eRenderPriority::INPUT);
 		this->add_dx_callback(view::notifications, eRenderPriority::NOTIFICATIONS);
+		this->add_dx_callback(view::online_player_panel, eRenderPriority::INFO_OVERLAY);
+		this->add_dx_callback(view::base_tools_panel, eRenderPriority::INFO_OVERLAY + 1);
 		//this->add_dx_callback(view::draw_overlay, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback([this] { this->dx_on_opened(); }, eRenderPriority::MENU);
 		this->add_dx_callback(view::js_scripts, eRenderPriority::JS);
