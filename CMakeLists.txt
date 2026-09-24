@@ -37,7 +37,6 @@ include(scripts/json.cmake)
 include(scripts/g3log.cmake)
 
 message("\nFetching custom modules")
-include(scripts/vulkan.cmake)
 include(scripts/imgui.cmake)
 include(scripts/astra.cmake)
 include(scripts/stbi.cmake)
@@ -45,6 +44,7 @@ include(scripts/asio.cmake)
 include(scripts/websocket.cmake)
 include(scripts/discord.cmake)
 include(scripts/quickjs.cmake)
+include(scripts/vulkan.cmake)
 
 # Valheim
 message(STATUS "Valheim")

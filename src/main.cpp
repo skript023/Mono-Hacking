@@ -81,8 +81,10 @@ DWORD APIENTRY main_thread(LPVOID)
 		javascript_manager::init();
 		LOG(INFO) << "Service registered.";
 
+#ifdef PRODUCTION
 		auto server_instance = std::make_unique<server_module>();
 		LOG(INFO) << "Server initialized.";
+#endif
 
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::slow_run));
@@ -98,6 +100,14 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		while (g_running)
 		{
+#ifdef PRODUCTION
+			if (!server_instance->authorized())
+			{
+				LOG(WARNING) << "[License] DLL session revoked or expired; shutting down safely.";
+				g_running = false;
+				break;
+			}
+#endif
 			g_settings.attempt_save();
 			settings::tick();
 			std::this_thread::sleep_for(1s);
@@ -112,8 +122,10 @@ DWORD APIENTRY main_thread(LPVOID)
 		g_script_mgr.remove_all_scripts();
 		LOG(INFO) << "Scripts unregistered.";
 
+#ifdef PRODUCTION
 		server_instance.reset();
 		LOG(INFO) << "Server unregistered.";
+#endif
 
 		LOG(INFO) << "Service unregistered.";
 

@@ -31,6 +31,12 @@ namespace big
 					}
 					if (!g_running || m_stopping)
 						break;
+					if (!authorized())
+					{
+						LOG(WARNING) << "[License] DLL session revoked or expired; requesting shutdown.";
+						g_running = false;
+						break;
+					}
 					try
 					{
 						run();
@@ -52,6 +58,11 @@ namespace big
 		alpha_service* get_alpha()
 		{
 			return m_alpha_service.get();
+		}
+
+		bool authorized() const
+		{
+			return m_dll_session && m_dll_session->authorized();
 		}
 
 		void run()
