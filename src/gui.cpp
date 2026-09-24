@@ -18,6 +18,7 @@
 
 //#include <input/input_service.hpp>
 #include "notification/notification_service.hpp"
+#include "unity/animal_tools.hpp"
 
 namespace big
 {
@@ -55,6 +56,7 @@ namespace big
 		this->add_dx_callback(view::notifications, eRenderPriority::NOTIFICATIONS);
 		this->add_dx_callback(view::online_player_panel, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback(view::base_tools_panel, eRenderPriority::INFO_OVERLAY + 1);
+		this->add_dx_callback(animal_tools::draw_overlay, eRenderPriority::INFO_OVERLAY + 2);
 		//this->add_dx_callback(view::draw_overlay, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback([this] {
 			this->dx_on_opened();

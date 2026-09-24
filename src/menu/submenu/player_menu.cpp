@@ -7,6 +7,8 @@
 #include "unity/online_players.hpp"
 #include "fiber_pool.hpp"
 #include "notification/notification_service.hpp"
+#include "unity/exploration.hpp"
+#include "unity/animal_tools.hpp"
 
 namespace big
 {
@@ -172,23 +174,88 @@ namespace big
 
 
 		canvas::add_submenu<regular_submenu>("World", "SubmenuWorld"_hash, [](regular_submenu* sub) {
-			sub->add_option<reguler_option>("Tame All Deer", "Tame all deer in the world.", [] {
-				commands::get_command<command>("tamed_all_deer"_hash)->call();
+			sub->add_option<sub_option>("Exploration & Map", "Reveal map fog, locate all bosses and traders.", "SubmenuExploration"_hash);
+			sub->add_option<sub_option>("Creatures & Taming", "Aimed animal inspection, instant tame hotkey, and area taming.", "SubmenuCreatures"_hash);
+		});
+
+		canvas::add_submenu<regular_submenu>("Exploration & Map", "SubmenuExploration"_hash, [](regular_submenu* sub) {
+			static exploration::options exp_cfg = exploration::get_options();
+			sub->add_option<bool_option<bool>>("Pin All World Altars", "If enabled, discovers all altars in the world instead of only the closest one.", &exp_cfg.discover_all);
+			sub->add_option<sub_option>("Boss Altars", "Individual progression boss altar pins.", "SubmenuBosses"_hash);
+			sub->add_option<sub_option>("Traders & POIs", "Merchants and special quest locations.", "SubmenuTraders"_hash);
+			sub->add_option<reguler_option>("Reveal All 7 Bosses", "Pin altars for all 7 bosses across the world.", [] {
+				exploration::discover_all_bosses(exp_cfg.discover_all);
 			});
-			sub->add_option<reguler_option>("Tame All Boar", "Tame all boar in the world.", [] {
-				commands::get_command<command>("tamed_all_boar"_hash)->call();
+			sub->add_option<reguler_option>("Reveal All Traders & Quests", "Pin Haldor, Hildir, Bog Witch, and dungeons.", [] {
+				exploration::discover_all_traders(exp_cfg.discover_all);
 			});
-			sub->add_option<reguler_option>("Tame All Wolves", "Tame all wolves in the world.", [] {
-				commands::get_command<command>("tamed_all_wolf"_hash)->call();
+			sub->add_option<reguler_option>("Reveal Everything", "Pin all bosses, traders, and special locations.", [] {
+				exploration::discover_everything(exp_cfg.discover_all);
 			});
 			sub->add_option<reguler_option>("Explore Entire Map", "Reveal all fog of war on the minimap.", [] {
-				unity::explore_all_map();
+				exploration::explore_all_map();
 			});
 			sub->add_option<reguler_option>("Reset Map Fog", "Reset map exploration fog.", [] {
-				unity::reset_map();
+				exploration::reset_map();
 			});
-			sub->add_option<reguler_option>("Reveal All Bosses & Traders", "Pin all 7 boss altars and traders to the minimap.", [] {
-				unity::discover_bosses_and_traders();
+		});
+
+		canvas::add_submenu<regular_submenu>("Boss Altars", "SubmenuBosses"_hash, [](regular_submenu* sub) {
+			static exploration::options exp_cfg = exploration::get_options();
+			sub->add_option<bool_option<bool>>("Pin All World Altars", "Discover all instances across the world map.", &exp_cfg.discover_all);
+			sub->add_option<reguler_option>("Reveal All 7 Bosses", "Pin all boss altars simultaneously.", [] {
+				exploration::discover_all_bosses(exp_cfg.discover_all);
+			});
+			for (const auto& boss : exploration::get_boss_entries())
+			{
+				std::string title = std::format("Pin {} ({})", boss.display_name, boss.biome);
+				sub->add_option<reguler_option>(title.c_str(), "Send discovery request for this boss.", [boss] {
+					exploration::discover_location(boss.location_name, boss.pin_name, boss.pin_type, exp_cfg.discover_all);
+					notification::success("Boss Tracker", std::format("Pin requested for {}!", boss.display_name));
+				});
+			}
+		});
+
+		canvas::add_submenu<regular_submenu>("Traders & POIs", "SubmenuTraders"_hash, [](regular_submenu* sub) {
+			static exploration::options exp_cfg = exploration::get_options();
+			sub->add_option<reguler_option>("Reveal All Traders", "Pin all merchants and quest locations.", [] {
+				exploration::discover_all_traders(exp_cfg.discover_all);
+			});
+			for (const auto& trader : exploration::get_trader_entries())
+			{
+				std::string title = std::format("Pin {} ({})", trader.display_name, trader.biome);
+				sub->add_option<reguler_option>(title.c_str(), "Send discovery request for this trader/POI.", [trader] {
+					exploration::discover_location(trader.location_name, trader.pin_name, trader.pin_type, exp_cfg.discover_all);
+					notification::success("Trader Tracker", std::format("Pin requested for {}!", trader.display_name));
+				});
+			}
+		});
+
+		canvas::add_submenu<regular_submenu>("Creatures & Taming", "SubmenuCreatures"_hash, [](regular_submenu* sub) {
+			static animal_tools::options anim_cfg = animal_tools::get_options();
+			animal_tools::set_options(anim_cfg);
+
+			sub->add_option<bool_option<bool>>("Show Animal Inspector HUD", "Display creature stats, health, stars, and taming info when aiming.", &anim_cfg.show_inspector);
+			sub->add_option<bool_option<bool>>("Enable Tame Hotkey [T]", "Press T to instantly tame whatever animal you are looking at.", &anim_cfg.enable_hotkey);
+			sub->add_option<bool_option<bool>>("Heal on Tame", "Restore animal to full health upon taming.", &anim_cfg.heal_on_tame);
+			sub->add_option<reguler_option>("Tame Aimed Creature", "Instantly tame the animal currently in your crosshairs.", [] {
+				animal_tools::tame_aimed_creature();
+			});
+			sub->add_option<reguler_option>("Heal Aimed Creature", "Restore targeted creature to 100% health.", [] {
+				animal_tools::heal_aimed_creature();
+			});
+			sub->add_option<number_option<float>>("Area Tame Radius (m)", "Radius in meters for mass taming nearby creatures.", &anim_cfg.area_tame_radius, 10.f, 100.f, 5.f, 0);
+			sub->add_option<reguler_option>("Tame All in Radius", "Tame all wild animals within the chosen radius.", [] {
+				animal_tools::tame_all_in_radius(anim_cfg.area_tame_radius);
+			});
+			sub->add_option<reguler_option>("Tame All Deer (World)", "Tame all deer loaded in the world.", [] {
+				commands::get_command<command>("tamed_all_deer"_hash)->call();
+			});
+			sub->add_option<reguler_option>("Tame All Boar (World)", "Tame all boar loaded in the world.", [] {
+				commands::get_command<command>("tamed_all_boar"_hash)->call();
+			});
+			sub->add_option<reguler_option>("Tame All Wolves (World)", "Tame all wolves loaded in the world.", [] {
+				commands::get_command<command>("tamed_all_wolf"_hash)->call();
 			});
 		});
 
