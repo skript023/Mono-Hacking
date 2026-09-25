@@ -16,7 +16,8 @@ namespace big
 		    {{"Dragonqueen"}, "Moder", "Moder", 9, "Mountain"},
 		    {{"GoblinKing"}, "Yagluth", "Yagluth", 9, "Plains"},
 		    {{"Mistlands_DvergrBossEntrance1", "Mistlands_DvergrBossEntrance", "Mistlands_BossEntrance", "Mistlands_DvergrTownEntrance1", "SeekerQueen"}, "The Queen", "The Queen", 9, "Mistlands"},
-		    {{"AshlandsBoss", "Ashlands_Boss", "AshlandsBoss_Altar", "Altar_EmeraldFlame", "Fader"}, "Fader", "Fader", 9, "Ashlands"}};
+		    {{"FaderLocation"}, "Fader", "$enemy_fader_codename", 9, "Ashlands"},
+		    {{"DN_Bossroom"}, "Deep North Boss", "$hud_pin_dnboss", 9, "Deep North"}};
 
 		const std::vector<exploration::location_entry> trader_catalog = {
 		    {{"Vendor_BlackForest"}, "Haldor (Trader)", "Haldor", 2, "Black Forest"},

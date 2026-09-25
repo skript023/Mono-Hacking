@@ -202,7 +202,7 @@ namespace big
 			sub->add_option<bool_option<bool>>("Pin All World Altars", "If enabled, discovers all altars in the world instead of only the closest one.", &exp_cfg.discover_all);
 			sub->add_option<sub_option>("Boss Altars", "Individual progression boss altar pins.", "SubmenuBosses"_hash);
 			sub->add_option<sub_option>("Traders & POIs", "Merchants and special quest locations.", "SubmenuTraders"_hash);
-			sub->add_option<reguler_option>("Reveal All 7 Bosses", "Pin altars for all 7 bosses across the world.", [] {
+			sub->add_option<reguler_option>("Reveal All Bosses", "Request boss altar pins, including Ashlands and Deep North. Enable Pin All World Altars for every location.", [] {
 				queue_job([discover_all = exp_cfg.discover_all] {
 					exploration::discover_all_bosses(discover_all);
 				});
@@ -232,7 +232,7 @@ namespace big
 		canvas::add_submenu<regular_submenu>("Boss Altars", "SubmenuBosses"_hash, [](regular_submenu* sub) {
 			static exploration::options exp_cfg = exploration::get_options();
 			sub->add_option<bool_option<bool>>("Pin All World Altars", "Discover all instances across the world map.", &exp_cfg.discover_all);
-			sub->add_option<reguler_option>("Reveal All 7 Bosses", "Pin all boss altars simultaneously.", [] {
+			sub->add_option<reguler_option>("Reveal All Bosses", "Request boss altar pins, including Ashlands and Deep North. Enable Pin All World Altars for every location.", [] {
 				queue_job([discover_all = exp_cfg.discover_all] {
 					exploration::discover_all_bosses(discover_all);
 				});
@@ -242,8 +242,8 @@ namespace big
 				std::string title = std::format("Pin {} ({})", boss.display_name, boss.biome);
 				sub->add_option<reguler_option>(title.c_str(), "Send discovery request for this boss.", [boss] {
 					queue_job([boss, discover_all = exp_cfg.discover_all] {
-						exploration::discover_location(boss, discover_all);
-						notification::success("Boss Tracker", std::format("Pin requested for {}!", boss.display_name));
+						if (exploration::discover_location(boss, discover_all))
+							notification::success("Boss Tracker", std::format("Pin requested for {}!", boss.display_name));
 					});
 				});
 			}
