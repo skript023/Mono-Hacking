@@ -101,6 +101,15 @@ namespace big
 		}
 		return 1;
 	}
+	void character::set_level(int level)
+	{
+		static auto method = mono::get_method("Character", "SetLevel", 1, "assembly_valheim");
+		if (method && m_character)
+		{
+			void* args[1] = {&level};
+			mono::invoke_method(method, m_character, args);
+		}
+	}
 	float character::get_max_health()
 	{
 		static auto method = mono::get_method("Character", "GetMaxHealth", 0, "assembly_valheim");

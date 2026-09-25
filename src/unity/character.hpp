@@ -32,6 +32,7 @@ namespace big
 		void set_tamed(bool tamed);
 		bool is_tamed();
 		int get_level();
+		void set_level(int level);
 		float get_max_health();
 		std::string get_hover_name();
 		float get_health();

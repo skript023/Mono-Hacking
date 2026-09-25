@@ -57,7 +57,26 @@ namespace big
 			float pickup_range{ 2.f };
 			int max_food_slots{ 3 };
 
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw, god_mode, ghost_mode, infinite_durability, free_crafting, one_hit_resource, damage_multiplier, speed_multiplier, pickup_range, max_food_slots)
+			// Ship & Sailing
+			bool ship_ashlands_immune{ true };
+			bool ship_no_wave_damage{ true };
+			float ship_speed_multiplier{ 1.f };
+
+			// Buffs & Effects
+			bool auto_cleanse_debuffs{ false };
+			bool keep_rested{ false };
+
+			// Fishing
+			bool fishing_instant_bite{ false };
+			bool fishing_unbreakable_line{ true };
+			bool fishing_no_stamina{ true };
+			bool fishing_auto_catch{ false };
+
+			// World & Events
+			bool disable_raids{ false };
+			bool keep_skills_on_death{ true };
+
+			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw, god_mode, ghost_mode, infinite_durability, free_crafting, one_hit_resource, damage_multiplier, speed_multiplier, pickup_range, max_food_slots, ship_ashlands_immune, ship_no_wave_damage, ship_speed_multiplier, auto_cleanse_debuffs, keep_rested, fishing_instant_bite, fishing_unbreakable_line, fishing_no_stamina, fishing_auto_catch, disable_raids, keep_skills_on_death)
 		} self;
 
 		struct window

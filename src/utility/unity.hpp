@@ -126,6 +126,74 @@ namespace big::unity
 		return ptr_instance;
 	}
 
+	inline MonoObject* get_object_db()
+	{
+		MonoClass* klass = mono::get_class("ObjectDB", "assembly_valheim");
+		if (klass == nullptr) return nullptr;
+
+		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr) return nullptr;
+
+		void* static_field_data_addr = mono::get_static_field_data(klass);
+		if (static_field_data_addr == nullptr) return nullptr;
+
+		uint32_t offset = mono::get_field_offset(field);
+		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		return *(MonoObject**)ptr_addr;
+	}
+
+	inline MonoObject* get_znet_scene()
+	{
+		MonoClass* klass = mono::get_class("ZNetScene", "assembly_valheim");
+		if (klass == nullptr) return nullptr;
+
+		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr) return nullptr;
+
+		void* static_field_data_addr = mono::get_static_field_data(klass);
+		if (static_field_data_addr == nullptr) return nullptr;
+
+		uint32_t offset = mono::get_field_offset(field);
+		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		return *(MonoObject**)ptr_addr;
+	}
+
+	inline MonoObject* get_rand_event_system()
+	{
+		MonoClass* klass = mono::get_class("RandEventSystem", "assembly_valheim");
+		if (klass == nullptr) return nullptr;
+
+		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr) return nullptr;
+
+		void* static_field_data_addr = mono::get_static_field_data(klass);
+		if (static_field_data_addr == nullptr) return nullptr;
+
+		uint32_t offset = mono::get_field_offset(field);
+		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		return *(MonoObject**)ptr_addr;
+	}
+
+	inline MonoObject* get_store_gui()
+	{
+		MonoClass* klass = mono::get_class("StoreGui", "assembly_valheim");
+		if (klass == nullptr) return nullptr;
+
+		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr) return nullptr;
+
+		void* static_field_data_addr = mono::get_static_field_data(klass);
+		if (static_field_data_addr == nullptr) return nullptr;
+
+		uint32_t offset = mono::get_field_offset(field);
+		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		return *(MonoObject**)ptr_addr;
+	}
+
 	template<typename T>
 	inline T get_field_value(MonoObject* obj, const char* classname, const char* fieldName)	
 	{
@@ -165,6 +233,10 @@ namespace big::unity
 		if (unboxed)
 			count = *(int*)unboxed;
 
+		if (count <= 0 || count > 100000)
+			return out;
+
+		out.reserve(count);
 		for (int i = 0; i < count; ++i)
 		{
 			void* args[1] = {&i};
@@ -594,6 +666,30 @@ namespace big::unity
 
 	inline std::string get_name(void* obj)
 	{
+		if (!obj)
+			return "unknown";
+
+		static MonoMethod* get_name_obj = mono::get_method(
+			"Object",
+			"get_name",
+			0,
+			"UnityEngine.CoreModule",
+			"UnityEngine"
+		);
+
+		if (!get_name_obj)
+			return "unknown";
+
+		// UnityEngine.Object (base of both GameObject and Component) has get_name directly
+		auto name_obj = mono::invoke_method(get_name_obj, obj, nullptr);
+		if (name_obj)
+		{
+			std::string str = mono::from_mono_string((MonoString*)name_obj);
+			if (!str.empty())
+				return str;
+		}
+
+		// Fallback in case a component was passed whose Object.get_name did not resolve
 		static MonoMethod* get_go = mono::get_method(
 			"Component",
 			"get_gameObject",
@@ -602,28 +698,18 @@ namespace big::unity
 			"UnityEngine"
 		);
 
-		static MonoMethod* get_name = mono::get_method(
-			"Object",
-			"get_name",
-			0,
-			"UnityEngine.CoreModule",
-			"UnityEngine"
-		);
+		if (get_go)
+		{
+			auto go = mono::invoke_method(get_go, obj, nullptr);
+			if (go)
+			{
+				auto go_name_obj = mono::invoke_method(get_name_obj, go, nullptr);
+				if (go_name_obj)
+					return mono::from_mono_string((MonoString*)go_name_obj);
+			}
+		}
 
-		if (!obj || !get_go || !get_name)
-			return "unknown";
-
-		auto go = mono::invoke_method(get_go, obj, nullptr);
-		if (!go)
-			return "unknown";
-
-		auto name_obj = mono::invoke_method(get_name, go, nullptr);
-		if (!name_obj)
-			return "unknown";
-
-		std::string str = mono::from_mono_string((MonoString*)name_obj);
-		
-		return str;
+		return "unknown";
 	}
 
 	inline std::string get_hover_name(void* character)
