@@ -18,12 +18,6 @@ namespace big
 {
 	namespace
 	{
-		animal_tools::options g_options;
-		std::mutex g_mutex;
-		animal_tools::creature_info g_snapshot;
-		std::chrono::steady_clock::time_point g_last_seen{};
-		constexpr auto HYSTERESIS_MS = std::chrono::milliseconds(500);
-
 		void show_center_message(const std::string& msg)
 		{
 			auto player = unity::get_local_player();
@@ -41,23 +35,23 @@ namespace big
 		}
 	}
 
-	void animal_tools::set_options(const options& opt)
+	void animal_tools::set_options_impl(const options& opt)
 	{
 		g_options = opt;
 	}
 
-	animal_tools::options animal_tools::get_options()
+	animal_tools::options animal_tools::get_options_impl()
 	{
 		return g_options;
 	}
 
-	animal_tools::creature_info animal_tools::get_snapshot()
+	animal_tools::creature_info animal_tools::get_snapshot_impl()
 	{
 		std::lock_guard lock(g_mutex);
 		return g_snapshot;
 	}
 
-	void animal_tools::update()
+	void animal_tools::update_impl()
 	{
 		auto local_player_obj = unity::get_local_player();
 		if (!local_player_obj)
@@ -141,7 +135,7 @@ namespace big
 		g_last_seen = now;
 	}
 
-	bool animal_tools::tame_creature(character creature)
+	bool animal_tools::tame_creature_impl(character creature)
 	{
 		if (!creature || !creature.get_object())
 			return false;
@@ -186,12 +180,12 @@ namespace big
 		return true;
 	}
 
-	bool animal_tools::tame_creature(MonoObject* creature)
+	bool animal_tools::tame_creature_impl(MonoObject* creature)
 	{
 		return tame_creature(character(creature));
 	}
 
-	bool animal_tools::tame_aimed_creature()
+	bool animal_tools::tame_aimed_creature_impl()
 	{
 		auto snap = get_snapshot();
 		if (!snap.valid || !snap.character)
@@ -203,7 +197,7 @@ namespace big
 		return tame_creature(snap.character);
 	}
 
-	bool animal_tools::heal_creature(character creature)
+	bool animal_tools::heal_creature_impl(character creature)
 	{
 		if (!creature || !creature.get_object())
 			return false;
@@ -216,12 +210,12 @@ namespace big
 		return true;
 	}
 
-	bool animal_tools::heal_creature(MonoObject* creature)
+	bool animal_tools::heal_creature_impl(MonoObject* creature)
 	{
 		return heal_creature(character(creature));
 	}
 
-	bool animal_tools::heal_aimed_creature()
+	bool animal_tools::heal_aimed_creature_impl()
 	{
 		auto snap = get_snapshot();
 		if (!snap.valid || !snap.character)
@@ -239,7 +233,7 @@ namespace big
 		return false;
 	}
 
-	int animal_tools::tame_all_in_radius(float radius)
+	int animal_tools::tame_all_in_radius_impl(float radius)
 	{
 		auto local_player = unity::get_local_player();
 		if (!local_player)
@@ -283,7 +277,7 @@ namespace big
 		return count;
 	}
 
-	void animal_tools::hotkey_tick()
+	void animal_tools::hotkey_tick_impl()
 	{
 		static bool was_down = false;
 		if (!g_options.enable_hotkey)
@@ -303,7 +297,7 @@ namespace big
 		was_down = down;
 	}
 
-	void animal_tools::draw_overlay()
+	void animal_tools::draw_overlay_impl()
 	{
 		if (!g_options.show_inspector)
 			return;

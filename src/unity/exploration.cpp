@@ -9,8 +9,6 @@ namespace big
 {
 	namespace
 	{
-		exploration::options g_options;
-
 		const std::vector<exploration::location_entry> boss_catalog = {
 		    {{"Eikthyrnir"}, "Eikthyr", "Eikthyr", 9, "Meadows"},
 		    {{"GDKing"}, "The Elder", "The Elder", 9, "Black Forest"},
@@ -52,27 +50,27 @@ namespace big
 		}
 	}
 
-	void exploration::set_options(const options& opt)
+	void exploration::set_options_impl(const options& opt)
 	{
 		g_options = opt;
 	}
 
-	exploration::options exploration::get_options()
+	exploration::options exploration::get_options_impl()
 	{
 		return g_options;
 	}
 
-	const std::vector<exploration::location_entry>& exploration::get_boss_entries()
+	const std::vector<exploration::location_entry>& exploration::get_boss_entries_impl()
 	{
 		return boss_catalog;
 	}
 
-	const std::vector<exploration::location_entry>& exploration::get_trader_entries()
+	const std::vector<exploration::location_entry>& exploration::get_trader_entries_impl()
 	{
 		return trader_catalog;
 	}
 
-	void exploration::explore_all_map()
+	void exploration::explore_all_map_impl()
 	{
 		auto map = minimap::get_instance();
 		if (map)
@@ -83,7 +81,7 @@ namespace big
 		notification::success("Map Exploration", "All map fog revealed across the world!");
 	}
 
-	void exploration::reset_map()
+	void exploration::reset_map_impl()
 	{
 		auto map = minimap::get_instance();
 		if (map)
@@ -94,7 +92,7 @@ namespace big
 		notification::info("Map Exploration", "Minimap fog of war reset.");
 	}
 
-	bool exploration::discover_location(std::string_view name, std::string_view pin_name, int pin_type, bool discover_all)
+	bool exploration::discover_location_impl(std::string_view name, std::string_view pin_name, int pin_type, bool discover_all)
 	{
 		try_local_discover(std::string(name), std::string(pin_name), pin_type);
 
@@ -109,7 +107,7 @@ namespace big
 		return true;
 	}
 
-	bool exploration::discover_location(const location_entry& entry, bool discover_all)
+	bool exploration::discover_location_impl(const location_entry& entry, bool discover_all)
 	{
 		for (const auto& candidate : entry.candidate_names)
 		{
@@ -130,7 +128,7 @@ namespace big
 		return true;
 	}
 
-	void exploration::discover_all_bosses(bool discover_all)
+	void exploration::discover_all_bosses_impl(bool discover_all)
 	{
 		int count = 0;
 		for (const auto& boss : boss_catalog)
@@ -142,7 +140,7 @@ namespace big
 			notification::success("Boss Tracker", std::format("Discovery requested for all {} bosses (Mode: {})!", count, discover_all ? "All World Altars" : "Closest Altar"));
 	}
 
-	void exploration::discover_all_traders(bool discover_all)
+	void exploration::discover_all_traders_impl(bool discover_all)
 	{
 		int count = 0;
 		for (const auto& trader : trader_catalog)
@@ -154,7 +152,7 @@ namespace big
 			notification::success("Trader Tracker", std::format("Discovery requested for {} traders & quest POIs!", count));
 	}
 
-	void exploration::discover_everything(bool discover_all)
+	void exploration::discover_everything_impl(bool discover_all)
 	{
 		discover_all_bosses(discover_all);
 		discover_all_traders(discover_all);

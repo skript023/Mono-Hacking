@@ -402,7 +402,7 @@ namespace big
 			info.MinImageCount = 2;
 			info.ImageCount = count;
 			info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-			info.DescriptorPoolSize = 64;
+			info.DescriptorPoolSize = 256;
 			info.CheckVkResultFn = check;
 			if (!ImGui_ImplVulkan_Init(&info))
 				throw std::runtime_error("Cannot initialize ImGui Vulkan backend");
@@ -904,6 +904,19 @@ namespace big
 	void render_vulkan::shutdown()
 	{
 		detach();
+	}
+	void render_vulkan::release_texture(ImTextureID id)
+	{
+		std::lock_guard lock(mutex);
+		auto it = std::find_if(textures.begin(), textures.end(), [id](const auto& t) {
+			return reinterpret_cast<ImTextureID>(t.descriptor) == id;
+		});
+		if (it == textures.end())
+			return;
+		if (vk.DeviceWaitIdle(device) != VK_SUCCESS)
+			return;
+		free_texture(*it);
+		textures.erase(it);
 	}
 	ImTextureID render_vulkan::upload_rgba(const unsigned char* pixels, int width, int height)
 	{

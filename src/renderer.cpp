@@ -9,6 +9,7 @@
 #include "fonts/icon_list.hpp"
 #include "graphic/graphic_manager.hpp"
 #include "astra/host/canvas.hpp"
+#include "unity/item_icons.hpp"
 #include <backends/imgui_impl_win32.h>
 #include <imgui_internal.h>
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
@@ -94,6 +95,7 @@ namespace big
 	}
 	void renderer::finish_init()
 	{
+		++m_texture_generation;
 		g_gui.load_textures();
 		m_init = true;
 		static bool notified = false;
@@ -125,8 +127,14 @@ namespace big
 	{
 		return m_backend ? m_backend->upload_rgba(pixels, width, height) : 0;
 	}
+	void renderer::release_texture(ImTextureID texture)
+	{
+		if (m_backend && texture)
+			m_backend->release_texture(texture);
+	}
 	void renderer::draw_frame(ImVec2 framebuffer_size)
 	{
+		item_icons::begin_frame();
 		auto& io = ImGui::GetIO();
 		io.MouseDrawCursor = canvas::uses_mouse();
 		if (canvas::uses_mouse())

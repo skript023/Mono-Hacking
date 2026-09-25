@@ -1,4 +1,5 @@
 #include "item_spawner.hpp"
+#include "item_icons.hpp"
 #include "unity/item_data.hpp"
 #include "unity/localization.hpp"
 #include "unity/player.hpp"
@@ -19,10 +20,6 @@ namespace big
 {
 	namespace
 	{
-		std::vector<item_spawner::item_entry> g_items;
-		bool g_initialized = false;
-		std::atomic<bool> s_is_refreshing{false};
-
 		const std::vector<item_spawner::item_entry> default_catalog = {
 		    // Weapons - Swords & Blades
 		    {"SwordMistwalker", "Mistwalker", "Weapons", 1, 4},
@@ -167,8 +164,9 @@ namespace big
 		    {"BoltIron", "Iron Bolt", "Ammo", 100, 1}};
 	}
 
-	void item_spawner::initialize()
+	void item_spawner::initialize_impl()
 	{
+		std::lock_guard lock(g_items_mutex);
 		if (g_initialized && !g_items.empty())
 			return;
 
@@ -176,12 +174,12 @@ namespace big
 		g_initialized = true;
 	}
 
-	bool item_spawner::is_refreshing()
+	bool item_spawner::is_refreshing_impl()
 	{
 		return s_is_refreshing.load();
 	}
 
-	static void scan_worker()
+	void item_spawner::scan_worker_impl()
 	{
 		TRY_CLAUSE
 		{
@@ -341,8 +339,13 @@ namespace big
 
 			if (!scanned.empty())
 			{
-				g_items = std::move(scanned);
-				notification::success("Item Spawner", std::format("Loaded {} items from ObjectDB!", g_items.size()));
+				const auto count = scanned.size();
+				{
+					std::lock_guard lock(g_items_mutex);
+					g_items = std::move(scanned);
+				}
+				item_icons::invalidate();
+				notification::success("Item Spawner", std::format("Loaded {} items from ObjectDB!", count));
 			}
 		}
 		EXCEPT_CLAUSE
@@ -350,7 +353,7 @@ namespace big
 		s_is_refreshing = false;
 	}
 
-	void item_spawner::refresh()
+	void item_spawner::refresh_impl()
 	{
 		if (s_is_refreshing.exchange(true))
 		{
@@ -360,7 +363,9 @@ namespace big
 
 		if (g_fiber_pool)
 		{
-			g_fiber_pool->queue_job(scan_worker);
+			g_fiber_pool->queue_job([this] {
+				scan_worker_impl();
+			});
 		}
 		else
 		{
@@ -369,8 +374,9 @@ namespace big
 		}
 	}
 
-	const std::vector<item_spawner::item_entry>& item_spawner::get_items()
+	std::vector<item_spawner::item_entry> item_spawner::get_items_impl()
 	{
+		std::lock_guard lock(g_items_mutex);
 		if (!g_initialized)
 		{
 			g_items = default_catalog;
@@ -379,12 +385,12 @@ namespace big
 		return g_items;
 	}
 
-	std::vector<std::string> item_spawner::get_categories()
+	std::vector<std::string> item_spawner::get_categories_impl()
 	{
 		return {"All", "Weapons", "Armor & Gear", "Food & Potions", "Materials", "Tools", "Ammo", "Misc"};
 	}
 
-	static void spawn_to_inventory_impl(const std::string& prefab_name, int amount, int quality)
+	void item_spawner::spawn_to_inventory_worker_impl(const std::string& prefab_name, int amount, int quality)
 	{
 		TRY_CLAUSE
 		{
@@ -526,25 +532,25 @@ namespace big
 		EXCEPT_CLAUSE
 	}
 
-	bool item_spawner::spawn_to_inventory(const std::string& prefab_name, int amount, int quality)
+	bool item_spawner::spawn_to_inventory_impl(const std::string& prefab_name, int amount, int quality)
 	{
 		if (script::get_current())
 		{
-			spawn_to_inventory_impl(prefab_name, amount, quality);
+			spawn_to_inventory_worker_impl(prefab_name, amount, quality);
 			return true;
 		}
 
 		if (g_fiber_pool)
 		{
-			g_fiber_pool->queue_job([prefab_name, amount, quality] {
-				spawn_to_inventory_impl(prefab_name, amount, quality);
+			g_fiber_pool->queue_job([this, prefab_name, amount, quality] {
+				spawn_to_inventory_worker_impl(prefab_name, amount, quality);
 			});
 			return true;
 		}
 		return false;
 	}
 
-	static void spawn_in_world_impl(const std::string& prefab_name, int amount, int level)
+	void item_spawner::spawn_in_world_worker_impl(const std::string& prefab_name, int amount, int level)
 	{
 		TRY_CLAUSE
 		{
@@ -606,45 +612,36 @@ namespace big
 		EXCEPT_CLAUSE
 	}
 
-	bool item_spawner::spawn_in_world(const std::string& prefab_name, int amount, int level)
+	bool item_spawner::spawn_in_world_impl(const std::string& prefab_name, int amount, int level)
 	{
 		if (script::get_current())
 		{
-			spawn_in_world_impl(prefab_name, amount, level);
+			spawn_in_world_worker_impl(prefab_name, amount, level);
 			return true;
 		}
 
 		if (g_fiber_pool)
 		{
-			g_fiber_pool->queue_job([prefab_name, amount, level] {
-				spawn_in_world_impl(prefab_name, amount, level);
+			g_fiber_pool->queue_job([this, prefab_name, amount, level] {
+				spawn_in_world_worker_impl(prefab_name, amount, level);
 			});
 			return true;
 		}
 		return false;
 	}
 
-	namespace
-	{
-		char s_search_buffer[64] = "";
-		int s_selected_category = 0;
-		int s_spawn_amount = 1;
-		int s_spawn_quality = 1;
-		int s_selected_item_index = 0;
-		bool s_standalone_open = false;
-	}
 
-	void item_spawner::toggle_standalone_window()
+	void item_spawner::toggle_standalone_window_impl()
 	{
 		s_standalone_open = !s_standalone_open;
 	}
 
-	bool item_spawner::is_standalone_window_open()
+	bool item_spawner::is_standalone_window_open_impl()
 	{
 		return s_standalone_open;
 	}
 
-	void item_spawner::draw_standalone_window()
+	void item_spawner::draw_standalone_window_impl()
 	{
 		if (!s_standalone_open)
 			return;
@@ -660,7 +657,7 @@ namespace big
 		ImGui::End();
 	}
 
-	void item_spawner::draw_menu_ui()
+	void item_spawner::draw_menu_ui_impl()
 	{
 		initialize();
 
@@ -727,15 +724,32 @@ namespace big
 		ImGui::Text("Matches: %zu items", filtered.size());
 
 		ImGui::BeginChild("ItemListRegion", ImVec2(0, 180), true);
-		for (int i = 0; i < (int)filtered.size(); ++i)
+		constexpr float icon_size = 32.f;
+		ImGuiListClipper clipper;
+		clipper.Begin(static_cast<int>(filtered.size()), icon_size + ImGui::GetStyle().ItemSpacing.y);
+		while (clipper.Step())
 		{
-			const auto* item = filtered[i];
-			std::string label = std::format("{} [{}] ({})", item->display_name, item->prefab_name, item->category);
-			bool is_selected = (s_selected_item_index == i);
-			if (ImGui::Selectable(label.c_str(), is_selected))
+			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
 			{
-				s_selected_item_index = i;
-				s_spawn_amount = std::min(s_spawn_amount, std::max(1, item->max_stack));
+				const auto* item = filtered[i];
+				ImGui::PushID(item->prefab_name.c_str());
+				if (auto icon = item_icons::get(item->prefab_name))
+					ImGui::Image(icon, ImVec2(icon_size, icon_size));
+				else
+					ImGui::Dummy(ImVec2(icon_size, icon_size));
+				ImGui::SameLine();
+				std::string label = std::format("{} [{}] ({})", item->display_name, item->prefab_name, item->category);
+				bool is_selected = (s_selected_item_index == i);
+				ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.f, 0.5f));
+				if (ImGui::Selectable(label.c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, icon_size)))
+				{
+					s_selected_item_index = i;
+					s_spawn_amount = std::min(s_spawn_amount, std::max(1, item->max_stack));
+				}
+				ImGui::PopStyleVar();
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("%s", label.c_str());
+				ImGui::PopID();
 			}
 		}
 		ImGui::EndChild();

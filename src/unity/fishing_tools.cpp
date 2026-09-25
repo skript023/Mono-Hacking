@@ -30,7 +30,7 @@ namespace big
 		}
 	}
 
-	void fishing_tools::update()
+	void fishing_tools::update_impl()
 	{
 		auto floats = get_floats();
 		if (floats.empty())
@@ -89,7 +89,7 @@ namespace big
 		}
 	}
 
-	fishing_tools::fishing_status fishing_tools::get_status()
+	fishing_tools::fishing_status fishing_tools::get_status_impl()
 	{
 		fishing_status st;
 		auto floats = get_floats();
@@ -116,7 +116,7 @@ namespace big
 		return st;
 	}
 
-	void fishing_tools::instant_catch()
+	void fishing_tools::instant_catch_impl()
 	{
 		auto floats = get_floats();
 		if (floats.empty())

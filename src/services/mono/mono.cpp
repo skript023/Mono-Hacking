@@ -88,6 +88,19 @@ namespace big
 		    "root domain, main thread and corlib");
 		ensure_thread_attached_impl();
 
+		auto image_loaded = require_export("mono_image_loaded").as<MonoImage* (*)(const char*)>();
+		for (const char* name : {"assembly_valheim", "assembly_utils", "UnityEngine.CoreModule"})
+		{
+			MonoImage* image = nullptr;
+			wait_for([&] {
+				image = image_loaded(name);
+				return image != nullptr;
+			},
+			    name);
+			std::scoped_lock lock(m_image_cache_mutex);
+			m_image_cache.emplace(name, image);
+		}
+
 		this->initalized = true;
 	}
 
@@ -104,8 +117,10 @@ namespace big
 		attached = true;
 	}
 
-	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
+	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params, MonoObject** exception) const
 	{
+		if (exception)
+			*exception = nullptr;
 		if (!method)
 			return nullptr;
 
@@ -113,7 +128,10 @@ namespace big
 
 		MonoObject* execution = nullptr;
 
-		return mono_runtime_invoke(method, obj, params, &execution);
+		auto result = mono_runtime_invoke(method, obj, params, &execution);
+		if (exception)
+			*exception = execution;
+		return execution ? nullptr : result;
 	}
 
 	MonoImage* mono::get_image_impl(const char* assemblyName) const
@@ -226,7 +244,10 @@ namespace big
 					continue;
 
 				char* ret_name = mono_type_get_name(ret_type);
-				if (!ret_name || !strstr(ret_name, returnTypeName))
+				const bool matches = ret_name && strstr(ret_name, returnTypeName);
+				if (ret_name)
+					mono_free(ret_name);
+				if (!matches)
 					continue;
 			}
 
@@ -238,7 +259,10 @@ namespace big
 					continue;
 
 				char* p_name = mono_type_get_name(p_type);
-				if (!p_name || !strstr(p_name, paramTypeName))
+				const bool matches = p_name && strstr(p_name, paramTypeName);
+				if (p_name)
+					mono_free(p_name);
+				if (!matches)
 					continue;
 			}
 

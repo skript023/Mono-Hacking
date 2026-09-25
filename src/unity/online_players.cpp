@@ -8,10 +8,6 @@ namespace big
 {
 	namespace
 	{
-		std::mutex mutex;
-		online_players::snapshot current;
-		std::chrono::steady_clock::time_point last_update;
-
 		template<typename T>
 		T field(MonoObject* object, const char* name)
 		{
@@ -117,7 +113,7 @@ namespace big
 		}
 	}
 
-	void online_players::update()
+	void online_players::update_impl()
 	{
 		auto next = collect();
 		std::lock_guard lock(mutex);
@@ -125,7 +121,7 @@ namespace big
 		last_update = std::chrono::steady_clock::now();
 	}
 
-	online_players::snapshot online_players::get_snapshot()
+	online_players::snapshot online_players::get_snapshot_impl()
 	{
 		std::lock_guard lock(mutex);
 		if (std::chrono::steady_clock::now() - last_update > std::chrono::seconds(3))
@@ -133,7 +129,7 @@ namespace big
 		return current;
 	}
 
-	bool online_players::teleport_to(const std::string& id)
+	bool online_players::teleport_to_impl(const std::string& id)
 	{
 		if (id.empty() || id == "0:0")
 			return false;

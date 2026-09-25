@@ -18,6 +18,16 @@ namespace big
 		LOG(INFO) << "Resolving hook: " << name;
 		Logger::FlushQueue();
 		auto target = mono::get_compile_method(class_name, method_name, parameter_count, assembly, namespace_name);
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+		while (!target)
+		{
+			if (!g_running)
+				throw std::runtime_error("Hook initialization cancelled.");
+			if (std::chrono::steady_clock::now() >= deadline)
+				throw std::runtime_error(std::format("Hook '{}' could not resolve after 10 seconds; check the game method signature.", name));
+			std::this_thread::sleep_for(std::chrono::milliseconds(250));
+			target = mono::get_compile_method(class_name, method_name, parameter_count, assembly, namespace_name);
+		}
 		detour_hook::add<callback>(name, target);
 	}
 

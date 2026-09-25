@@ -1,4 +1,8 @@
 #pragma once
+#include <atomic>
+#include <chrono>
+#include <mutex>
+#include <unordered_map>
 #include "class/vector.hpp"
 #include <optional>
 #include <string>
@@ -30,8 +34,35 @@ namespace big
 			std::vector<entry> players;
 		};
 
-		static void update();
-		static snapshot get_snapshot();
-		static bool teleport_to(const std::string& id);
+		static void update()
+		{
+			return instance().update_impl();
+		}
+		static snapshot get_snapshot()
+		{
+			return instance().get_snapshot_impl();
+		}
+		static bool teleport_to(const std::string& id)
+		{
+			return instance().teleport_to_impl(id);
+		}
+
+	private:
+		online_players() = default;
+		online_players(const online_players&) = delete;
+		online_players& operator=(const online_players&) = delete;
+		static online_players& instance()
+		{
+			static online_players value;
+			return value;
+		}
+
+		void update_impl();
+		snapshot get_snapshot_impl();
+		bool teleport_to_impl(const std::string& id);
+
+		std::mutex mutex;
+		snapshot current;
+		std::chrono::steady_clock::time_point last_update;
 	};
 }

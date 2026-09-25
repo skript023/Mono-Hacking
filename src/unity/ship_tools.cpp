@@ -5,7 +5,7 @@
 
 namespace big
 {
-	MonoObject* ship_tools::get_local_ship()
+	MonoObject* ship_tools::get_local_ship_impl()
 	{
 		static auto method = mono::get_method("Ship", "GetLocalShip", 0, "assembly_valheim");
 		if (!method)
@@ -14,7 +14,7 @@ namespace big
 		return mono::invoke_method(method, nullptr, nullptr);
 	}
 
-	void ship_tools::update()
+	void ship_tools::update_impl()
 	{
 		auto ship = get_local_ship();
 		if (!ship)
@@ -84,7 +84,7 @@ namespace big
 		}
 	}
 
-	ship_tools::ship_status ship_tools::get_status()
+	ship_tools::ship_status ship_tools::get_status_impl()
 	{
 		ship_status st;
 		auto ship = get_local_ship();
@@ -121,7 +121,7 @@ namespace big
 		return st;
 	}
 
-	void ship_tools::emergency_anchor()
+	void ship_tools::emergency_anchor_impl()
 	{
 		auto ship = get_local_ship();
 		if (!ship)
@@ -156,7 +156,7 @@ namespace big
 		notification::success("Ship Tools", "Emergency Anchor deployed! Boat halted.");
 	}
 
-	void ship_tools::boost_forward(float force)
+	void ship_tools::boost_forward_impl(float force)
 	{
 		auto ship = get_local_ship();
 		if (!ship)
@@ -192,7 +192,7 @@ namespace big
 		}
 	}
 
-	void ship_tools::repair_ship()
+	void ship_tools::repair_ship_impl()
 	{
 		auto ship = get_local_ship();
 		if (!ship)

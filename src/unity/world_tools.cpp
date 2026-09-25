@@ -35,12 +35,12 @@ namespace big
 		}
 	}
 
-	const std::vector<world_tools::raid_info>& world_tools::get_available_raids()
+	const std::vector<world_tools::raid_info>& world_tools::get_available_raids_impl()
 	{
 		return s_raids;
 	}
 
-	std::string world_tools::get_current_raid_name()
+	std::string world_tools::get_current_raid_name_impl()
 	{
 		auto res = unity::get_rand_event_system();
 		if (!res)
@@ -75,7 +75,7 @@ namespace big
 		return "Active Raid Event";
 	}
 
-	void world_tools::trigger_raid(const std::string& internal_name)
+	void world_tools::trigger_raid_impl(const std::string& internal_name)
 	{
 		auto res = unity::get_rand_event_system();
 		auto player = unity::get_local_player();
@@ -136,7 +136,7 @@ namespace big
 		notification::warning("Raid Controller", "Failed to start raid event.");
 	}
 
-	void world_tools::stop_current_raid()
+	void world_tools::stop_current_raid_impl()
 	{
 		auto res = unity::get_rand_event_system();
 		if (!res)
@@ -153,7 +153,7 @@ namespace big
 		}
 	}
 
-	void world_tools::update_raid_system()
+	void world_tools::update_raid_system_impl()
 	{
 		if (g_settings.self.disable_raids)
 		{
@@ -174,7 +174,7 @@ namespace big
 		}
 	}
 
-	bool world_tools::has_death_point()
+	bool world_tools::has_death_point_impl()
 	{
 		auto prof = get_player_profile();
 		if (!prof)
@@ -192,7 +192,7 @@ namespace big
 		return unboxed ? *reinterpret_cast<bool*>(unboxed) : false;
 	}
 
-	Vector3 world_tools::get_death_point()
+	Vector3 world_tools::get_death_point_impl()
 	{
 		auto prof = get_player_profile();
 		if (!prof)
@@ -210,7 +210,7 @@ namespace big
 		return unboxed ? *reinterpret_cast<Vector3*>(unboxed) : Vector3{0.f, 0.f, 0.f};
 	}
 
-	bool world_tools::teleport_to_tombstone()
+	bool world_tools::teleport_to_tombstone_impl()
 	{
 		if (!has_death_point())
 		{
@@ -224,7 +224,7 @@ namespace big
 		return true;
 	}
 
-	bool world_tools::loot_nearby_tombstone(float radius)
+	bool world_tools::loot_nearby_tombstone_impl(float radius)
 	{
 		auto player = unity::get_local_player();
 		if (!player)
@@ -237,7 +237,7 @@ namespace big
 		return true;
 	}
 
-	bool world_tools::open_trader_gui()
+	bool world_tools::open_trader_gui_impl()
 	{
 		auto store_gui = unity::get_store_gui();
 		if (!store_gui)

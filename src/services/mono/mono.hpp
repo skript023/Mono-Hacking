@@ -11,7 +11,7 @@ namespace big
 	{
 		void init_impl();
 		void ensure_thread_attached_impl() const;
-		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params) const;
+		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params, MonoObject** exception = nullptr) const;
 		template<typename Return, typename... Args>
 		Return invoke_compiled_method_impl(void* compiledMethod, Args... args) const
 		{
@@ -78,9 +78,9 @@ namespace big
 		{
 			return get_instance().to_mono_string_utf16(str);
 		}
-		static MonoObject* invoke_method(MonoMethod* method, void* obj = nullptr, void** params = nullptr)
+		static MonoObject* invoke_method(MonoMethod* method, void* obj = nullptr, void** params = nullptr, MonoObject** exception = nullptr)
 		{
-			return get_instance().invoke_method_impl(method, obj, params);
+			return get_instance().invoke_method_impl(method, obj, params, exception);
 		};
 		template<typename Return, typename... Args>
 		static Return invoke_compiled_method(void* compiledMethod, Args... args)

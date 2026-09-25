@@ -11,15 +11,6 @@ namespace big
 {
 	namespace
 	{
-		std::mutex mutex;
-		base_tools::options config;
-		base_tools::snapshot data;
-		std::atomic_bool scan_requested = false;
-		std::chrono::steady_clock::time_point scanned;
-		std::vector<base_tools::marker> markers;
-		std::chrono::steady_clock::time_point projected;
-		std::unordered_map<int, std::chrono::steady_clock::time_point> pending_stacks;
-
 		MonoClassField* find_field(MonoClass* klass, const char* name)
 		{
 			for (auto k = klass; k != nullptr; k = mono::class_get_parent(k))
@@ -124,12 +115,12 @@ namespace big
 		}
 	}
 
-	base_tools::options base_tools::get_options()
+	base_tools::options base_tools::get_options_impl()
 	{
 		std::lock_guard lock(mutex);
 		return config;
 	}
-	void base_tools::set_options(options v)
+	void base_tools::set_options_impl(options v)
 	{
 		v.radius = std::clamp(v.radius, 5.f, 100.f);
 		for (auto p : {&v.smelter_speed, &v.fermenter_speed, &v.honey_speed, &v.plant_speed})
@@ -138,23 +129,23 @@ namespace big
 		std::lock_guard lock(mutex);
 		config = std::move(v);
 	}
-	base_tools::snapshot base_tools::get_snapshot()
+	base_tools::snapshot base_tools::get_snapshot_impl()
 	{
 		std::lock_guard lock(mutex);
 		if (std::chrono::steady_clock::now() - scanned > std::chrono::seconds(5))
 			return {};
 		return data;
 	}
-	void base_tools::request_scan()
+	void base_tools::request_scan_impl()
 	{
 		scan_requested = true;
 	}
-	std::vector<base_tools::marker> base_tools::get_markers()
+	std::vector<base_tools::marker> base_tools::get_markers_impl()
 	{
 		std::lock_guard lock(mutex);
 		return std::chrono::steady_clock::now() - projected < std::chrono::milliseconds(500) ? markers : std::vector<marker>{};
 	}
-	float base_tools::multiplier(MonoObject* object, float speed)
+	float base_tools::multiplier_impl(MonoObject* object, float speed)
 	{
 		if (speed <= 1.f || !object || !valid(object))
 			return 1.f;
@@ -165,7 +156,7 @@ namespace big
 		return distance_squared(position(object), player(local).get_position()) <= radius * radius ? speed : 1.f;
 	}
 
-	void base_tools::quick_stack()
+	void base_tools::quick_stack_impl()
 	{
 		const auto cfg = get_options();
 		int requested = 0;
@@ -203,7 +194,7 @@ namespace big
 		else
 			notification::info("Quick Stack", "Chests found in range, but none were accessible or free.");
 	}
-	bool base_tools::begin_stack_response(MonoObject* chest)
+	bool base_tools::begin_stack_response_impl(MonoObject* chest)
 	{
 		const int id = value<int>(chest, "GetInstanceID");
 		auto it = pending_stacks.find(id);
@@ -213,7 +204,7 @@ namespace big
 		// Keep protection even if the server answers a request late.
 		return true;
 	}
-	bool base_tools::protected_item(MonoObject* item)
+	bool base_tools::protected_item_impl(MonoObject* item)
 	{
 		if (!item)
 			return true;
@@ -224,7 +215,7 @@ namespace big
 		return (cfg.keep_hotbar && grid_pos.y == 0)
 		    || (cfg.keep_food && type == 2) || (cfg.keep_ammo && (type == 9 || type == 23));
 	}
-	void base_tools::repair_nearby()
+	void base_tools::repair_nearby_impl()
 	{
 		int count = 0;
 		for (auto piece : nearby("WearNTear", get_options().radius))
@@ -233,7 +224,7 @@ namespace big
 		notification::info("Repair Radius", std::format("Sent {} repair requests.", count));
 		request_scan();
 	}
-	void base_tools::grow_nearby()
+	void base_tools::grow_nearby_impl()
 	{
 		int count = 0;
 		for (auto plant : nearby("Plant", get_options().radius))
@@ -250,7 +241,7 @@ namespace big
 		notification::info("Farming", std::format("Grew {} healthy, locally owned plants.", count));
 		request_scan();
 	}
-	void base_tools::hotkey_tick()
+	void base_tools::hotkey_tick_impl()
 	{
 		static bool was_down = false;
 		bool down = (GetAsyncKeyState(VK_F7) & 0x8000) != 0;
@@ -274,7 +265,7 @@ namespace big
 		markers = std::move(next);
 		projected = std::chrono::steady_clock::now();
 	}
-	void base_tools::update()
+	void base_tools::update_impl()
 	{
 		const auto cfg = get_options();
 		if (!scan_requested.exchange(false) && !cfg.damaged_markers)
