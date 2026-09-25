@@ -2,7 +2,8 @@
 
 namespace big
 {
-	item_data::item_data(MonoObject* o): obj(o)
+	item_data::item_data(MonoObject* o) :
+	    obj(o)
 	{
 	}
 	item_data::~item_data() noexcept
@@ -36,7 +37,7 @@ namespace big
 		auto durability_per_level = shared.get_durability_per_level();
 		auto quality = mono::get_field_value<"ItemDrop/ItemData", "m_quality", int>(obj);
 
-		return durability + (float)std::max(0, quality - 1) * durability_per_level; 
+		return durability + (float)std::max(0, quality - 1) * durability_per_level;
 	}
 	void item_data::set_quality(int quality)
 	{

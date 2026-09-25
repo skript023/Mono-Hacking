@@ -15,7 +15,7 @@ namespace big
 			sub->add_option<number_option<float>>("Transparency", "Opacity of the List and Window UI.", &g_settings.window.transparency, 0.15f, 1.f, 0.05f, 2);
 			sub->add_option<number_option<std::uint8_t>>("Accent Red", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.r, 0, 255);
 			sub->add_option<number_option<std::uint8_t>>("Accent Green", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.g, 0, 255);
-					sub->add_option<number_option<std::uint8_t>>("Accent Blue", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.b, 0, 255);
+			sub->add_option<number_option<std::uint8_t>>("Accent Blue", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.b, 0, 255);
 			sub->add_option<number_option<std::uint8_t>>("Custom Background R", "Custom theme background red channel.", &g_settings.window.custom_background.r, 0, 255);
 			sub->add_option<number_option<std::uint8_t>>("Custom Background G", "Custom theme background green channel.", &g_settings.window.custom_background.g, 0, 255);
 			sub->add_option<number_option<std::uint8_t>>("Custom Background B", "Custom theme background blue channel.", &g_settings.window.custom_background.b, 0, 255);

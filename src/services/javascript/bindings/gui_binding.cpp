@@ -26,7 +26,7 @@ namespace big
 
 		return std::floor(d) == d && d >= std::numeric_limits<int32_t>::min() && d <= std::numeric_limits<int32_t>::max();
 	}
-	
+
 	static JSValue js_sub_add_bool(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
 		auto* menu = (JSMenu*)JS_GetOpaque2(ctx, this_val, js_submenu_class_id);
@@ -242,15 +242,15 @@ namespace big
 						if (opt.isInt)
 						{
 							sub->add_option<bool_slider_int_option>(
-								opt.text.c_str(),
-								opt.desc.c_str(),
-								&boolStates[opt.tag],
-								&intStates[opt.tag],
-								(int)opt.min,
-								(int)opt.max,
+							    opt.text.c_str(),
+							    opt.desc.c_str(),
+							    &boolStates[opt.tag],
+							    &intStates[opt.tag],
+							    (int)opt.min,
+							    (int)opt.max,
 							    (int)opt.step,
-								1,
-								true,
+							    1,
+							    true,
 							    [ctx = g_js_ctx, cb = opt.callback, tag = opt.tag]() {
 								    auto data = store::get_float(tag, floatStates[tag]);
 								    if (JS_IsUndefined(cb))
@@ -344,7 +344,6 @@ namespace big
 							    JS_Call(ctx, cb, JS_UNDEFINED, 0, nullptr);
 						    });
 					}
-
 				}
 			};
 

@@ -8,9 +8,9 @@ namespace big
 	public:
 		struct fishing_status
 		{
-			bool rod_active{ false };
-			bool fish_hooked{ false };
-			float line_length{ 0.f };
+			bool rod_active{false};
+			bool fish_hooked{false};
+			float line_length{0.f};
 		};
 
 		static void update();
@@ -18,4 +18,3 @@ namespace big
 		static void instant_catch();
 	};
 }
-

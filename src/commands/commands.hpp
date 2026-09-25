@@ -34,7 +34,7 @@ namespace big
 		{
 			get_instance().add_looped_command_impl(command);
 		}
-		
+
 		/*static void add_process_event_command(process_event* command)
 		{
 			get_instance().add_process_event_command_impl(command);
@@ -65,7 +65,7 @@ namespace big
 		{
 			return get_instance().m_commands;
 		};
-		
+
 		static std::vector<looped_command*> get_looped_commands()
 		{
 			return get_instance().m_looped_commands;
@@ -75,7 +75,7 @@ namespace big
 		{
 			get_instance().mark_state_dirty();
 		}
-		
+
 		static void shutdown()
 		{
 			get_instance().shutdown_impl();

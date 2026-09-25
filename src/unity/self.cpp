@@ -3,7 +3,8 @@
 
 namespace big
 {
-	self::self(): m_player(nullptr)
+	self::self() :
+	    m_player(nullptr)
 	{
 	}
 	player self::get_player_impl()

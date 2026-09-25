@@ -10,12 +10,12 @@ namespace big
 	public:
 		struct ship_status
 		{
-			bool in_ship{ false };
-			float speed{ 0.f };
-			float rudder{ 0.f };
-			float health{ 0.f };
-			float max_health{ 0.f };
-			bool ashlands_ready{ false };
+			bool in_ship{false};
+			float speed{0.f};
+			float rudder{0.f};
+			float health{0.f};
+			float max_health{0.f};
+			bool ashlands_ready{false};
 			Vector3 position{};
 		};
 
@@ -27,4 +27,3 @@ namespace big
 		static void repair_ship();
 	};
 }
-

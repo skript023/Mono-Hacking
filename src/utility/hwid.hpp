@@ -20,12 +20,12 @@ namespace utils
 #pragma pack(push, 1)
 	struct RawSMBIOSData
 	{
-		BYTE  Used20CallingMethod;
-		BYTE  SMBIOSMajorVersion;
-		BYTE  SMBIOSMinorVersion;
-		BYTE  DmiRevision;
+		BYTE Used20CallingMethod;
+		BYTE SMBIOSMajorVersion;
+		BYTE SMBIOSMinorVersion;
+		BYTE DmiRevision;
 		DWORD Length;
-		BYTE  SMBIOSTableData[1];
+		BYTE SMBIOSTableData[1];
 	};
 
 	struct SMBIOSHeader
@@ -101,7 +101,8 @@ namespace utils
 			const BYTE* strPtr = ptr + header->Length;
 
 			auto get_string = [&](BYTE index) -> std::string {
-				if (index == 0) return "";
+				if (index == 0)
+					return "";
 				const char* s = reinterpret_cast<const char*>(strPtr);
 				BYTE current = 1;
 				while (reinterpret_cast<const BYTE*>(s) < endPtr && *s != '\0')
@@ -122,19 +123,15 @@ namespace utils
 				bool allFF = true;
 				for (int i = 0; i < 16; ++i)
 				{
-					if (u[i] != 0x00) allZero = false;
-					if (u[i] != 0xFF) allFF = false;
+					if (u[i] != 0x00)
+						allZero = false;
+					if (u[i] != 0xFF)
+						allFF = false;
 				}
 				if (!allZero && !allFF)
 				{
 					char uuidStr[64]{};
-					sprintf_s(uuidStr, sizeof(uuidStr),
-						"%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-						u[3], u[2], u[1], u[0],
-						u[5], u[4],
-						u[7], u[6],
-						u[8], u[9],
-						u[10], u[11], u[12], u[13], u[14], u[15]);
+					sprintf_s(uuidStr, sizeof(uuidStr), "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X", u[3], u[2], u[1], u[0], u[5], u[4], u[7], u[6], u[8], u[9], u[10], u[11], u[12], u[13], u[14], u[15]);
 					system_uuid = uuidStr;
 				}
 			}
@@ -174,13 +171,13 @@ namespace utils
 		{
 			std::wstring drivePath = L"\\\\.\\PhysicalDrive" + std::to_wstring(driveIdx);
 			HANDLE hDevice = CreateFileW(
-				drivePath.c_str(),
-				0, // Query access only (does NOT require administrator privileges)
-				FILE_SHARE_READ | FILE_SHARE_WRITE,
-				nullptr,
-				OPEN_EXISTING,
-				0,
-				nullptr);
+			    drivePath.c_str(),
+			    0, // Query access only (does NOT require administrator privileges)
+			    FILE_SHARE_READ | FILE_SHARE_WRITE,
+			    nullptr,
+			    OPEN_EXISTING,
+			    0,
+			    nullptr);
 
 			if (hDevice != INVALID_HANDLE_VALUE)
 			{
@@ -191,10 +188,7 @@ namespace utils
 				BYTE buffer[1024]{};
 				DWORD bytesReturned = 0;
 
-				if (DeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
-									&query, sizeof(query),
-									buffer, sizeof(buffer),
-									&bytesReturned, nullptr))
+				if (DeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY, &query, sizeof(query), buffer, sizeof(buffer), &bytesReturned, nullptr))
 				{
 					auto* desc = reinterpret_cast<STORAGE_DEVICE_DESCRIPTOR*>(buffer);
 					if (desc->SerialNumberOffset != 0 && desc->SerialNumberOffset < bytesReturned)
@@ -225,7 +219,7 @@ namespace utils
 
 	inline std::string get_cpuid_info()
 	{
-		int cpuInfo[4] = { 0 };
+		int cpuInfo[4] = {0};
 		__cpuid(cpuInfo, 1);
 
 		// Mask out bits 24-31 of EBX (Initial APIC ID) because it varies depending
@@ -235,9 +229,9 @@ namespace utils
 		std::ostringstream oss;
 		oss << std::hex << std::setfill('0');
 		oss << std::setw(8) << cpuInfo[0] << "-"
-			<< std::setw(8) << ebx_clean << "-"
-			<< std::setw(8) << cpuInfo[2] << "-"
-			<< std::setw(8) << cpuInfo[3];
+		    << std::setw(8) << ebx_clean << "-"
+		    << std::setw(8) << cpuInfo[2] << "-"
+		    << std::setw(8) << cpuInfo[3];
 
 		__cpuid(cpuInfo, 0x80000000);
 		unsigned int nExIds = static_cast<unsigned int>(cpuInfo[0]);
@@ -293,17 +287,7 @@ namespace utils
 				std::wstring combined = desc + L" " + friendly;
 				std::transform(combined.begin(), combined.end(), combined.begin(), ::towlower);
 
-				if (combined.find(L"virtual") != std::wstring::npos ||
-					combined.find(L"vmware") != std::wstring::npos ||
-					combined.find(L"virtualbox") != std::wstring::npos ||
-					combined.find(L"hyper-v") != std::wstring::npos ||
-					combined.find(L"tap") != std::wstring::npos ||
-					combined.find(L"vpn") != std::wstring::npos ||
-					combined.find(L"npcap") != std::wstring::npos ||
-					combined.find(L"loopback") != std::wstring::npos ||
-					combined.find(L"bluetooth") != std::wstring::npos ||
-					combined.find(L"wsl") != std::wstring::npos ||
-					combined.find(L"host-only") != std::wstring::npos)
+				if (combined.find(L"virtual") != std::wstring::npos || combined.find(L"vmware") != std::wstring::npos || combined.find(L"virtualbox") != std::wstring::npos || combined.find(L"hyper-v") != std::wstring::npos || combined.find(L"tap") != std::wstring::npos || combined.find(L"vpn") != std::wstring::npos || combined.find(L"npcap") != std::wstring::npos || combined.find(L"loopback") != std::wstring::npos || combined.find(L"bluetooth") != std::wstring::npos || combined.find(L"wsl") != std::wstring::npos || combined.find(L"host-only") != std::wstring::npos)
 				{
 					continue;
 				}
@@ -323,7 +307,8 @@ namespace utils
 				std::ostringstream oss;
 				for (ULONG i = 0; i < pCurr->PhysicalAddressLength; ++i)
 				{
-					if (i > 0) oss << ":";
+					if (i > 0)
+						oss << ":";
 					oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(pCurr->PhysicalAddress[i]);
 				}
 				return oss.str();
@@ -374,11 +359,11 @@ namespace utils
 
 		std::ostringstream raw;
 		raw << "UUID:" << (uuid.empty() ? "N/A" : uuid) << "|"
-			<< "MB:" << (mb_serial.empty() ? "N/A" : mb_serial) << "|"
-			<< "DISK:" << (disk_serial.empty() ? "N/A" : disk_serial) << "|"
-			<< "CPU:" << (cpu_info.empty() ? "N/A" : cpu_info) << "|"
-			<< "MAC:" << (mac.empty() ? "N/A" : mac) << "|"
-			<< "GUID:" << (machine_guid.empty() ? "N/A" : machine_guid);
+		    << "MB:" << (mb_serial.empty() ? "N/A" : mb_serial) << "|"
+		    << "DISK:" << (disk_serial.empty() ? "N/A" : disk_serial) << "|"
+		    << "CPU:" << (cpu_info.empty() ? "N/A" : cpu_info) << "|"
+		    << "MAC:" << (mac.empty() ? "N/A" : mac) << "|"
+		    << "GUID:" << (machine_guid.empty() ? "N/A" : machine_guid);
 
 		return raw.str();
 	}
@@ -390,4 +375,3 @@ namespace utils
 		return hash.empty() ? raw_str : hash;
 	}
 }
-

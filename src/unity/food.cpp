@@ -2,8 +2,10 @@
 
 namespace big
 {
-	food::food(MonoObject* food): m_food(food)
-	{}
+	food::food(MonoObject* food) :
+	    m_food(food)
+	{
+	}
 
 	food::~food() noexcept
 	{
@@ -12,7 +14,7 @@ namespace big
 
 	std::string food::get_name()
 	{
-        return mono::get_field_value<"Player/Food", "m_name", std::string>(m_food);
+		return mono::get_field_value<"Player/Food", "m_name", std::string>(m_food);
 	}
 
 	std::string food::get_shared_name()

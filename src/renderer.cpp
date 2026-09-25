@@ -137,7 +137,7 @@ namespace big
 		if (framebuffer_size.x > 0.f && framebuffer_size.y > 0.f)
 		{
 			if (io.DisplaySize.x <= 0.f || io.DisplaySize.y <= 0.f)
-			 io.DisplaySize = framebuffer_size;
+				io.DisplaySize = framebuffer_size;
 			io.DisplayFramebufferScale = {framebuffer_size.x / io.DisplaySize.x, framebuffer_size.y / io.DisplaySize.y};
 		}
 		ImGui::NewFrame();
@@ -189,7 +189,6 @@ namespace big
 		{
 			g_running = false;
 		}
-
 
 
 		if (m_init && ImGui::GetCurrentContext())

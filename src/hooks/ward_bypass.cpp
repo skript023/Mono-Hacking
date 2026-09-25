@@ -12,4 +12,3 @@ namespace big
 		return detour_base::get_original<private_area_check_access>()(point, radius, flash, wardCheck);
 	}
 }
-

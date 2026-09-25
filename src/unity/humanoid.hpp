@@ -8,7 +8,7 @@ namespace big
 	class humanoid : public character
 	{
 	public:
-        using character::character;
-        inventory get_inventory();
+		using character::character;
+		inventory get_inventory();
 	};
 }

@@ -7,7 +7,10 @@ namespace big
 	{
 	public:
 		explicit benchmark(std::string name = "") :
-			m_start(high_resolution_clock::now()), m_name(name) {}
+		    m_start(high_resolution_clock::now()),
+		    m_name(name)
+		{
+		}
 
 		void get_runtime()
 		{
@@ -21,6 +24,7 @@ namespace big
 		{
 			m_start = high_resolution_clock::now();
 		}
+
 	private:
 		high_resolution_clock::time_point m_start;
 		std::string m_name;

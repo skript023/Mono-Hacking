@@ -50,7 +50,7 @@ namespace big
 			return it->second;
 		return nullptr;
 	}
-	
+
 	process_event* commands::get_process_event_impl(joaat_t hash)
 	{
 		if (auto it = m_process_event_commands.find(hash); it != m_process_event_commands.end())

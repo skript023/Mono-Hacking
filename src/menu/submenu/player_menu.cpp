@@ -24,7 +24,7 @@ namespace big
 		std::string panel_status;
 		int panel_frame = -1;
 
-		template <typename F>
+		template<typename F>
 		void queue_job(F&& func)
 		{
 			if (g_fiber_pool)
@@ -411,34 +411,52 @@ namespace big
 
 		canvas::add_submenu<regular_submenu>("Quick Weapons", "SubmenuQuickWeapons"_hash, [](regular_submenu* sub) {
 			sub->add_option<reguler_option>("Mistwalker (Sword)", "Spawn Level 4 Mistwalker into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("SwordMistwalker", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("SwordMistwalker", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Frostner (Silver Mace)", "Spawn Level 4 Frostner into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("MaceSilver", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("MaceSilver", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Demolisher (Sledge)", "Spawn Level 4 Demolisher into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("SledgeDemolisher", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("SledgeDemolisher", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Himmin Afl (Atgeir)", "Spawn Level 4 Lightning Atgeir into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("AtgeirHimminAfl", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("AtgeirHimminAfl", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Staff of Embers (Fire)", "Spawn Level 4 Fireball staff into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("StaffFireball", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("StaffFireball", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Staff of Protection (Shield)", "Spawn Level 4 Shield staff into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("StaffShield", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("StaffShield", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Ashlands Bow", "Spawn Level 4 Ashlands Bow into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("BowAshlands", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("BowAshlands", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Arbalest (Crossbow)", "Spawn Level 4 Arbalest into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("CrossbowArbalest", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("CrossbowArbalest", 1, 4);
+				});
 			});
 		});
 
 		canvas::add_submenu<regular_submenu>("Quick Armor", "SubmenuQuickArmor"_hash, [](regular_submenu* sub) {
 			sub->add_option<reguler_option>("Feather Cape", "Spawn Feather Cape (No fall damage + gliding).", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("CapeFeather", 1, 4); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("CapeFeather", 1, 4);
+				});
 			});
 			sub->add_option<reguler_option>("Full Flametal Armor Set", "Spawn complete Flametal Ashlands set.", [] {
 				queue_job([] {
@@ -467,64 +485,98 @@ namespace big
 
 		canvas::add_submenu<regular_submenu>("Quick Materials", "SubmenuQuickMats"_hash, [](regular_submenu* sub) {
 			sub->add_option<reguler_option>("Spawn 30x Iron", "Spawn 30x Iron bars into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("Iron", 30, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("Iron", 30, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn 30x Silver", "Spawn 30x Silver bars into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("Silver", 30, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("Silver", 30, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn 30x Black Metal", "Spawn 30x Black Metal bars into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("BlackMetal", 30, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("BlackMetal", 30, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn 30x Flametal", "Spawn 30x Flametal bars into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("FlametalNew", 30, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("FlametalNew", 30, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn 50x Refined Eitr", "Spawn 50x Refined Eitr into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("Eitr", 50, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("Eitr", 50, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn 20x Black Core", "Spawn 20x Black Cores for crafting.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("BlackCore", 20, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("BlackCore", 20, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn 50x Black Marble", "Spawn 50x Black Marble into inventory.", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("BlackMarble", 50, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("BlackMarble", 50, 1);
+				});
 			});
 		});
 
 		canvas::add_submenu<regular_submenu>("Quick Foods", "SubmenuQuickFood"_hash, [](regular_submenu* sub) {
 			sub->add_option<reguler_option>("Spawn Meat Platter (10x)", "Top Health Food (+80 HP)", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("MeatPlatter", 10, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("MeatPlatter", 10, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn Misthare Supreme (10x)", "Top Balanced Food (+85 HP, +28 Stamina)", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("MisthareSupreme", 10, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("MisthareSupreme", 10, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn Salad (10x)", "Top Stamina Food (+80 Stamina)", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("Salad", 10, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("Salad", 10, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn Stuffed Mushroom (10x)", "Top Eitr Food (+75 Eitr)", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("MagicallyStuffedMushroom", 10, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("MagicallyStuffedMushroom", 10, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn Major Healing Mead (10x)", "Instant burst heal mead", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("MeadHealthMajor", 10, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("MeadHealthMajor", 10, 1);
+				});
 			});
 			sub->add_option<reguler_option>("Spawn Lingering Stamina Mead (10x)", "+25% stamina regen for 5m", [] {
-				queue_job([] { item_spawner::spawn_to_inventory("MeadStaminaLingering", 10, 1); });
+				queue_job([] {
+					item_spawner::spawn_to_inventory("MeadStaminaLingering", 10, 1);
+				});
 			});
 		});
 
 		canvas::add_submenu<regular_submenu>("Buffs & Effects", "SubmenuBuffs"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Keep Rested (Comfort 25+)", "Automatically maintain maximum Rested buff.", &g_settings.self.keep_rested);
 			sub->add_option<reguler_option>("Apply Max Rested Buff Now", "Apply Rested status effect with comfort level 25 (30m+).", [] {
-				queue_job([] { buff_tools::apply_rested(25); });
+				queue_job([] {
+					buff_tools::apply_rested(25);
+				});
 			});
 			sub->add_option<bool_option<bool>>("Auto-Purge Harmful Debuffs", "Automatically cleanse Wet, Poison, Burning, Freeze, etc.", &g_settings.self.auto_cleanse_debuffs);
 			sub->add_option<reguler_option>("Clear All Harmful Debuffs", "Immediately cleanse all negative status effects.", [] {
-				queue_job([] { buff_tools::clear_all_debuffs(); });
+				queue_job([] {
+					buff_tools::clear_all_debuffs();
+				});
 			});
 			sub->add_option<reguler_option>("Activate All 7 Boss Powers", "Activate Eikthyr, Elder, Bonemass, Moder, Yagluth, Queen, Fader simultaneously!", [] {
-				queue_job([] { buff_tools::activate_all_guardian_powers(); });
+				queue_job([] {
+					buff_tools::activate_all_guardian_powers();
+				});
 			});
 			sub->add_option<sub_option>("Individual Boss Powers", "Select specific boss powers to toggle.", "SubmenuBossPowers"_hash);
 			sub->add_option<reguler_option>("Apply Eitr Shield (1,000 HP)", "Grant indestructible Staff of Protection bubble dome.", [] {
-				queue_job([] { buff_tools::apply_eitr_shield(1000.f); });
+				queue_job([] {
+					buff_tools::apply_eitr_shield(1000.f);
+				});
 			});
 		});
 
@@ -533,7 +585,9 @@ namespace big
 			{
 				std::string title = std::format("Activate {}", bp.display_name);
 				sub->add_option<reguler_option>(title.c_str(), bp.effect_description.c_str(), [name = bp.internal_name] {
-					queue_job([name] { buff_tools::activate_guardian_power(name); });
+					queue_job([name] {
+						buff_tools::activate_guardian_power(name);
+					});
 				});
 			}
 		});
@@ -543,13 +597,19 @@ namespace big
 			sub->add_option<bool_option<bool>>("No Wave & Collision Damage", "Ships take zero impact damage from crashing waves, rocks, or capsizing.", &g_settings.self.ship_no_wave_damage);
 			sub->add_option<number_option<float>>("Ship Speed Multiplier", "Multiply sail speed, reverse thrust, and rudder responsiveness.", &g_settings.self.ship_speed_multiplier, 1.f, 5.f, 0.5f, 1);
 			sub->add_option<reguler_option>("Emergency Anchor", "Instantly brake and halt ship momentum to prevent drifting.", [] {
-				queue_job([] { ship_tools::emergency_anchor(); });
+				queue_job([] {
+					ship_tools::emergency_anchor();
+				});
 			});
 			sub->add_option<reguler_option>("Forward Thruster Boost", "Apply a burst of forward momentum to your ship.", [] {
-				queue_job([] { ship_tools::boost_forward(1500.f); });
+				queue_job([] {
+					ship_tools::boost_forward(1500.f);
+				});
 			});
 			sub->add_option<reguler_option>("Repair Controlled Ship", "Restore ship hull and pieces to 100% health.", [] {
-				queue_job([] { ship_tools::repair_ship(); });
+				queue_job([] {
+					ship_tools::repair_ship();
+				});
 			});
 		});
 
@@ -558,21 +618,27 @@ namespace big
 			sub->add_option<bool_option<bool>>("Zero Stamina Fishing", "Reeling and holding hooked fish consumes 0 stamina.", &g_settings.self.fishing_no_stamina);
 			sub->add_option<bool_option<bool>>("Auto Reel-in & Catch", "Automatically reel in and catch fish the instant they bite.", &g_settings.self.fishing_auto_catch);
 			sub->add_option<reguler_option>("Instant Catch Current Fish", "Reel in active bobber directly into inventory.", [] {
-				queue_job([] { fishing_tools::instant_catch(); });
+				queue_job([] {
+					fishing_tools::instant_catch();
+				});
 			});
 		});
 
 		canvas::add_submenu<regular_submenu>("Base Raids & Events", "SubmenuRaids"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Disable Base Raids", "Prevent all random monster attacks from spawning near your base.", &g_settings.self.disable_raids);
 			sub->add_option<reguler_option>("Stop Active Raid", "Instantly end and dismiss any ongoing raid event.", [] {
-				queue_job([] { world_tools::stop_current_raid(); });
+				queue_job([] {
+					world_tools::stop_current_raid();
+				});
 			});
 			for (const auto& r : world_tools::get_available_raids())
 			{
 				std::string title = std::format("Start '{}'", r.display_name);
 				std::string desc = std::format("Enemies: {}", r.enemies);
 				sub->add_option<reguler_option>(title.c_str(), desc.c_str(), [id = r.internal_name] {
-					queue_job([id] { world_tools::trigger_raid(id); });
+					queue_job([id] {
+						world_tools::trigger_raid(id);
+					});
 				});
 			}
 		});
@@ -580,13 +646,17 @@ namespace big
 		canvas::add_submenu<regular_submenu>("Tombstone Recovery", "SubmenuTombstone"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Retain Skills on Death", "Prevent losing 5% of skill levels upon dying.", &g_settings.self.keep_skills_on_death);
 			sub->add_option<reguler_option>("Teleport to Last Tombstone", "Instantly warp to the location where you last died.", [] {
-				queue_job([] { world_tools::teleport_to_tombstone(); });
+				queue_job([] {
+					world_tools::teleport_to_tombstone();
+				});
 			});
 		});
 
 		canvas::add_submenu<regular_submenu>("Remote Merchant", "SubmenuTrader"_hash, [](regular_submenu* sub) {
 			sub->add_option<reguler_option>("Open Trader Store (Anywhere)", "Open Haldor, Hildir, or Bog Witch store GUI directly from menu.", [] {
-				queue_job([] { world_tools::open_trader_gui(); });
+				queue_job([] {
+					world_tools::open_trader_gui();
+				});
 			});
 		});
 	}

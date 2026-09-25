@@ -5,15 +5,19 @@ namespace big
 {
 	class inventory
 	{
-        MonoObject* m_inventory;
-	public:
-        inventory(MonoObject* obj);
-        ~inventory() noexcept;
+		MonoObject* m_inventory;
 
-        void set_height(int height);
-        void set_width(int width);
-        int get_height();
-        int get_width();
-        MonoObject* get_object() const { return m_inventory; }
+	public:
+		inventory(MonoObject* obj);
+		~inventory() noexcept;
+
+		void set_height(int height);
+		void set_width(int width);
+		int get_height();
+		int get_width();
+		MonoObject* get_object() const
+		{
+			return m_inventory;
+		}
 	};
 }

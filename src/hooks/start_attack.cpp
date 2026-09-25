@@ -5,170 +5,169 @@
 
 namespace big
 {
-    using namespace features;
+	using namespace features;
 
-    static MonoObject* find_best_target(Vector3 shooter)
-    {
-        float fov_px = unity::fov_degrees_to_pixels(_aimbot_fov.get_state());
+	static MonoObject* find_best_target(Vector3 shooter)
+	{
+		float fov_px = unity::fov_degrees_to_pixels(_aimbot_fov.get_state());
 
-        MonoObject* best = nullptr;
-        float best_dist = fov_px;
+		MonoObject* best = nullptr;
+		float best_dist = fov_px;
 
-        auto characters = unity::get_all_characters();
-        auto local_player = unity::get_local_player();
+		auto characters = unity::get_all_characters();
+		auto local_player = unity::get_local_player();
 
-        float screen_w = (float)unity::get_screen_width();
-        float screen_h = (float)unity::get_screen_height();
-        if (screen_w <= 0.f || screen_h <= 0.f)
-        {
-            screen_w = (float)g_pointers->m_resolution.x;
-            screen_h = (float)g_pointers->m_resolution.y;
-        }
+		float screen_w = (float)unity::get_screen_width();
+		float screen_h = (float)unity::get_screen_height();
+		if (screen_w <= 0.f || screen_h <= 0.f)
+		{
+			screen_w = (float)g_pointers->m_resolution.x;
+			screen_h = (float)g_pointers->m_resolution.y;
+		}
 
-        Vector3 screen_center = {
-            screen_w * 0.5f,
-            screen_h * 0.5f,
-            0.f
-        };
+		Vector3 screen_center = {
+		    screen_w * 0.5f,
+		    screen_h * 0.5f,
+		    0.f};
 
-        for (auto c : characters)
-        {
-            if (!c || (uintptr_t)c < 0x10000 || c == local_player)
-                continue;
+		for (auto c : characters)
+		{
+			if (!c || (uintptr_t)c < 0x10000 || c == local_player)
+				continue;
 
-            if (unity::is_dead(c))
-                continue;
+			if (unity::is_dead(c))
+				continue;
 
-            Vector3 center_world = unity::get_center_point(c);
-            Vector3 head_world   = unity::get_head_point(c);
-            if (head_world.is_zero())
-                head_world = unity::get_top_point(c);
+			Vector3 center_world = unity::get_center_point(c);
+			Vector3 head_world = unity::get_head_point(c);
+			if (head_world.is_zero())
+				head_world = unity::get_top_point(c);
 
-            if (center_world.is_zero())
-            {
-                center_world = unity::get_position(c);
-                center_world.y += 1.2f;
-            }
+			if (center_world.is_zero())
+			{
+				center_world = unity::get_position(c);
+				center_world.y += 1.2f;
+			}
 
-            Vector3 screen_center_pt{};
-            Vector3 screen_head_pt{};
+			Vector3 screen_center_pt{};
+			Vector3 screen_head_pt{};
 
-            bool has_center = unity::world_to_screen(center_world, screen_center_pt);
-            bool has_head   = unity::world_to_screen(head_world, screen_head_pt);
+			bool has_center = unity::world_to_screen(center_world, screen_center_pt);
+			bool has_head = unity::world_to_screen(head_world, screen_head_pt);
 
-            if (!has_center && !has_head)
-                continue;
+			if (!has_center && !has_head)
+				continue;
 
-            float dist_center = 999999.f;
-            if (has_center)
-            {
-                float dx = screen_center_pt.x - screen_center.x;
-                float dy = screen_center_pt.y - screen_center.y;
-                dist_center = sqrtf(dx * dx + dy * dy);
-            }
+			float dist_center = 999999.f;
+			if (has_center)
+			{
+				float dx = screen_center_pt.x - screen_center.x;
+				float dy = screen_center_pt.y - screen_center.y;
+				dist_center = sqrtf(dx * dx + dy * dy);
+			}
 
-            float dist_head = 999999.f;
-            if (has_head)
-            {
-                float dx = screen_head_pt.x - screen_center.x;
-                float dy = screen_head_pt.y - screen_center.y;
-                dist_head = sqrtf(dx * dx + dy * dy);
-            }
+			float dist_head = 999999.f;
+			if (has_head)
+			{
+				float dx = screen_head_pt.x - screen_center.x;
+				float dy = screen_head_pt.y - screen_center.y;
+				dist_head = sqrtf(dx * dx + dy * dy);
+			}
 
-            float dist = std::min(dist_center, dist_head);
+			float dist = std::min(dist_center, dist_head);
 
-            if (!std::isfinite(dist) || dist > fov_px)
-                continue;
+			if (!std::isfinite(dist) || dist > fov_px)
+				continue;
 
-            if (dist < best_dist)
-            {
-                best_dist = dist;
-                best = c;
-            }
-        }
+			if (dist < best_dist)
+			{
+				best_dist = dist;
+				best = c;
+			}
+		}
 
-        return best;
-    }
+		return best;
+	}
 
-    inline Vector3 predict_arrow(
-        const Vector3& shooter,
-        const Vector3& target,
-        const Vector3& velocity,
-        float speed,
-        float gravity
-    )
-    {
-        Vector3 to_target = target - shooter;
-        float distance = to_target.length();
+	inline Vector3 predict_arrow(
+	    const Vector3& shooter,
+	    const Vector3& target,
+	    const Vector3& velocity,
+	    float speed,
+	    float gravity)
+	{
+		Vector3 to_target = target - shooter;
+		float distance = to_target.length();
 
-        float t = distance / speed;
+		float t = distance / speed;
 
-        Vector3 future;
+		Vector3 future;
 
-        future.x = target.x + velocity.x * t;
-        future.y = target.y + velocity.y * t + 0.5f * gravity * t * t; // Y-up
-        future.z = target.z + velocity.z * t;
+		future.x = target.x + velocity.x * t;
+		future.y = target.y + velocity.y * t + 0.5f * gravity * t * t; // Y-up
+		future.z = target.z + velocity.z * t;
 
-        return future;
-    }
+		return future;
+	}
 
 	void hooks::get_projectile_spawn_point(MonoObject* attack, Vector3* spawnPoint, Vector3* aimDir)
 	{
-        TRY_CLAUSE
-        {
-            if (!_aimbot_enabled.get_state())
-            {
-                return detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
-            }
+		TRY_CLAUSE
+		{
+			if (!_aimbot_enabled.get_state())
+			{
+				return detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
+			}
 
-            detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
+			detour_base::get_original<get_projectile_spawn_point>()(attack, spawnPoint, aimDir);
 
-            if (!spawnPoint || !aimDir)
-                return;
+			if (!spawnPoint || !aimDir)
+				return;
 #ifdef _DEBUG
-            LOG(INFO) << "Original spawn point: " << spawnPoint->x << ", " << spawnPoint->y << ", " << spawnPoint->z;
-            LOG(INFO) << "Original aim dir: " << aimDir->x << ", " << aimDir->y << ", " << aimDir->z;
+			LOG(INFO) << "Original spawn point: " << spawnPoint->x << ", " << spawnPoint->y << ", " << spawnPoint->z;
+			LOG(INFO) << "Original aim dir: " << aimDir->x << ", " << aimDir->y << ", " << aimDir->z;
 #endif
-            auto local = unity::get_local_player();
-            if (!local)
-                return;
+			auto local = unity::get_local_player();
+			if (!local)
+				return;
 
-            Vector3 shooter = *spawnPoint;
-            Vector3 forward = unity::get_forward(local);
+			Vector3 shooter = *spawnPoint;
+			Vector3 forward = unity::get_forward(local);
 
-            auto best = find_best_target(shooter);
+			auto best = find_best_target(shooter);
 
-            if (!best)
-            {
-                LOG(FATAL) << "No target found within FOV";
-                return;
-            }
+			if (!best)
+			{
+				LOG(FATAL) << "No target found within FOV";
+				return;
+			}
 
-            Vector3 target_pos = unity::get_head_point(best);
-            if (target_pos.is_zero())
-                target_pos = unity::get_center_point(best);
-            if (target_pos.is_zero())
-                target_pos = unity::get_top_point(best);
-            Vector3 velocity   = unity::get_velocity(best);
+			Vector3 target_pos = unity::get_head_point(best);
+			if (target_pos.is_zero())
+				target_pos = unity::get_center_point(best);
+			if (target_pos.is_zero())
+				target_pos = unity::get_top_point(best);
+			Vector3 velocity = unity::get_velocity(best);
 
-            if (_teleport_projectile.get_state())
-            {
-                *spawnPoint = target_pos;
+			if (_teleport_projectile.get_state())
+			{
+				*spawnPoint = target_pos;
 
-                return;
-            }
+				return;
+			}
 #ifdef _DEBUG
-            LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
+			LOG(INFO) << "Best target is " << unity::get_hover_name(best) << " at position " << target_pos.x << ", " << target_pos.y << ", " << target_pos.z;
 #endif
-            Vector3 dir = target_pos - shooter;
+			Vector3 dir = target_pos - shooter;
 
-            float len = dir.length();
-            if (len < 0.001f)
-                return;
+			float len = dir.length();
+			if (len < 0.001f)
+				return;
 
-            dir = dir / len;
+			dir = dir / len;
 
-            *aimDir = dir;
-        } EXCEPT_CLAUSE
+			*aimDir = dir;
+		}
+		EXCEPT_CLAUSE
 	}
 }

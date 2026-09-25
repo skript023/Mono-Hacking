@@ -5,41 +5,53 @@
 
 namespace big
 {
-    using create_d3d11_device_and_swapchain_t = long(__stdcall*)(IDXGIAdapter*, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL*, UINT, UINT, const DXGI_SWAP_CHAIN_DESC*, IDXGISwapChain**, ID3D11Device**, D3D_FEATURE_LEVEL*, ID3D11DeviceContext**);
+	using create_d3d11_device_and_swapchain_t = long(__stdcall*)(IDXGIAdapter*, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL*, UINT, UINT, const DXGI_SWAP_CHAIN_DESC*, IDXGISwapChain**, ID3D11Device**, D3D_FEATURE_LEVEL*, ID3D11DeviceContext**);
 
-    class graphic_manager
-    {
-        graphic_manager() : m_render_type(eGraphicsAPI::none) {}
+	class graphic_manager
+	{
+		graphic_manager() :
+		    m_render_type(eGraphicsAPI::none)
+		{
+		}
 
-        // Detect which graphics API is loaded
-        eGraphicsAPI detect_graphics_api();
+		// Detect which graphics API is loaded
+		eGraphicsAPI detect_graphics_api();
 
-        // Forbid copying the singleton
-        graphic_manager(const graphic_manager&) = delete;
-        graphic_manager& operator=(const graphic_manager&) = delete;
+		// Forbid copying the singleton
+		graphic_manager(const graphic_manager&) = delete;
+		graphic_manager& operator=(const graphic_manager&) = delete;
 
-        eInitializationStatus create_dummy_device(eGraphicsAPI renderType);
+		eInitializationStatus create_dummy_device(eGraphicsAPI renderType);
 
-        eInitializationStatus get_swapchain_impl(eGraphicsAPI render_type)
-        {
-            return create_dummy_device(render_type);
-        }
-        void* get_method_table_impl(int index);
+		eInitializationStatus get_swapchain_impl(eGraphicsAPI render_type)
+		{
+			return create_dummy_device(render_type);
+		}
+		void* get_method_table_impl(int index);
 
-        eGraphicsAPI m_render_type;
-        std::vector<uintptr_t> m_swapchain_methods;
-        static graphic_manager& get_instance();
+		eGraphicsAPI m_render_type;
+		std::vector<uintptr_t> m_swapchain_methods;
+		static graphic_manager& get_instance();
 
-        auto vtable_view(void* ptr, size_t count)
+		auto vtable_view(void* ptr, size_t count)
 		{
 			return std::span{*(uintptr_t**)ptr, count};
 		}
-    public:
 
-        static eGraphicsAPI get_render_type() { return graphic_manager::get_instance().m_render_type; }
+	public:
+		static eGraphicsAPI get_render_type()
+		{
+			return graphic_manager::get_instance().m_render_type;
+		}
 
-        static std::string get_render_type_name();
-        static void* get_method_table(int index) { return get_instance().get_method_table_impl(index); };
-		static eInitializationStatus get_swapchain(eGraphicsAPI render_type) { return get_instance().get_swapchain_impl(render_type); }
-    };
+		static std::string get_render_type_name();
+		static void* get_method_table(int index)
+		{
+			return get_instance().get_method_table_impl(index);
+		};
+		static eInitializationStatus get_swapchain(eGraphicsAPI render_type)
+		{
+			return get_instance().get_swapchain_impl(render_type);
+		}
+	};
 }

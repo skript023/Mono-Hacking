@@ -16,6 +16,7 @@ namespace big
 	private:
 		player get_player_impl();
 		void update_impl();
+
 	public:
 		self();
 		static player get_player()

@@ -14,7 +14,7 @@ namespace big
 		int precision = 0;
 		uint32_t subId = 0;
 
-		 bool isInt = false;
+		bool isInt = false;
 
 		JSValue callback = JS_UNDEFINED; // fungsi JS
 		std::vector<std::string> values;
@@ -38,6 +38,5 @@ namespace big
 	public:
 		static void bind(qjs::Context& context);
 		static void register_gui();
-
 	};
 }

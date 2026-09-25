@@ -6,7 +6,7 @@ namespace big
 	class float_command : public command
 	{
 	protected:
-		virtual void on_change(){};
+		virtual void on_change() {};
 		virtual void on_call() override;
 		virtual void save_state(nlohmann::json& value) override;
 		virtual void load_state(nlohmann::json& value) override;

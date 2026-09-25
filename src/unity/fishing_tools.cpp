@@ -56,20 +56,25 @@ namespace big
 			if (g_settings.self.fishing_unbreakable_line)
 			{
 				float max_dist = 99999.f;
-				if (f_break_dist) mono::set_field_value(fl, f_break_dist, &max_dist);
-				if (f_max_dist) mono::set_field_value(fl, f_max_dist, &max_dist);
+				if (f_break_dist)
+					mono::set_field_value(fl, f_break_dist, &max_dist);
+				if (f_max_dist)
+					mono::set_field_value(fl, f_max_dist, &max_dist);
 			}
 
 			if (g_settings.self.fishing_no_stamina)
 			{
 				float zero = 0.f;
-				if (f_pull_stam) mono::set_field_value(fl, f_pull_stam, &zero);
-				if (f_hook_stam) mono::set_field_value(fl, f_hook_stam, &zero);
+				if (f_pull_stam)
+					mono::set_field_value(fl, f_pull_stam, &zero);
+				if (f_hook_stam)
+					mono::set_field_value(fl, f_hook_stam, &zero);
 			}
 
 			// Fast reel speed
 			float fast_reel = 25.f;
-			if (f_pull_speed) mono::set_field_value(fl, f_pull_speed, &fast_reel);
+			if (f_pull_speed)
+				mono::set_field_value(fl, f_pull_speed, &fast_reel);
 
 			if (g_settings.self.fishing_auto_catch && get_catch_method && f_line_len)
 			{
@@ -136,4 +141,3 @@ namespace big
 		}
 	}
 }
-

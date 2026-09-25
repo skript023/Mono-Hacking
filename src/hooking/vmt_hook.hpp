@@ -16,11 +16,12 @@ namespace big
 		void hook(std::size_t index, void* func);
 		void unhook(std::size_t index);
 
-		template <typename T>
+		template<typename T>
 		T get_original(std::size_t index);
 
 		void enable();
 		void disable();
+
 	private:
 		void*** m_object;
 		std::size_t m_num_funcs;

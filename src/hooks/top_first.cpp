@@ -13,4 +13,3 @@ namespace big
 		return detour_base::get_original<top_first>()(_this, item);
 	}
 }
-

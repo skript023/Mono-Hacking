@@ -73,10 +73,14 @@ namespace big
 			float back_force = 50.f * mult;
 			float rudder_spd = 0.5f * std::min(mult, 2.5f);
 
-			if (f_sail_force) mono::set_field_value(ship, f_sail_force, &sail_force);
-			if (f_stear_force) mono::set_field_value(ship, f_stear_force, &stear_force);
-			if (f_back_force) mono::set_field_value(ship, f_back_force, &back_force);
-			if (f_rudder_spd) mono::set_field_value(ship, f_rudder_spd, &rudder_spd);
+			if (f_sail_force)
+				mono::set_field_value(ship, f_sail_force, &sail_force);
+			if (f_stear_force)
+				mono::set_field_value(ship, f_stear_force, &stear_force);
+			if (f_back_force)
+				mono::set_field_value(ship, f_back_force, &back_force);
+			if (f_rudder_spd)
+				mono::set_field_value(ship, f_rudder_spd, &rudder_spd);
 		}
 	}
 
@@ -142,8 +146,10 @@ namespace big
 
 				Vector3 zero{0.f, 0.f, 0.f};
 				void* args[1] = {&zero};
-				if (set_lin_vel) mono::invoke_method(set_lin_vel, body, args);
-				if (set_ang_vel) mono::invoke_method(set_ang_vel, body, args);
+				if (set_lin_vel)
+					mono::invoke_method(set_lin_vel, body, args);
+				if (set_ang_vel)
+					mono::invoke_method(set_ang_vel, body, args);
 			}
 		}
 
@@ -218,4 +224,3 @@ namespace big
 		notification::info("Ship Tools", "Repair command sent.");
 	}
 }
-

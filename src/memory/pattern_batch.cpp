@@ -4,7 +4,8 @@
 
 namespace memory
 {
-	pattern_batch::pattern_batch(const std::string_view name): m_pattern_cache(name)
+	pattern_batch::pattern_batch(const std::string_view name) :
+	    m_pattern_cache(name)
 	{
 	}
 	void pattern_batch::add(std::string name, pattern pattern, std::function<void(handle)> callback)
@@ -25,7 +26,7 @@ namespace memory
 				{
 					std::invoke(entry.m_callback, handle(region.begin().as<DWORD64>() + offset.value()));
 					LOG(INFO) << "Using cached pattern [" << entry.m_name << "] : [" << HEX_TO_UPPER(region.begin().as<DWORD64>() + offset.value()) << "]";
-					
+
 					continue;
 				}
 			}

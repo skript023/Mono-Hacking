@@ -112,7 +112,7 @@ namespace js::sig
 		});
 
 		pattern_batch.add("dispatch", [&]() {
-			    dispatch_js_events();
+			dispatch_js_events();
 		});
 
 		global["main_batch"] = pattern_batch;

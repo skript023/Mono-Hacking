@@ -33,4 +33,3 @@ namespace big
 		static bool open_trader_gui();
 	};
 }
-

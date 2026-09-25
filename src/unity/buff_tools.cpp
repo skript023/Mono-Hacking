@@ -11,18 +11,25 @@ namespace big
 	namespace
 	{
 		const std::vector<buff_tools::boss_power> s_boss_powers = {
-			{"GP_Eikthyr", "Eikthyr's Surge", "Eikthyr (Meadows)", "-60% Run and Jump stamina usage"},
-			{"GP_TheElder", "Elder's Wrath", "The Elder (Black Forest)", "+60% Wood cutting speed and axe damage"},
-			{"GP_Bonemass", "Bonemass' Resilience", "Bonemass (Swamp)", "Massive physical resistance (Blunt, Slash, Pierce)"},
-			{"GP_Moder", "Moder's Flight", "Moder (Mountain)", "Tailwind always blows from behind your ship"},
-			{"GP_Yagluth", "Yagluth's Aegis", "Yagluth (Plains)", "High resistance against Fire, Frost, and Lightning"},
-			{"GP_Queen", "Queen's Transcendence", "The Queen (Mistlands)", "+100% Eitr regeneration and +60% Mining speed"},
-			{"GP_Ashlands", "Fader's Dominion", "Fader (Ashlands)", "+Movement speed, carry weight, and ferocious attack buff"}
-		};
+		    {"GP_Eikthyr", "Eikthyr's Surge", "Eikthyr (Meadows)", "-60% Run and Jump stamina usage"},
+		    {"GP_TheElder", "Elder's Wrath", "The Elder (Black Forest)", "+60% Wood cutting speed and axe damage"},
+		    {"GP_Bonemass", "Bonemass' Resilience", "Bonemass (Swamp)", "Massive physical resistance (Blunt, Slash, Pierce)"},
+		    {"GP_Moder", "Moder's Flight", "Moder (Mountain)", "Tailwind always blows from behind your ship"},
+		    {"GP_Yagluth", "Yagluth's Aegis", "Yagluth (Plains)", "High resistance against Fire, Frost, and Lightning"},
+		    {"GP_Queen", "Queen's Transcendence", "The Queen (Mistlands)", "+100% Eitr regeneration and +60% Mining speed"},
+		    {"GP_Ashlands", "Fader's Dominion", "Fader (Ashlands)", "+Movement speed, carry weight, and ferocious attack buff"}};
 
 		const std::vector<std::string> s_debuff_names = {
-			"Wet", "Poison", "Freezing", "Cold", "Burning", "Frost", "Smoked", "Tared", "Encumbered", "SoftDeath"
-		};
+		    "Wet",
+		    "Poison",
+		    "Freezing",
+		    "Cold",
+		    "Burning",
+		    "Frost",
+		    "Smoked",
+		    "Tared",
+		    "Encumbered",
+		    "SoftDeath"};
 
 		int get_stable_hash(const std::string& name)
 		{
@@ -241,4 +248,3 @@ namespace big
 		}
 	}
 }
-

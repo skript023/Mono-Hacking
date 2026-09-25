@@ -5,13 +5,11 @@ namespace memory
 {
 	pattern::pattern(std::string_view ida_sig)
 	{
-		auto to_upper = [](char c) -> char
-		{
+		auto to_upper = [](char c) -> char {
 			return c >= 'a' && c <= 'z' ? static_cast<char>(c + ('A' - 'a')) : static_cast<char>(c);
 		};
 
-		auto to_hex = [&](char c) -> std::optional<std::uint8_t>
-		{
+		auto to_hex = [&](char c) -> std::optional<std::uint8_t> {
 			switch (to_upper(c))
 			{
 			case '0':
@@ -80,7 +78,7 @@ namespace memory
 		m_hash = m_hash.update(ida_sig.size());
 	}
 
-	pattern::pattern(const void *bytes, std::string_view mask)
+	pattern::pattern(const void* bytes, std::string_view mask)
 	{
 		for (std::size_t i = 0; i < mask.size(); ++i)
 		{

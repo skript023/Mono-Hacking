@@ -72,16 +72,19 @@ namespace big
 			info.is_ssl = true;
 
 			const char* appdata = std::getenv("APPDATA");
-			if (!appdata) return;
+			if (!appdata)
+				return;
 
 			std::filesystem::path config_path = std::filesystem::path(appdata) / "Ellohim Menu" / "Config" / "environment.json";
-			if (!std::filesystem::exists(config_path)) return;
+			if (!std::filesystem::exists(config_path))
+				return;
 
 			try
 			{
 				std::ifstream f(config_path);
 				auto j = nlohmann::json::parse(f, nullptr, false);
-				if (j.is_discarded()) return;
+				if (j.is_discarded())
+					return;
 
 				int env_type = j.value("env_type", 1);
 				std::string custom_url = j.value("custom_url", "");
@@ -103,7 +106,9 @@ namespace big
 					info.is_ssl = false;
 				}
 			}
-			catch (...) {}
+			catch (...)
+			{
+			}
 		}
 
 		static void parse_url(const std::string& url, ServerAuthInfo& info)
@@ -136,7 +141,9 @@ namespace big
 				{
 					info.port = std::stoi(target.substr(colon_pos + 1));
 				}
-				catch (...) {}
+				catch (...)
+				{
+				}
 			}
 			else
 			{
@@ -173,10 +180,7 @@ namespace big
 			}
 			std::string hwid = utils::get_hwid();
 			std::string device_name = utils::get_device_name();
-			return endpoint + "/ws/auth?token=" + url_encode(info.token) +
-			       "&client=valheim_mod" +
-			       "&hwid=" + url_encode(hwid) +
-			       "&device_name=" + url_encode(device_name);
+			return endpoint + "/ws/auth?token=" + url_encode(info.token) + "&client=valheim_mod" + "&hwid=" + url_encode(hwid) + "&device_name=" + url_encode(device_name);
 		}
 
 		static bool login_via_hwid(ServerAuthInfo& info, const std::string& hwid)
@@ -184,10 +188,9 @@ namespace big
 			std::string device_name = utils::get_device_name();
 			std::string hwid_detail = utils::get_hwid_raw();
 			nlohmann::json body = {
-				{"hwid", hwid},
-				{"device_name", device_name},
-				{"hwid_detail", hwid_detail}
-			};
+			    {"hwid", hwid},
+			    {"device_name", device_name},
+			    {"hwid_detail", hwid_detail}};
 			std::string response_body;
 			int status_code = 0;
 
@@ -244,7 +247,7 @@ namespace big
 				file.read(reinterpret_cast<char*>(cipher.data()), size);
 				file.close();
 
-				DATA_BLOB input{ static_cast<DWORD>(cipher.size()), cipher.data() };
+				DATA_BLOB input{static_cast<DWORD>(cipher.size()), cipher.data()};
 				DATA_BLOB output{};
 				std::string refresh_token;
 
@@ -360,14 +363,13 @@ namespace big
 			WinHttpAddRequestHeaders(hRequest, default_headers.c_str(), -1L, WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE);
 
 			BOOL bSend = WinHttpSendRequest(
-				hRequest,
-				WINHTTP_NO_ADDITIONAL_HEADERS,
-				0,
-				body.empty() ? WINHTTP_NO_REQUEST_DATA : const_cast<char*>(body.data()),
-				static_cast<DWORD>(body.length()),
-				static_cast<DWORD>(body.length()),
-				0
-			);
+			    hRequest,
+			    WINHTTP_NO_ADDITIONAL_HEADERS,
+			    0,
+			    body.empty() ? WINHTTP_NO_REQUEST_DATA : const_cast<char*>(body.data()),
+			    static_cast<DWORD>(body.length()),
+			    static_cast<DWORD>(body.length()),
+			    0);
 
 			if (!bSend)
 			{
@@ -413,5 +415,3 @@ namespace big
 		}
 	};
 }
-
-

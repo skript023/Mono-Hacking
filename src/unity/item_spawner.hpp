@@ -13,8 +13,8 @@ namespace big
 			std::string prefab_name;
 			std::string display_name;
 			std::string category;
-			int max_stack{ 1 };
-			int max_quality{ 1 };
+			int max_stack{1};
+			int max_quality{1};
 		};
 
 		static void initialize();

@@ -7,45 +7,45 @@
 
 namespace big
 {
-    template <typename T>
-    class DoubleBuffer
-    {
-    public:
-        using container_type = std::vector<T>;
-        using container_ptr = std::shared_ptr<container_type>;
+	template<typename T>
+	class DoubleBuffer
+	{
+	public:
+		using container_type = std::vector<T>;
+		using container_ptr = std::shared_ptr<container_type>;
 
-        DoubleBuffer()
-        {
-            buffers_[0] = std::make_shared<container_type>();
-            buffers_[1] = std::make_shared<container_type>();
-            front_ = buffers_[0];
-            back_ = buffers_[1];
-        }
+		DoubleBuffer()
+		{
+			buffers_[0] = std::make_shared<container_type>();
+			buffers_[1] = std::make_shared<container_type>();
+			front_ = buffers_[0];
+			back_ = buffers_[1];
+		}
 
-        container_type& back() noexcept
-        {
-            return *back_;
-        }
+		container_type& back() noexcept
+		{
+			return *back_;
+		}
 
-        void publish() noexcept
-        {
-            std::lock_guard lock(m_lock);
+		void publish() noexcept
+		{
+			std::lock_guard lock(m_lock);
 
-            std::swap(front_, back_);
+			std::swap(front_, back_);
 
-            back_ = std::make_shared<container_type>();
-        }
+			back_ = std::make_shared<container_type>();
+		}
 
-        container_ptr view()
-        {
-            std::lock_guard lock(m_lock);
-            return front_;
-        }
+		container_ptr view()
+		{
+			std::lock_guard lock(m_lock);
+			return front_;
+		}
 
-    private:
-        container_ptr buffers_[2];
-        container_ptr front_;
-        container_ptr back_;
-        std::mutex m_lock;
-    };
+	private:
+		container_ptr buffers_[2];
+		container_ptr front_;
+		container_ptr back_;
+		std::mutex m_lock;
+	};
 }

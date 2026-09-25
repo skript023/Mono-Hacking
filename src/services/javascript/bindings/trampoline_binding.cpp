@@ -151,7 +151,7 @@ namespace js::trampoline
 
 		return JS_NewFloat64(ctx, (double)*w->ptr);
 	}
-	
+
 	static JSValue js_arg_as_mono_string(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 	{
 		auto* w = (ArgWrapper*)JS_GetOpaque(this_val, g_arg_wrapper_class);
@@ -229,9 +229,9 @@ namespace js::trampoline
 
 		static uintptr_t __fastcall trampoline(
 		    uintptr_t a0, uintptr_t a1, uintptr_t a2,
-		    uintptr_t a3, uintptr_t a4, uintptr_t a5, 
-			uintptr_t a6, uintptr_t a7, uintptr_t a8, 
-			uintptr_t a9, uintptr_t a10, uintptr_t a11,
+		    uintptr_t a3, uintptr_t a4, uintptr_t a5,
+		    uintptr_t a6, uintptr_t a7, uintptr_t a8,
+		    uintptr_t a9, uintptr_t a10, uintptr_t a11,
 		    uintptr_t a12, uintptr_t a13, uintptr_t a14, uintptr_t a15)
 		{
 			AbiContext abi{};

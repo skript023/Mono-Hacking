@@ -10,17 +10,16 @@ namespace big
 	namespace
 	{
 		const std::vector<world_tools::raid_info> s_raids = {
-			{"army_eikthyr", "Eikthyr rallies the creatures", "Boars & Necks"},
-			{"army_theelder", "The forest is moving...", "Greydwarfs, Brutes, Shamans"},
-			{"army_bonemass", "A foul smell from the swamp", "Draugr & Skeletons"},
-			{"army_moder", "A cold wind blows from the mountains", "Drakes"},
-			{"army_goblin", "The horde is attacking", "Fuling war party"},
-			{"army_queen", "They sought you out", "Seekers & Broods"},
-			{"wolves", "You are being hunted...", "Pack of aggressive Wolves"},
-			{"skeletons", "Skeleton Surprise", "Armored Skeletons"},
-			{"surtlings", "There's a smell of sulfur in the air", "Surtlings"},
-			{"bats", "You stirred the cauldron", "Cave Bats"}
-		};
+		    {"army_eikthyr", "Eikthyr rallies the creatures", "Boars & Necks"},
+		    {"army_theelder", "The forest is moving...", "Greydwarfs, Brutes, Shamans"},
+		    {"army_bonemass", "A foul smell from the swamp", "Draugr & Skeletons"},
+		    {"army_moder", "A cold wind blows from the mountains", "Drakes"},
+		    {"army_goblin", "The horde is attacking", "Fuling war party"},
+		    {"army_queen", "They sought you out", "Seekers & Broods"},
+		    {"wolves", "You are being hunted...", "Pack of aggressive Wolves"},
+		    {"skeletons", "Skeleton Surprise", "Armored Skeletons"},
+		    {"surtlings", "There's a smell of sulfur in the air", "Surtlings"},
+		    {"bats", "You stirred the cauldron", "Cave Bats"}};
 
 		MonoObject* get_player_profile()
 		{
@@ -294,4 +293,3 @@ namespace big
 		return false;
 	}
 }
-

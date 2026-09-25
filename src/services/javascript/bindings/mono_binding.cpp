@@ -308,12 +308,12 @@ namespace js::mono
 		//return m;
 	}
 
-	
+
 	// Register as global.mono (compatible with existing code that uses global object)
 	void bind(qjs::Context& context)
 	{
 		auto ctx = context.ctx;
-		
+
 		auto mono_object = context.newObject();
 		auto global = context.global();
 
