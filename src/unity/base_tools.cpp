@@ -5,7 +5,6 @@
 #include "utility/unity.hpp"
 #include "pointers.hpp"
 #include "notification/notification_service.hpp"
-#include <mutex>
 
 namespace big
 {
@@ -117,23 +116,18 @@ namespace big
 
 	base_tools::options base_tools::get_options_impl()
 	{
-		std::lock_guard lock(mutex);
 		return config;
 	}
 	void base_tools::set_options_impl(options v)
 	{
 		v.radius = std::clamp(v.radius, 5.f, 100.f);
-		for (auto p : {&v.smelter_speed, &v.fermenter_speed, &v.honey_speed, &v.plant_speed})
-			*p = std::clamp(*p, 1.f, 20.f);
+		for (auto p : {&v.smelter_speed, &v.fermenter_speed, &v.honey_speed, &v.plant_speed, &v.cooking_speed, &v.sap_speed})
+			*p = std::clamp(*p, 1.f, 50.f);
 		v.daylight = std::clamp(v.daylight, 0.f, 1.f);
-		std::lock_guard lock(mutex);
 		config = std::move(v);
 	}
 	base_tools::snapshot base_tools::get_snapshot_impl()
 	{
-		std::lock_guard lock(mutex);
-		if (std::chrono::steady_clock::now() - scanned > std::chrono::seconds(5))
-			return {};
 		return data;
 	}
 	void base_tools::request_scan_impl()
@@ -142,7 +136,6 @@ namespace big
 	}
 	std::vector<base_tools::marker> base_tools::get_markers_impl()
 	{
-		std::lock_guard lock(mutex);
 		return std::chrono::steady_clock::now() - projected < std::chrono::milliseconds(500) ? markers : std::vector<marker>{};
 	}
 	float base_tools::multiplier_impl(MonoObject* object, float speed)
@@ -231,14 +224,118 @@ namespace big
 		{
 			if (multiplier(plant, 2.f) == 1.f || !access(position(plant)))
 				continue;
-			double elapsed = value<double>(plant, "TimeSincePlanted");
-			void* args[] = {&elapsed};
-			auto method = mono::class_get_method_from_name(mono::object_get_class(plant), "UpdateHealth", 1);
-			mono::invoke_method(method, plant, args);
-			if (value<int>(plant, "GetStatus") == 0 && call(plant, "Grow"))
+			auto status_field = find_field(mono::object_get_class(plant), "m_status");
+			int healthy = 0;
+			if (status_field)
+				mono::set_field_value(plant, status_field, &healthy);
+			if (call(plant, "Grow"))
 				++count;
 		}
-		notification::info("Farming", std::format("Grew {} healthy, locally owned plants.", count));
+		notification::success("Farming", std::format("Instantly matured {} plant(s) (including harsh biomes like Deep North).", count));
+		request_scan();
+	}
+	void base_tools::instant_finish_nearby_impl()
+	{
+		const auto cfg = get_options();
+		int count = 0;
+		for (auto object : nearby("Smelter", cfg.radius))
+		{
+			if (!valid(object) || !access(position(object)))
+				continue;
+			auto view = field<MonoObject*>(object, "m_nview");
+			if (view && !value<bool>(view, "IsOwner"))
+				call(view, "ClaimOwnership");
+			int queue = value<int>(object, "GetQueueSize");
+			for (int q = 0; q < queue; ++q)
+			{
+				call(object, "SpawnProcessed");
+				++count;
+			}
+		}
+		for (auto object : nearby("SapCollector", cfg.radius))
+		{
+			if (!valid(object) || !access(position(object)))
+				continue;
+			auto view = field<MonoObject*>(object, "m_nview");
+			if (view && !value<bool>(view, "IsOwner"))
+				call(view, "ClaimOwnership");
+			int max_lvl = field<int>(object, "m_maxLevel");
+			void* args[] = {&max_lvl};
+			auto inc_method = find_method(mono::object_get_class(object), "IncreseLevel", 1);
+			if (inc_method)
+			{
+				mono::invoke_method(inc_method, object, args);
+				++count;
+			}
+		}
+		notification::success("Instant Finish", std::format("Processed instant completion for {} production operation(s).", count));
+		request_scan();
+	}
+	void base_tools::refuel_nearby_impl()
+	{
+		const auto cfg = get_options();
+		int refueled = 0;
+		for (auto object : nearby("Smelter", cfg.radius))
+		{
+			if (!valid(object) || !access(position(object)))
+				continue;
+			auto view = field<MonoObject*>(object, "m_nview");
+			if (view && !value<bool>(view, "IsOwner"))
+				call(view, "ClaimOwnership");
+			int max_fuel = field<int>(object, "m_maxFuel");
+			if (max_fuel > 0)
+			{
+				float fuel = static_cast<float>(max_fuel);
+				void* args[] = {&fuel};
+				auto set_fuel = find_method(mono::object_get_class(object), "SetFuel", 1);
+				if (set_fuel)
+				{
+					mono::invoke_method(set_fuel, object, args);
+					++refueled;
+				}
+			}
+		}
+		for (auto object : nearby("CookingStation", cfg.radius))
+		{
+			if (!valid(object) || !access(position(object)))
+				continue;
+			auto view = field<MonoObject*>(object, "m_nview");
+			if (view && !value<bool>(view, "IsOwner"))
+				call(view, "ClaimOwnership");
+			int max_fuel = field<int>(object, "m_maxFuel");
+			if (max_fuel > 0)
+			{
+				float fuel = static_cast<float>(max_fuel);
+				void* args[] = {&fuel};
+				auto set_fuel = find_method(mono::object_get_class(object), "SetFuel", 1);
+				if (set_fuel)
+				{
+					mono::invoke_method(set_fuel, object, args);
+					++refueled;
+				}
+			}
+		}
+		for (auto object : nearby("ShieldGenerator", cfg.radius))
+		{
+			if (!valid(object) || !access(position(object)))
+				continue;
+			auto view = field<MonoObject*>(object, "m_nview");
+			if (view && !value<bool>(view, "IsOwner"))
+				call(view, "ClaimOwnership");
+			int max_fuel = field<int>(object, "m_maxFuel");
+			if (max_fuel > 0)
+			{
+				float fuel = static_cast<float>(max_fuel);
+				void* args[] = {&fuel};
+				auto set_fuel = find_method(mono::object_get_class(object), "SetFuel", 1);
+				if (set_fuel)
+				{
+					mono::invoke_method(set_fuel, object, args);
+					++refueled;
+				}
+			}
+		}
+		notification::success("Refuel Radius", std::format("Refueled {} nearby station(s) to 100%.", refueled));
 		request_scan();
 	}
 	void base_tools::hotkey_tick_impl()
@@ -261,7 +358,6 @@ namespace big
 					break;
 			}
 		}
-		std::lock_guard lock(mutex);
 		markers = std::move(next);
 		projected = std::chrono::steady_clock::now();
 	}
@@ -307,6 +403,50 @@ namespace big
 
 					next.production.push_back({name(object), detail, position(object)});
 				}
+			for (auto object : nearby("CookingStation", cfg.radius))
+				if (valid(object))
+				{
+					float fuel = value<float>(object, "GetFuel");
+					int max_fuel = field<int>(object, "m_maxFuel");
+					bool fire = value<bool>(object, "IsFireLit");
+					float speed = multiplier(object, cfg.cooking_speed);
+					int total_slots = 0;
+					auto slots = field<MonoArray*>(object, "m_slots");
+					if (slots)
+						total_slots = mono_array_view<MonoObject*>(slots).size();
+
+					std::string detail;
+					if (max_fuel > 0)
+						detail = std::format("Slots: {} | Fire: {} | Fuel: {:.0f}/{} | Speed: {:.1f}x", total_slots, fire ? "Lit" : "No Fire", fuel, max_fuel, speed);
+					else
+						detail = std::format("Slots: {} | Fire: {} | Speed: {:.1f}x", total_slots, fire ? "Lit" : "No Fire", speed);
+
+					next.production.push_back({name(object), detail, position(object)});
+				}
+			for (auto object : nearby("SapCollector", cfg.radius))
+				if (valid(object))
+				{
+					int level = value<int>(object, "GetLevel");
+					int max_lvl = field<int>(object, "m_maxLevel");
+					float speed = multiplier(object, cfg.sap_speed);
+					auto status_str = mono::from_mono_string(reinterpret_cast<MonoString*>(call(object, "GetStatusText")));
+					if (status_str.empty())
+						status_str = (level >= max_lvl) ? "Full" : "Extracting";
+
+					std::string detail = std::format("Sap: {}/{} ({}) | Speed: {:.1f}x", level, max_lvl, status_str, speed);
+					next.production.push_back({name(object), detail, position(object)});
+				}
+			for (auto object : nearby("ShieldGenerator", cfg.radius))
+				if (valid(object))
+				{
+					float fuel = value<float>(object, "GetFuel");
+					int max_fuel = field<int>(object, "m_maxFuel");
+					float charge = value<float>(object, "GetAttackCharge") * 100.f;
+					float min_r = field<float>(object, "m_minShieldRadius");
+					float max_r = field<float>(object, "m_maxShieldRadius");
+					std::string detail = std::format("Fuel: {:.0f}/{} | Charge: {:.0f}% | Radius: {:.0f}-{:.0f}m", fuel, max_fuel, charge, min_r, max_r);
+					next.production.push_back({name(object), detail, position(object)});
+				}
 			for (auto object : nearby("Fermenter", cfg.radius))
 				if (valid(object))
 				{
@@ -323,7 +463,12 @@ namespace big
 				{
 					auto status = mono::from_mono_string(reinterpret_cast<MonoString*>(call(object, "GetHoverText")));
 					double remaining = std::max(0., double(value<float>(object, "GetGrowTime")) - value<double>(object, "TimeSincePlanted"));
-					next.plants.push_back({name(object), std::format("{} | ETA: {:.0f}s (if healthy)", status, remaining), position(object)});
+					int plant_status = value<int>(object, "GetStatus");
+					const char* status_names[] = {"Healthy", "No Grow", "No Sun", "No Space", "Too Cold (Deep North/Mtn)", "Too Hot (Ashlands)", "Wrong Biome", "Not Cultivated", "No Attach Piece"};
+					const char* status_lbl = (plant_status >= 0 && plant_status <= 8) ? status_names[plant_status] : "Unknown";
+					float speed = multiplier(object, cfg.plant_speed);
+					std::string detail = std::format("Status: {} | ETA: {:.0f}s | Speed: {:.1f}x", status_lbl, (speed > 1.f ? remaining / speed : remaining), speed);
+					next.plants.push_back({name(object), detail, position(object)});
 				}
 			for (auto object : nearby("WearNTear", cfg.radius))
 				if (valid(object))
@@ -343,14 +488,34 @@ namespace big
 				next.comfort.push_back({name(piece), std::format("Comfort: {} | Group: {} (duplicates may not stack)", value<int>(piece, "GetComfort"), field<int>(piece, "m_comfortGroup")), position(piece)});
 			static auto env_get = mono::get_method("EnvMan", "get_instance", 0, "assembly_valheim");
 			auto env = mono::invoke_method(env_get);
-			for (auto setup : mono::list<MonoObject*>(field<MonoObject*>(env, "m_environments")))
+			if (env)
 			{
-				auto label = mono::from_mono_string(field<MonoString*>(setup, "m_name"));
-				if (!label.empty())
-					next.weather.push_back(label);
+				for (auto setup : mono::list<MonoObject*>(field<MonoObject*>(env, "m_environments")))
+				{
+					auto label = mono::from_mono_string(field<MonoString*>(setup, "m_name"));
+					if (!label.empty() && std::find(next.weather.begin(), next.weather.end(), label) == next.weather.end())
+						next.weather.push_back(label);
+				}
+				for (auto biome : mono::list<MonoObject*>(field<MonoObject*>(env, "m_biomes")))
+				{
+					for (auto entry : mono::list<MonoObject*>(field<MonoObject*>(biome, "m_environments")))
+					{
+						auto setup = field<MonoObject*>(entry, "m_env");
+						if (setup)
+						{
+							auto label = mono::from_mono_string(field<MonoString*>(setup, "m_name"));
+							if (!label.empty() && std::find(next.weather.begin(), next.weather.end(), label) == next.weather.end())
+								next.weather.push_back(label);
+						}
+					}
+				}
+				for (const std::string& dn_env : {"DeepNorth", "DeepNorthSnow", "DeepNorthClear", "Ashlands", "Mistlands"})
+				{
+					if (std::find(next.weather.begin(), next.weather.end(), dn_env) == next.weather.end())
+						next.weather.push_back(dn_env);
+				}
 			}
 		}
-		std::lock_guard lock(mutex);
 		data = std::move(next);
 		scanned = std::chrono::steady_clock::now();
 	}

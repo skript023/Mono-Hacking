@@ -32,10 +32,10 @@ namespace big
 		canvas::add_submenu<regular_submenu>("Base Tools", "BaseTools"_hash, [](regular_submenu* sub) {
 			sub->add_option<number_option<float>>("Action Radius (m)", "Loaded objects only; comfort uses the game's 10m radius.", &config.radius, 5.f, 100.f, 5.f, 0);
 			sub->add_option<sub_option>("Quick Stack", "Deposit matching items in nearby accessible chests.", "BaseStack"_hash);
-			sub->add_option<sub_option>("Production Monitor", "Smelter queues, fuel, fermentation and honey.", "BaseProduction"_hash);
+			sub->add_option<sub_option>("Production Monitor", "Live queue, fuel, cooking, sap, shield and honey status.", "BaseProduction"_hash);
+			sub->add_option<sub_option>("Production Speed", "Accelerate smelting, cooking, fermentation, honey & sap.", "BaseSpeed"_hash);
+			sub->add_option<sub_option>("Farming Assistant", "Plant growth speed, Deep North & harsh biome support, instant grow.", "BaseFarming"_hash);
 			sub->add_option<sub_option>("Repair Radius", "Repair nearby buildings and locate damage.", "BaseRepair"_hash);
-			sub->add_option<sub_option>("Farming Assistant", "Plant health, growth time and instant growth.", "BaseFarming"_hash);
-			sub->add_option<sub_option>("Production Speed", "Local ownership required. Set 1x to restore normal speed.", "BaseSpeed"_hash);
 			sub->add_option<sub_option>("Weather & Daylight", "Local environment overrides; does not advance world time.", "BaseEnvironment"_hash);
 			sub->add_option<sub_option>("Comfort Inspector", "Nearby furniture and current comfort level.", "BaseComfort"_hash);
 		});
@@ -51,7 +51,33 @@ namespace big
 		});
 		canvas::add_submenu<regular_submenu>("Production Monitor", "BaseProduction"_hash, [](regular_submenu* sub) {
 			show_panel(0);
-			refresh(sub);
+			sub->add_option<reguler_option>("Refresh Nearby Objects", "Scan all loaded production facilities in range.", [] {
+				base_tools::request_scan();
+			});
+			sub->add_option<reguler_option>("Refuel All Nearby Stations", "Top off fuel on smelters, cooking stations & shields.", [] {
+				queue(base_tools::refuel_nearby);
+			});
+			sub->add_option<reguler_option>("Instant Finish All Queues", "Instantly complete all active smelting, cooking & sap batches.", [] {
+				queue(base_tools::instant_finish_nearby);
+			});
+
+			auto state = base_tools::get_snapshot();
+			if (!state.ready)
+			{
+				sub->add_option<reguler_option>("Scanning Nearby Facilities...", "Waiting for world data. Stand near your base stations.", nullptr);
+			}
+			else if (state.production.empty())
+			{
+				sub->add_option<reguler_option>("No Active Stations Found", "No smelters, fermenters, beehives, cookers, or sap collectors in range.", nullptr);
+			}
+			else
+			{
+				for (const auto& item : state.production)
+				{
+					std::string title = std::format("{} - {}", item.name, item.detail);
+					sub->add_option<reguler_option>(title.c_str(), "Active station within action radius.", nullptr);
+				}
+			}
 		});
 		canvas::add_submenu<regular_submenu>("Repair Radius", "BaseRepair"_hash, [](regular_submenu* sub) {
 			show_panel(1);
@@ -60,21 +86,50 @@ namespace big
 				queue(base_tools::repair_nearby);
 			});
 			refresh(sub);
+
+			auto state = base_tools::get_snapshot();
+			if (state.ready && !state.buildings.empty())
+			{
+				for (const auto& bldg : state.buildings)
+				{
+					std::string title = std::format("{} - {}", bldg.name, bldg.detail);
+					sub->add_option<reguler_option>(title.c_str(), "Damaged building piece.", nullptr);
+				}
+			}
 		});
 		canvas::add_submenu<regular_submenu>("Farming Assistant", "BaseFarming"_hash, [](regular_submenu* sub) {
 			show_panel(2);
-			sub->add_option<number_option<float>>("Growth Speed", "Shortens total growth time; existing plants can mature now.", &config.plant_speed, 1.f, 20.f, 1.f, 0);
-			sub->add_option<reguler_option>("Grow Healthy Plants Now", "Only healthy, accessible plants owned by this client.", [] {
+			sub->add_option<number_option<float>>("Growth Speed", "Shortens total growth time; existing plants can mature now.", &config.plant_speed, 1.f, 50.f, 1.f, 0);
+			sub->add_option<bool_option<bool>>("Bypass Biome & Climate Limits", "Allow all plants to thrive in Deep North, Ashlands, Mountains & indoors.", &config.bypass_plant_restrictions);
+			sub->add_option<reguler_option>("Grow All Nearby Plants Now", "Instantly matures all nearby plants (including Deep North & harsh biomes).", [] {
 				queue(base_tools::grow_nearby);
 			});
 			refresh(sub);
+
+			auto state = base_tools::get_snapshot();
+			if (state.ready && !state.plants.empty())
+			{
+				for (const auto& plant : state.plants)
+				{
+					std::string title = std::format("{} - {}", plant.name, plant.detail);
+					sub->add_option<reguler_option>(title.c_str(), "Nearby crop.", nullptr);
+				}
+			}
 		});
 		canvas::add_submenu<regular_submenu>("Production Speed", "BaseSpeed"_hash, [](regular_submenu* sub) {
-			sub->add_option<number_option<float>>("Smelter Speed", "Speeds processing and fuel consumption proportionally.", &config.smelter_speed, 1.f, 20.f, 1.f, 0);
-			sub->add_option<number_option<float>>("Fermenter Speed", "Scales elapsed fermentation time, including existing batches.", &config.fermenter_speed, 1.f, 20.f, 1.f, 0);
-			sub->add_option<number_option<float>>("Honey Production Speed", "Speeds honey production on locally owned hives.", &config.honey_speed, 1.f, 20.f, 1.f, 0);
-			sub->add_option<reguler_option>("Reset All Speeds to 1x", "Restore normal production and plant growth speeds.", [] {
-				config.smelter_speed = config.fermenter_speed = config.honey_speed = config.plant_speed = 1.f;
+			sub->add_option<number_option<float>>("Smelter Speed", "Speeds smelting, blast furnace, kiln, eitr refinery, and spinning wheel.", &config.smelter_speed, 1.f, 50.f, 1.f, 0);
+			sub->add_option<number_option<float>>("Cooking Station Speed", "Speeds cooking on food spits, cauldrons, ovens, and hearths.", &config.cooking_speed, 1.f, 50.f, 1.f, 0);
+			sub->add_option<number_option<float>>("Fermenter Speed", "Scales elapsed fermentation time, including existing batches.", &config.fermenter_speed, 1.f, 50.f, 1.f, 0);
+			sub->add_option<number_option<float>>("Honey Production Speed", "Speeds honey production on locally owned hives.", &config.honey_speed, 1.f, 50.f, 1.f, 0);
+			sub->add_option<number_option<float>>("Sap Extraction Speed", "Speeds Dvergr extractor sap harvesting from Yggdrasil roots.", &config.sap_speed, 1.f, 50.f, 1.f, 0);
+			sub->add_option<reguler_option>("Refuel All Nearby Stations", "Top off fuel to 100% on smelters, cookers, and shield generators.", [] {
+				queue(base_tools::refuel_nearby);
+			});
+			sub->add_option<reguler_option>("Instant Finish All Queues", "Instantly produce all queued ores, foods, and sap.", [] {
+				queue(base_tools::instant_finish_nearby);
+			});
+			sub->add_option<reguler_option>("Reset All Speeds to 1x", "Restore normal production speeds.", [] {
+				config.smelter_speed = config.fermenter_speed = config.honey_speed = config.plant_speed = config.cooking_speed = config.sap_speed = 1.f;
 			});
 		});
 		canvas::add_submenu<regular_submenu>("Weather & Daylight", "BaseEnvironment"_hash, [](regular_submenu* sub) {
@@ -100,7 +155,22 @@ namespace big
 		});
 		canvas::add_submenu<regular_submenu>("Comfort Inspector", "BaseComfort"_hash, [](regular_submenu* sub) {
 			show_panel(3);
+			auto state = base_tools::get_snapshot();
+			if (state.ready)
+			{
+				std::string info = std::format("Current Comfort: {} | Sheltered: {}", state.comfort_level, state.sheltered ? "Yes" : "No");
+				sub->add_option<reguler_option>(info.c_str(), "Comfort status within game's 10m radius.", nullptr);
+			}
 			refresh(sub);
+
+			if (state.ready && !state.comfort.empty())
+			{
+				for (const auto& item : state.comfort)
+				{
+					std::string title = std::format("{} - {}", item.name, item.detail);
+					sub->add_option<reguler_option>(title.c_str(), "Nearby comfort piece.", nullptr);
+				}
+			}
 		});
 	}
 

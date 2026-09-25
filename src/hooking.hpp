@@ -65,6 +65,9 @@ namespace big
 		static double fermenter_time(MonoObject* object);
 		static float hive_delta(MonoObject* object);
 		static float plant_grow_time(MonoObject* object);
+		static void plant_update_health(MonoObject* object, double time_since_planted);
+		static float cooking_delta(MonoObject* object);
+		static float sap_collector_delta(MonoObject* object);
 		static MonoString* environment_override(MonoObject* object);
 		static void environment_update(MonoObject* object);
 		static void container_stack_response(MonoObject* object, int64_t sender, bool granted);

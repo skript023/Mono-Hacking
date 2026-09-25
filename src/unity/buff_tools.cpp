@@ -17,7 +17,8 @@ namespace big
 		    {"GP_Moder", "Moder's Flight", "Moder (Mountain)", "Tailwind always blows from behind your ship"},
 		    {"GP_Yagluth", "Yagluth's Aegis", "Yagluth (Plains)", "High resistance against Fire, Frost, and Lightning"},
 		    {"GP_Queen", "Queen's Transcendence", "The Queen (Mistlands)", "+100% Eitr regeneration and +60% Mining speed"},
-		    {"GP_Ashlands", "Fader's Dominion", "Fader (Ashlands)", "+Movement speed, carry weight, and ferocious attack buff"}};
+		    {"GP_Ashlands", "Fader's Dominion", "Fader (Ashlands)", "+Movement speed, carry weight, and ferocious attack buff"},
+		    {"GP_DeepNorth", "Deep North Mastery", "Deep North Boss", "Cold immunity, hyper-stamina and frost empowerment"}};
 
 		const std::vector<std::string> s_debuff_names = {
 		    "Wet",

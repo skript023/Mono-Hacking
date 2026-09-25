@@ -19,6 +19,27 @@ namespace big
 	{
 		return detour_base::get_original<plant_grow_time>()(object) / base_tools::multiplier(object, base_tools::get_options().plant_speed);
 	}
+	void hooks::plant_update_health(MonoObject* object, double time_since_planted)
+	{
+		detour_base::get_original<plant_update_health>()(object, time_since_planted);
+		if (base_tools::get_options().bypass_plant_restrictions)
+		{
+			static auto status_field = mono::get_field("Plant", "m_status", "assembly_valheim");
+			if (status_field)
+			{
+				int healthy = 0;
+				mono::set_field_value(object, status_field, &healthy);
+			}
+		}
+	}
+	float hooks::cooking_delta(MonoObject* object)
+	{
+		return detour_base::get_original<cooking_delta>()(object) * base_tools::multiplier(object, base_tools::get_options().cooking_speed);
+	}
+	float hooks::sap_collector_delta(MonoObject* object)
+	{
+		return detour_base::get_original<sap_collector_delta>()(object) * base_tools::multiplier(object, base_tools::get_options().sap_speed);
+	}
 	MonoString* hooks::environment_override(MonoObject* object)
 	{
 		auto cfg = base_tools::get_options();

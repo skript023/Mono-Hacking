@@ -1,7 +1,6 @@
 #pragma once
 #include <atomic>
 #include <chrono>
-#include <mutex>
 #include <unordered_map>
 #include "class/vector.hpp"
 #include "mono/metadata/object-forward.h"
@@ -19,6 +18,9 @@ namespace big
 			bool keep_food = true, keep_ammo = true, keep_hotbar = true;
 			bool hotkey = false, damaged_markers = false;
 			float smelter_speed = 1.f, fermenter_speed = 1.f, honey_speed = 1.f, plant_speed = 1.f;
+			float cooking_speed = 1.f, sap_speed = 1.f;
+			bool bypass_plant_restrictions = true;
+			bool prevent_burning = true;
 			bool lock_daylight = false;
 			float daylight = .5f;
 			std::string weather;
@@ -81,6 +83,14 @@ namespace big
 		{
 			return instance().grow_nearby_impl();
 		}
+		static void instant_finish_nearby()
+		{
+			return instance().instant_finish_nearby_impl();
+		}
+		static void refuel_nearby()
+		{
+			return instance().refuel_nearby_impl();
+		}
 		static float multiplier(MonoObject* object, float value)
 		{
 			return instance().multiplier_impl(object, value);
@@ -115,11 +125,12 @@ namespace big
 		void quick_stack_impl();
 		void repair_nearby_impl();
 		void grow_nearby_impl();
+		void instant_finish_nearby_impl();
+		void refuel_nearby_impl();
 		float multiplier_impl(MonoObject* object, float value);
 		bool begin_stack_response_impl(MonoObject* container);
 		bool protected_item_impl(MonoObject* item);
 
-		std::mutex mutex;
 		options config;
 		snapshot data;
 		std::atomic_bool scan_requested = false;

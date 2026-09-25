@@ -5,14 +5,14 @@ Open **Home > Base Tools**. Settings are session-only and start with normal spee
 | Menu | Behaviour |
 | --- | --- |
 | Quick Stack | Requests the game's StackAll flow on accessible chests in range. The receiving chest must already contain the item type. Food/potions, ammo, and hotbar items are protected by default; equipped items remain protected by the game. F7 is optional and only works while the game has focus. |
-| Production Monitor | Shows smelter queue/fuel, fermenter state and estimated remaining time, and honey stock. |
+| Production Monitor | Live queue, fuel, cooking, sap, shield generator, fermentation and honey status. Shows active stations directly in the menu list as well as the inspector panel. Supports 1-click refuel and instant completion. |
 | Repair Radius | Requests repair for accessible buildings in range. Optional damage labels show health on screen, up to 200 visible labels. |
-| Farming Assistant | Lists plant condition and estimated growth time. Instant growth rechecks health and requires local network ownership and access. |
-| Production Speed | Independent 1–20x smelting, fermentation, and honey production. Processing and fuel use scale together for smelters. Only nearby objects owned by this client are accelerated. |
-| Weather & Daylight | Weather choices come from the active EnvMan environment list. Day fraction controls local day/night lighting; world time is not advanced. Restore Automatic Environment clears both overrides. |
+| Farming Assistant | Lists plant condition and estimated growth time. Bypasses Deep North / harsh biome cold/heat/roof/space restrictions so crops can grow anywhere. Instant growth matures all nearby plants. |
+| Production Speed | Independent 1–50x smelting, cooking, fermentation, sap extraction, and honey production. Processing and fuel use scale together for smelters. Only nearby objects owned by this client are accelerated. |
+| Weather & Daylight | Weather choices come from active EnvMan environments and all biomes (including Deep North and Ashlands). Day fraction controls local day/night lighting; world time is not advanced. Restore Automatic Environment clears both overrides. |
 | Comfort Inspector | Shows current comfort, shelter status, and furniture inside the game's own 10m comfort radius. Individual furniture values are potential contributions; duplicates in a comfort group do not necessarily stack. |
 
-Plant growth speed reduces the total required growth time. Fermentation speed scales elapsed fermentation time, including existing batches. Raising these values can make an existing plant or batch immediately ready; lowering them can make an unfinished batch appear less complete. Set all speeds to 1x to use normal calculations again. Produced items, completed growth, repairs, and moved inventory remain normal game changes.
+Plant growth speed reduces the total required growth time, while the bypass option allows crops to thrive even in Deep North freezing temperatures or Ashlands heat. Fermentation speed scales elapsed fermentation time, including existing batches. Cooking and sap extraction speeds accelerate food preparation and Dvergr extractor yields up to 50x. All Mono operations run in fibers, ensuring thread safety without locking mutexes. Set all speeds to 1x to use normal calculations again. Produced items, completed growth, repairs, and moved inventory remain normal game changes.
 
 Snapshots refresh once per second while a monitor is open. Building labels also keep scanning while enabled. Multiplayer ownership can change, so a speed setting may stop applying when another peer becomes the owner. Native chest access/capacity checks still apply; a request notification does not guarantee that every chest accepted items.
 

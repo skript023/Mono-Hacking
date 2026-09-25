@@ -82,6 +82,11 @@ namespace big
 		add_mono_hook<hooks::fermenter_time>("Fermenter::GetFermentationTime", "Fermenter", "GetFermentationTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::hive_delta>("Beehive::GetTimeSinceLastUpdate", "Beehive", "GetTimeSinceLastUpdate", 0, "assembly_valheim");
 		add_mono_hook<hooks::plant_grow_time>("Plant::GetGrowTime", "Plant", "GetGrowTime", 0, "assembly_valheim");
+		add_mono_hook<hooks::plant_update_health>("Plant::UpdateHealth", "Plant", "UpdateHealth", 1, "assembly_valheim");
+		if (auto cooking = mono::get_compile_method("CookingStation", "GetDeltaTime", 0, "assembly_valheim"))
+			detour_hook::add<hooks::cooking_delta>("CookingStation::GetDeltaTime", cooking);
+		if (auto sap = mono::get_compile_method("SapCollector", "GetTimeSinceLastUpdate", 0, "assembly_valheim"))
+			detour_hook::add<hooks::sap_collector_delta>("SapCollector::GetTimeSinceLastUpdate", sap);
 		add_mono_hook<hooks::environment_override>("EnvMan::GetEnvironmentOverride", "EnvMan", "GetEnvironmentOverride", 0, "assembly_valheim");
 		add_mono_hook<hooks::environment_update>("EnvMan::FixedUpdate", "EnvMan", "FixedUpdate", 0, "assembly_valheim");
 		add_mono_hook<hooks::container_stack_response>("Container::RPC_StackResponse", "Container", "RPC_StackResponse", 2, "assembly_valheim");
