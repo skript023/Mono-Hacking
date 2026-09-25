@@ -24,13 +24,14 @@ DWORD APIENTRY main_thread(LPVOID)
 	using namespace big;
 
 	auto minhook_instance = std::make_unique<minhook_keepalive>();
-    // Capture device creation before waiting for Unity's window and Mono startup.
-    do
-    {
-        render_vulkan::start_capture();
-        if (FindWindow(WINDOW_CLASS, WINDOW_NAME)) break;
-        std::this_thread::sleep_for(10ms);
-    } while (g_running);
+	// Capture device creation before waiting for Unity's window and Mono startup.
+	do
+	{
+		render_vulkan::start_capture();
+		if (FindWindow(WINDOW_CLASS, WINDOW_NAME))
+			break;
+		std::this_thread::sleep_for(10ms);
+	} while (g_running);
 
 	benchmark initialization_benchmark("Initialization");
 
@@ -56,7 +57,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		settings::initialize(file_manager::get_project_file("./settings.json"));
 		g_settings.load();
 		LOG(INFO) << "Settings initialized.";
-		
+
 		mono::init();
 		LOG(INFO) << "Mono initialized.";
 
@@ -80,8 +81,10 @@ DWORD APIENTRY main_thread(LPVOID)
 		javascript_manager::init();
 		LOG(INFO) << "Service registered.";
 
+#ifdef PRODUCTION
 		auto server_instance = std::make_unique<server_module>();
 		LOG(INFO) << "Server initialized.";
+#endif
 
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::slow_run));
@@ -89,7 +92,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		LOG(INFO) << "Scripts registered.";
 
 		g_hooking->enable();
-        g_renderer->attach();
+		g_renderer->attach();
 		LOG(INFO) << "Hooking enabled.";
 
 		initialization_benchmark.get_runtime();
@@ -97,13 +100,21 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		while (g_running)
 		{
+#ifdef PRODUCTION
+			if (!server_instance->authorized())
+			{
+				LOG(WARNING) << "[License] DLL session revoked or expired; shutting down safely.";
+				g_running = false;
+				break;
+			}
+#endif
 			g_settings.attempt_save();
 			settings::tick();
 			std::this_thread::sleep_for(1s);
 		}
 
 		render_vulkan::detach();
-        g_hooking->disable();
+		g_hooking->disable();
 		LOG(INFO) << "Hooking disabled.";
 
 		std::this_thread::sleep_for(1000ms);
@@ -111,9 +122,11 @@ DWORD APIENTRY main_thread(LPVOID)
 		g_script_mgr.remove_all_scripts();
 		LOG(INFO) << "Scripts unregistered.";
 
+#ifdef PRODUCTION
 		server_instance.reset();
 		LOG(INFO) << "Server unregistered.";
-		
+#endif
+
 		LOG(INFO) << "Service unregistered.";
 
 		hooking_instance.reset();
@@ -144,7 +157,7 @@ DWORD APIENTRY main_thread(LPVOID)
 	}
 
 	render_vulkan::stop_capture();
-    minhook_instance.reset();
+	minhook_instance.reset();
 
 	// This DLL owns a static OpenSSL instance; all networking threads are gone.
 	OPENSSL_cleanup();

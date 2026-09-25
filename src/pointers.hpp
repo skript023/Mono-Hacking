@@ -10,11 +10,13 @@ namespace big
 	{
 		memory::pattern_batch main_batch;
 		memory::pattern_batch discord_batch;
+
 	public:
 		explicit pointers();
 		~pointers();
 
 		void update();
+
 	public:
 		HWND m_hwnd{};
 
@@ -26,6 +28,7 @@ namespace big
 		void* m_credits_handle;
 		void* m_items_handle;
 		void* m_return_address;
+
 	public:
 		inline DWORD get_process_id(LPCSTR ProcessName)
 		{
@@ -48,5 +51,5 @@ namespace big
 		}
 	};
 
-	inline pointers *g_pointers{};
+	inline pointers* g_pointers{};
 }

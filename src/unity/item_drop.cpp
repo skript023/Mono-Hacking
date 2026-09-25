@@ -2,8 +2,11 @@
 
 namespace big
 {
-	item_drop::item_drop(MonoObject* o): obj(o), m_localization(localization::get_instance())
-	{}
+	item_drop::item_drop(MonoObject* o) :
+	    obj(o),
+	    m_localization(localization::get_instance())
+	{
+	}
 	item_drop::~item_drop() noexcept
 	{
 		obj = nullptr;
@@ -19,13 +22,16 @@ namespace big
 	mono_array_view<item_drop> item_drop::get_drops()
 	{
 		auto drop = mono::get_class("ItemDrop", "assembly_valheim");
-		if (drop == nullptr) return {};
+		if (drop == nullptr)
+			return {};
 
 		auto drop_instance = mono::get_field(drop, "s_instances");
-		if (drop_instance == nullptr) return {};
+		if (drop_instance == nullptr)
+			return {};
 
 		auto static_field_data_addr = mono::get_static_field_data(drop);
-		if (static_field_data_addr == nullptr) return {};
+		if (static_field_data_addr == nullptr)
+			return {};
 
 		uint32_t offset = mono::get_field_offset(drop_instance);
 		auto drop_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
@@ -61,11 +67,10 @@ namespace big
 	std::string item_drop::get_hover_name()
 	{
 		static auto method = mono::get_method(
-			"ItemDrop",
-			"GetHoverName",
-			0,
-			"assembly_valheim"
-		);
+		    "ItemDrop",
+		    "GetHoverName",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !obj)
 			return "unknown";
@@ -82,11 +87,10 @@ namespace big
 	std::string item_drop::get_hover_text()
 	{
 		static auto method = mono::get_method(
-			"ItemDrop",
-			"GetHoverText",
-			0,
-			"assembly_valheim"
-		);
+		    "ItemDrop",
+		    "GetHoverText",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !obj)
 			return "unknown";
@@ -110,32 +114,38 @@ namespace big
 
 		auto transform = mono::invoke(method, obj);
 
-		if (!transform) return std::nullopt;
+		if (!transform)
+			return std::nullopt;
 
-    	auto ret = mono::invoke(get_position, transform);
+		auto ret = mono::invoke(get_position, transform);
 
-		if (!ret) return std::nullopt;
+		if (!ret)
+			return std::nullopt;
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(ret));
 	}
 	std::optional<Vector3> item_drop::get_bounds_top()
 	{
 		static auto get_renderer = mono::get_method(
-			"Component", "GetComponent", 1,
-			"UnityEngine.CoreModule", "UnityEngine"
-		);
+		    "Component",
+		    "GetComponent",
+		    1,
+		    "UnityEngine.CoreModule",
+		    "UnityEngine");
 
 		static auto get_bounds = mono::get_method(
-			"Renderer", "get_bounds", 0,
-			"UnityEngine.CoreModule", "UnityEngine"
-		);
+		    "Renderer",
+		    "get_bounds",
+		    0,
+		    "UnityEngine.CoreModule",
+		    "UnityEngine");
 
 		if (!obj || !get_renderer || !get_bounds)
 			return std::nullopt;
 
 		auto renderer_class = mono::get_class("Renderer", "UnityEngine");
 
-		void* args[1] = { renderer_class };
+		void* args[1] = {renderer_class};
 
 		MonoObject* renderer = mono::invoke_method(get_renderer, obj, args);
 		if (!renderer)
@@ -155,11 +165,10 @@ namespace big
 	bool item_drop::can_pickup(bool autoPickupDelay)
 	{
 		static auto method = mono::get_method(
-			"ItemDrop",
-			"CanPickup",
-			1,
-			"assembly_valheim"
-		);
+		    "ItemDrop",
+		    "CanPickup",
+		    1,
+		    "assembly_valheim");
 
 		if (!method || !obj)
 			return false;
@@ -174,11 +183,10 @@ namespace big
 	bool item_drop::can_eat()
 	{
 		static auto method = mono::get_method(
-			"ItemDrop",
-			"CanEat",
-			0,
-			"assembly_valheim"
-		);
+		    "ItemDrop",
+		    "CanEat",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !obj)
 			return false;

@@ -8,7 +8,8 @@
 #include "fonts/font_list.hpp"
 #include "fonts/icon_list.hpp"
 #include "graphic/graphic_manager.hpp"
-#include "ui/canvas.hpp"
+#include "astra/host/canvas.hpp"
+#include "unity/item_icons.hpp"
 #include <backends/imgui_impl_win32.h>
 #include <imgui_internal.h>
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
@@ -94,6 +95,7 @@ namespace big
 	}
 	void renderer::finish_init()
 	{
+		++m_texture_generation;
 		g_gui.load_textures();
 		m_init = true;
 		static bool notified = false;
@@ -125,15 +127,27 @@ namespace big
 	{
 		return m_backend ? m_backend->upload_rgba(pixels, width, height) : 0;
 	}
-	void renderer::draw_frame()
+	void renderer::release_texture(ImTextureID texture)
 	{
+		if (m_backend && texture)
+			m_backend->release_texture(texture);
+	}
+	void renderer::draw_frame(ImVec2 framebuffer_size)
+	{
+		item_icons::begin_frame();
 		auto& io = ImGui::GetIO();
-		io.MouseDrawCursor = g_settings.window.mouse_active;
-		if (g_settings.window.mouse_active)
+		io.MouseDrawCursor = canvas::uses_mouse();
+		if (canvas::uses_mouse())
 			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
 		else
 			io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
 		ImGui_ImplWin32_NewFrame();
+		if (framebuffer_size.x > 0.f && framebuffer_size.y > 0.f)
+		{
+			if (io.DisplaySize.x <= 0.f || io.DisplaySize.y <= 0.f)
+				io.DisplaySize = framebuffer_size;
+			io.DisplayFramebufferScale = {framebuffer_size.x / io.DisplaySize.x, framebuffer_size.y / io.DisplaySize.y};
+		}
 		ImGui::NewFrame();
 		for (const auto& cb : g_gui.m_dx_callbacks | std::views::values)
 			cb();
@@ -184,10 +198,8 @@ namespace big
 			g_running = false;
 		}
 
-		canvas::check_for_input();
-		canvas::handle_input();
 
-		if (m_init && canvas::is_opened())
+		if (m_init && ImGui::GetCurrentContext())
 		{
 			ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam);
 		}

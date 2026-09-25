@@ -1,4 +1,4 @@
-#pragma warning (disable:4311 4312)
+#pragma warning(disable : 4311 4312)
 #include "mono.hpp"
 #include "core.hpp"
 
@@ -10,8 +10,7 @@ namespace big
 			return;
 
 		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(120);
-		auto wait_for = [&](auto ready, const char* stage)
-		{
+		auto wait_for = [&](auto ready, const char* stage) {
 			LOG(INFO) << "Waiting for Mono: " << stage;
 			while (!ready())
 			{
@@ -24,9 +23,11 @@ namespace big
 		};
 
 		HMODULE runtime = nullptr;
-		wait_for([&] { return (runtime = GetModuleHandleA("mono-2.0-bdwgc.dll")) != nullptr; }, "runtime DLL");
-		auto require_export = [&](const char* name)
-		{
+		wait_for([&] {
+			return (runtime = GetModuleHandleA("mono-2.0-bdwgc.dll")) != nullptr;
+		},
+		    "runtime DLL");
+		auto require_export = [&](const char* name) {
 			auto address = GetProcAddress(runtime, name);
 			if (!address)
 				throw std::runtime_error(std::string("Missing Mono export: ") + name);
@@ -52,7 +53,11 @@ namespace big
 		mono_object_new = require_export("mono_object_new").as<mono_object_new_t>();
 
 		mono_class_get_field_from_name = require_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
+		mono_class_get_parent = require_export("mono_class_get_parent").as<mono_class_get_parent_t>();
 		mono_field_get_value = require_export("mono_field_get_value").as<mono_field_get_value_t>();
+		m_field_get_value_object = require_export("mono_field_get_value_object").as<decltype(m_field_get_value_object)>();
+		m_class_get_type = require_export("mono_class_get_type").as<decltype(m_class_get_type)>();
+		m_type_get_object = require_export("mono_type_get_object").as<decltype(m_type_get_object)>();
 		mono_field_set_value = require_export("mono_field_set_value").as<mono_field_set_value_t>();
 		mono_method_get_class = require_export("mono_method_get_class").as<mono_method_get_class_t>();
 		mono_class_vtable = require_export("mono_class_vtable").as<mono_class_vtable_t>();
@@ -77,8 +82,24 @@ namespace big
 		// A loaded DLL alone does not mean the host has initialized the runtime.
 		auto get_main_thread = require_export("mono_thread_get_main").as<MonoThread* (*)()>();
 		auto get_corlib = require_export("mono_get_corlib").as<MonoImage* (*)()>();
-		wait_for([&] { return mono_get_root_domain() && get_main_thread() && get_corlib(); }, "root domain, main thread and corlib");
+		wait_for([&] {
+			return mono_get_root_domain() && get_main_thread() && get_corlib();
+		},
+		    "root domain, main thread and corlib");
 		ensure_thread_attached_impl();
+
+		auto image_loaded = require_export("mono_image_loaded").as<MonoImage* (*)(const char*)>();
+		for (const char* name : {"assembly_valheim", "assembly_utils", "UnityEngine.CoreModule"})
+		{
+			MonoImage* image = nullptr;
+			wait_for([&] {
+				image = image_loaded(name);
+				return image != nullptr;
+			},
+			    name);
+			std::scoped_lock lock(m_image_cache_mutex);
+			m_image_cache.emplace(name, image);
+		}
 
 		this->initalized = true;
 	}
@@ -96,8 +117,10 @@ namespace big
 		attached = true;
 	}
 
-	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params) const
+	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params, MonoObject** exception) const
 	{
+		if (exception)
+			*exception = nullptr;
 		if (!method)
 			return nullptr;
 
@@ -105,7 +128,10 @@ namespace big
 
 		MonoObject* execution = nullptr;
 
-		return mono_runtime_invoke(method, obj, params, &execution);
+		auto result = mono_runtime_invoke(method, obj, params, &execution);
+		if (exception)
+			*exception = execution;
+		return execution ? nullptr : result;
 	}
 
 	MonoImage* mono::get_image_impl(const char* assemblyName) const
@@ -218,7 +244,10 @@ namespace big
 					continue;
 
 				char* ret_name = mono_type_get_name(ret_type);
-				if (!ret_name || !strstr(ret_name, returnTypeName))
+				const bool matches = ret_name && strstr(ret_name, returnTypeName);
+				if (ret_name)
+					mono_free(ret_name);
+				if (!matches)
 					continue;
 			}
 
@@ -230,7 +259,10 @@ namespace big
 					continue;
 
 				char* p_name = mono_type_get_name(p_type);
-				if (!p_name || !strstr(p_name, paramTypeName))
+				const bool matches = p_name && strstr(p_name, paramTypeName);
+				if (p_name)
+					mono_free(p_name);
+				if (!matches)
 					continue;
 			}
 
@@ -415,7 +447,8 @@ namespace big
 	{
 		ensure_thread_attached_impl();
 		MonoDomain* domain = mono_domain_get ? mono_domain_get() : nullptr;
-		if (!domain && mono_get_root_domain) domain = mono_get_root_domain();
+		if (!domain && mono_get_root_domain)
+			domain = mono_get_root_domain();
 
 		if (mono_string_new && domain)
 		{
@@ -426,24 +459,22 @@ namespace big
 			return nullptr;
 
 		int size_needed = MultiByteToWideChar(
-			CP_UTF8,
-			0,
-			str.c_str(),
-			(int)str.length(),
-			nullptr,
-			0
-		);
+		    CP_UTF8,
+		    0,
+		    str.c_str(),
+		    (int)str.length(),
+		    nullptr,
+		    0);
 
 		std::wstring wstr(size_needed, 0);
 
 		MultiByteToWideChar(
-			CP_UTF8,
-			0,
-			str.c_str(),
-			(int)str.length(),
-			wstr.data(),
-			size_needed
-		);
+		    CP_UTF8,
+		    0,
+		    str.c_str(),
+		    (int)str.length(),
+		    wstr.data(),
+		    size_needed);
 
 		return mono_string_new_utf16(domain, (mono_unichar2*)wstr.data(), size_needed);
 	}
@@ -453,4 +484,3 @@ namespace big
 		return std::filesystem::current_path() / std::filesystem::path(std::format("./Valheim_Data/Managed/{}.dll", assemblyName));
 	}
 }
-

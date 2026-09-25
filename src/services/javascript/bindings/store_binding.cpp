@@ -1,5 +1,5 @@
 #include "store_binding.hpp"
-#include "ui/store_mgr.hpp"
+#include <astra/host/menu/store_mgr.hpp>
 
 namespace js::storage
 {

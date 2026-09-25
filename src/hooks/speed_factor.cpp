@@ -27,4 +27,3 @@ namespace big
 		return factor;
 	}
 }
-

@@ -52,10 +52,10 @@ namespace big
 			ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize;
 
 			if (ImGui::InputTextMultiline(
-				"##js_exec",
-				&input_code,
-				ImVec2(ImGui::GetContentRegionAvail().x, 120),
-				flags))
+			        "##js_exec",
+			        &input_code,
+			        ImVec2(ImGui::GetContentRegionAvail().x, 120),
+			        flags))
 			{
 				if (auto cmd = commands::get_command<bool_command>(joaat("disable_input")))
 				{

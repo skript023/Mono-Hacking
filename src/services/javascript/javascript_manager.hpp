@@ -34,6 +34,7 @@ namespace big
 		std::weak_ptr<javascript_module> load_module_impl(const std::filesystem::path& module_path);
 		void eval_script_impl(std::string const& script);
 		void eval_file_impl(const std::filesystem::path& path);
+
 	public:
 		static void init()
 		{
@@ -74,6 +75,7 @@ namespace big
 		{
 			get().eval_file_impl(path);
 		}
+
 	private:
 		std::mutex m_module_lock;
 		std::vector<std::shared_ptr<javascript_module>> m_modules;

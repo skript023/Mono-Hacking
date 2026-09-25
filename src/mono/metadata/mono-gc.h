@@ -10,12 +10,13 @@
 
 MONO_BEGIN_DECLS
 
-typedef int (*MonoGCReferences) (MonoObject *obj, MonoClass *klass, uintptr_t size, uintptr_t num, MonoObject **refs, uintptr_t *offsets, void *data);
+typedef int (*MonoGCReferences)(MonoObject* obj, MonoClass* klass, uintptr_t size, uintptr_t num, MonoObject** refs, uintptr_t* offsets, void* data);
 
 /**
  * This enum is used by the profiler API when reporting root registration.
  */
-typedef enum {
+typedef enum
+{
 	/**
 	 * Roots external to Mono. Embedders may only use this value.
 	 */
@@ -102,7 +103,8 @@ typedef enum {
 	MONO_ROOT_SOURCE_TOGGLEREF = 16,
 } MonoGCRootSource;
 
-typedef enum {
+typedef enum
+{
 	MONO_GC_HANDLE_TYPE_MIN = 0,
 	MONO_GC_HANDLE_WEAK = MONO_GC_HANDLE_TYPE_MIN,
 	MONO_GC_HANDLE_WEAK_TRACK_RESURRECTION,
@@ -111,19 +113,18 @@ typedef enum {
 	MONO_GC_HANDLE_TYPE_MAX,
 } MonoGCHandleType;
 
-MONO_API void   mono_gc_collect         (int generation);
-MONO_API int    mono_gc_max_generation  (void);
-MONO_API int    mono_gc_get_generation  (MonoObject *object);
-MONO_API int    mono_gc_collection_count (int generation);
-MONO_API int64_t mono_gc_get_used_size   (void);
-MONO_API int64_t mono_gc_get_heap_size   (void);
-MONO_API MonoBoolean mono_gc_pending_finalizers (void);
-MONO_API void     mono_gc_finalize_notify    (void);
-MONO_API int    mono_gc_invoke_finalizers (void);
+MONO_API void mono_gc_collect(int generation);
+MONO_API int mono_gc_max_generation(void);
+MONO_API int mono_gc_get_generation(MonoObject* object);
+MONO_API int mono_gc_collection_count(int generation);
+MONO_API int64_t mono_gc_get_used_size(void);
+MONO_API int64_t mono_gc_get_heap_size(void);
+MONO_API MonoBoolean mono_gc_pending_finalizers(void);
+MONO_API void mono_gc_finalize_notify(void);
+MONO_API int mono_gc_invoke_finalizers(void);
 /* heap walking is only valid in the pre-stop-world event callback */
-MONO_API int    mono_gc_walk_heap        (int flags, MonoGCReferences callback, void *data);
+MONO_API int mono_gc_walk_heap(int flags, MonoGCReferences callback, void* data);
 
 MONO_END_DECLS
 
 #endif /* __METADATA_MONO_GC_H__ */
-

@@ -16,6 +16,5 @@ namespace big
 
 	public:
 		static void bind(Context& ctx);
-
 	};
 }

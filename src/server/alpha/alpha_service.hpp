@@ -26,7 +26,8 @@ namespace big
 
 		void init_connection()
 		{
-			if (m_alpha_gateway) m_alpha_gateway->disconnect();
+			if (m_alpha_gateway)
+				m_alpha_gateway->disconnect();
 			m_auth_invalidated = false;
 			m_auth_info = auth_client::authenticate();
 			if (!m_auth_info.success)
@@ -116,4 +117,3 @@ namespace big
 		Gateway m_event;
 	};
 }
-

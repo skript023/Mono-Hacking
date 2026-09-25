@@ -15,7 +15,7 @@ namespace big::features
 		virtual void on_tick() override
 		{
 			auto player = self::get_player();
-			
+
 			if (player.get_max_carry() < _carry_amount.get_state())
 				player.set_max_carry(_carry_amount.get_state());
 		}

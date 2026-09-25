@@ -22,9 +22,9 @@ namespace big
 		explicit call_hook(void* location, void* hook);
 		~call_hook();
 
-		call_hook(call_hook&& that)            = delete;
+		call_hook(call_hook&& that) = delete;
 		call_hook& operator=(call_hook&& that) = delete;
-		call_hook(call_hook const&)            = delete;
+		call_hook(call_hook const&) = delete;
 		call_hook& operator=(call_hook const&) = delete;
 
 		template<typename T>

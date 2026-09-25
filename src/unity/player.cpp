@@ -6,8 +6,8 @@ namespace big
 	void player::set_max_health(float health, bool flash)
 	{
 		auto method = mono::get_method("Player", "SetMaxHealth", 2, "assembly_valheim");
-		
-		if (!method )
+
+		if (!method)
 		{
 			LOG(WARNING) << "Failed to find method Player::SetMaxHealth";
 
@@ -205,11 +205,10 @@ namespace big
 	bool player::is_player()
 	{
 		static MonoMethod* method = mono::get_method(
-			"Player",
-			"IsPlayer",
-			0,
-			"assembly_valheim"
-		);
+		    "Player",
+		    "IsPlayer",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !m_character)
 			return false;
@@ -223,11 +222,10 @@ namespace big
 	skills player::get_skills()
 	{
 		static MonoMethod* method = mono::get_method(
-			"Player",
-			"GetSkills",
-			0,
-			"assembly_valheim"
-		);
+		    "Player",
+		    "GetSkills",
+		    0,
+		    "assembly_valheim");
 
 		if (!method || !m_character)
 			return nullptr;
@@ -312,5 +310,16 @@ namespace big
 		LOG(INFO) << "Result class: " << namespace_name << "::" << class_name;
 #endif
 		return mono::list<player>(result);
+	}
+
+	character player::get_hover_creature()
+	{
+		if (!m_character)
+			return character(nullptr);
+		static auto method = mono::get_method("Player", "GetHoverCreature", 0, "assembly_valheim");
+		if (!method)
+			return character(nullptr);
+		auto res = mono::invoke_method(method, m_character, nullptr);
+		return character(res);
 	}
 }

@@ -4,7 +4,7 @@ namespace big
 {
 	static HMODULE dll_proxies[MODULE_MAX]{};
 	static LPCWSTR dll_proxy_names[MODULE_MAX]{
-		L"version.dll",
+	    L"version.dll",
 	};
 
 	static FARPROC get_function(dll_proxy index, const char* name)

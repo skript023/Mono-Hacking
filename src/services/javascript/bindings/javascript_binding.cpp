@@ -113,7 +113,7 @@ namespace big
 		unity.add<&js_get_local_player>("get_local_player");
 		unity.add<&js_get_zone_system>("get_zone_system");
 		unity.add<&js_get_env_man>("get_env_man");
-		
+
 		auto console = ctx.newObject();
 		console.add<&js_console_log>("log");
 		console.add<&js_console_warn>("warn");
@@ -124,11 +124,11 @@ namespace big
 		vec.add<&Vector3::x>("x");
 		vec.add<&Vector3::y>("y");
 		vec.add<&Vector3::z>("z");
-		
+
 		auto dctor = ctx.newValue(qjs::ctor_wrapper<Vector3>{});
 		JS_SetConstructor(ctx.ctx, dctor.v, vec.v);
 		global["Vector3"] = dctor;
-		
+
 		auto ctor = ctx.newValue(qjs::ctor_wrapper<Vector3, float, float, float>{"Vector3"});
 		JS_SetConstructor(ctx.ctx, ctor.v, vec.v);
 		global["Vector3"] = ctor;

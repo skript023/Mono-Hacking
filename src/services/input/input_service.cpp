@@ -10,8 +10,8 @@ namespace big
 	}
 	void input_service::show(std::string const& title, input_callback_t cb)
 	{
-		strcpy(m_title, title.c_str()); 
-		g_settings.window.input = true; 
+		strcpy(m_title, title.c_str());
+		g_settings.window.input = true;
 		g_settings.window.mouse_active = true;
 
 		callback(cb);

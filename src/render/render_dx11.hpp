@@ -28,5 +28,6 @@ namespace big
 			return m_swapchain.Get() == swapchain;
 		}
 		ImTextureID upload_rgba(const unsigned char* pixels, int width, int height) override;
+		void release_texture(ImTextureID texture) override;
 	};
 }

@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include "function_types.hpp"
-#include "ui/canvas.hpp"
+#include "astra/host/canvas.hpp"
 #include "hooking.hpp"
 #include "memory/module.hpp"
 #include "pointers.hpp"
@@ -18,6 +18,16 @@ namespace big
 		LOG(INFO) << "Resolving hook: " << name;
 		Logger::FlushQueue();
 		auto target = mono::get_compile_method(class_name, method_name, parameter_count, assembly, namespace_name);
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+		while (!target)
+		{
+			if (!g_running)
+				throw std::runtime_error("Hook initialization cancelled.");
+			if (std::chrono::steady_clock::now() >= deadline)
+				throw std::runtime_error(std::format("Hook '{}' could not resolve after 10 seconds; check the game method signature.", name));
+			std::this_thread::sleep_for(std::chrono::milliseconds(250));
+			target = mono::get_compile_method(class_name, method_name, parameter_count, assembly, namespace_name);
+		}
 		detour_hook::add<callback>(name, target);
 	}
 
@@ -68,6 +78,22 @@ namespace big
 		add_mono_hook<hooks::player_in_god_mode>("Player::InGodMode", "Player", "InGodMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_in_ghost_mode>("Player::InGhostMode", "Player", "InGhostMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_no_cost_cheat>("Player::NoCostCheat", "Player", "NoCostCheat", 0, "assembly_valheim");
+		add_mono_hook<hooks::smelter_delta>("Smelter::GetDeltaTime", "Smelter", "GetDeltaTime", 0, "assembly_valheim");
+		add_mono_hook<hooks::fermenter_time>("Fermenter::GetFermentationTime", "Fermenter", "GetFermentationTime", 0, "assembly_valheim");
+		add_mono_hook<hooks::hive_delta>("Beehive::GetTimeSinceLastUpdate", "Beehive", "GetTimeSinceLastUpdate", 0, "assembly_valheim");
+		add_mono_hook<hooks::plant_grow_time>("Plant::GetGrowTime", "Plant", "GetGrowTime", 0, "assembly_valheim");
+		add_mono_hook<hooks::plant_update_health>("Plant::UpdateHealth", "Plant", "UpdateHealth", 1, "assembly_valheim");
+		if (auto cooking = mono::get_compile_method("CookingStation", "GetDeltaTime", 0, "assembly_valheim"))
+			detour_hook::add<hooks::cooking_delta>("CookingStation::GetDeltaTime", cooking);
+		if (auto sap = mono::get_compile_method("SapCollector", "GetTimeSinceLastUpdate", 0, "assembly_valheim"))
+			detour_hook::add<hooks::sap_collector_delta>("SapCollector::GetTimeSinceLastUpdate", sap);
+		add_mono_hook<hooks::environment_override>("EnvMan::GetEnvironmentOverride", "EnvMan", "GetEnvironmentOverride", 0, "assembly_valheim");
+		add_mono_hook<hooks::environment_update>("EnvMan::FixedUpdate", "EnvMan", "FixedUpdate", 0, "assembly_valheim");
+		add_mono_hook<hooks::container_stack_response>("Container::RPC_StackResponse", "Container", "RPC_StackResponse", 2, "assembly_valheim");
+		add_mono_hook<hooks::inventory_add_stack_item>("Inventory::AddItem(ItemData)", "Inventory", "AddItem", 1, "assembly_valheim");
+		// Older game versions do not have the cheat label or the six-argument overload.
+		if (auto tooltip = mono::get_compile_method("ItemDrop/ItemData", "GetTooltip", 6, "assembly_valheim"))
+			detour_hook::add<hooks::item_get_tooltip>("ItemDrop::ItemData::GetTooltip", tooltip);
 		add_mono_hook<hooks::humanoid_drain_durability>("Humanoid::DrainEquipedItemDurability", "Humanoid", "DrainEquipedItemDurability", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_get_run_speed_factor>("Player::GetRunSpeedFactor", "Player", "GetRunSpeedFactor", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_get_jog_speed_factor>("Player::GetJogSpeedFactor", "Player", "GetJogSpeedFactor", 0, "assembly_valheim");
@@ -146,7 +172,14 @@ namespace big
 	{
 		if (g_running)
 		{
+			std::lock_guard lock(render_mutex);
 			g_renderer->wndproc(hwnd, msg, wparam, lparam);
+			if (canvas::captures_message(msg))
+			{
+				if (msg == WM_INPUT)
+					return DefWindowProcW(hwnd, msg, wparam, lparam);
+				return 0;
+			}
 		}
 
 		return CallWindowProcW(g_hooking->m_og_wndproc, hwnd, msg, wparam, lparam);
@@ -154,7 +187,7 @@ namespace big
 
 	BOOL hooks::set_cursor_pos(int x, int y)
 	{
-		if (canvas::is_opened())
+		if (canvas::uses_mouse())
 			return true;
 
 		return detour_base::get_original<hooks::set_cursor_pos>()(x, y);

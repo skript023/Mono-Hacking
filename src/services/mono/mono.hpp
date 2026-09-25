@@ -11,7 +11,7 @@ namespace big
 	{
 		void init_impl();
 		void ensure_thread_attached_impl() const;
-		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params) const;
+		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params, MonoObject** exception = nullptr) const;
 		template<typename Return, typename... Args>
 		Return invoke_compiled_method_impl(void* compiledMethod, Args... args) const
 		{
@@ -34,18 +34,18 @@ namespace big
 				return function(args...);
 		}
 		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
-        MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
-        MonoMethod* get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const;
-        MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
-        MonoClass* get_class_from_method_impl(MonoMethod* method) const;
-        MonoClassField* get_field_impl(const char* className, const char* fieldName, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
+		MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
+		MonoMethod* get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const;
+		MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
+		MonoClass* get_class_from_method_impl(MonoMethod* method) const;
+		MonoClassField* get_field_impl(const char* className, const char* fieldName, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
 		MonoClassField* get_field_impl(MonoClass* pKlass, const char* fieldName) const;
 		uint32_t get_field_offset_impl(MonoClassField* field) const;
 		void get_field_value_impl(void* instance, MonoClassField* field, void* out) const;
 		void set_field_value_impl(MonoObject* obj, MonoClassField* field, void* value);
 		MonoVTable* get_vtable_impl(MonoClass* pKlass) const;
-        void* get_static_field_data_impl(MonoVTable* pVTable) const;
-        void* get_static_field_data_impl(MonoClass* pKlass) const;
+		void* get_static_field_data_impl(MonoVTable* pVTable) const;
+		void* get_static_field_data_impl(MonoClass* pKlass) const;
 		void* get_static_field_value_impl(const char* className, const char* fieldName, const char* assemblyName, const char* nameSpace) const;
 		void* mono_object_unbox_impl(MonoObject* obj);
 		MonoThread* mono_thread_attach_impl(MonoDomain* domain) const;
@@ -56,18 +56,31 @@ namespace big
 		std::filesystem::path get_assembly_path(const char* assemblyName) const;
 		MonoImage* get_image_impl(const char* assemblyName) const;
 		static mono& get_instance()
-        {
-            static mono instance;
-            return instance;
+		{
+			static mono instance;
+			return instance;
 		}
+
 	public:
-        static void init() { get_instance().init_impl(); };
-		static std::string from_mono_string(MonoString* monoStr) { return get_instance().from_mono_string_impl(monoStr); };
-		static std::wstring_view view_mono_string(MonoString* monoStr) { return get_instance().view_mono_string_impl(monoStr); };
-		static MonoString* to_mono_string(std::string const& str) { return get_instance().to_mono_string_utf16(str); }
-        static MonoObject* invoke_method(MonoMethod* method, void* obj = nullptr, void** params = nullptr)
-        {
-            return get_instance().invoke_method_impl(method, obj, params);
+		static void init()
+		{
+			get_instance().init_impl();
+		};
+		static std::string from_mono_string(MonoString* monoStr)
+		{
+			return get_instance().from_mono_string_impl(monoStr);
+		};
+		static std::wstring_view view_mono_string(MonoString* monoStr)
+		{
+			return get_instance().view_mono_string_impl(monoStr);
+		};
+		static MonoString* to_mono_string(std::string const& str)
+		{
+			return get_instance().to_mono_string_utf16(str);
+		}
+		static MonoObject* invoke_method(MonoMethod* method, void* obj = nullptr, void** params = nullptr, MonoObject** exception = nullptr)
+		{
+			return get_instance().invoke_method_impl(method, obj, params, exception);
 		};
 		template<typename Return, typename... Args>
 		static Return invoke_compiled_method(void* compiledMethod, Args... args)
@@ -75,35 +88,35 @@ namespace big
 			return get_instance().invoke_compiled_method_impl<Return, Args...>(compiledMethod, args...);
 		}
 		template<typename... Args>
-		static MonoObject* invoke(MonoMethod* method, void* obj, Args... args) 
+		static MonoObject* invoke(MonoMethod* method, void* obj, Args... args)
 		{
 			if constexpr (sizeof...(args) > 0)
 			{
-				void* params[] = { &args... };
+				void* params[] = {&args...};
 				return invoke_method(method, obj, params);
-			} 
-			else 
+			}
+			else
 			{
 				return invoke_method(method, obj, nullptr); // Sesuai kebutuhan Mono
 			}
 		}
-        static void* get_compile_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
-        {
-            return get_instance().get_compile_method_impl(className, methodName, param_count, assemblyName, nameSpace);
+		static void* get_compile_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
+		{
+			return get_instance().get_compile_method_impl(className, methodName, param_count, assemblyName, nameSpace);
 		};
-        static MonoMethod* get_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
-        {
+		static MonoMethod* get_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
+		{
 			return get_instance().get_method_impl(className, methodName, param_count, assemblyName, nameSpace);
 		};
-        static MonoMethod* get_method_overload(const char* className, const char* methodName, int param_count = -1, const char* returnTypeName = nullptr, const char* paramTypeName = nullptr, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
-        {
+		static MonoMethod* get_method_overload(const char* className, const char* methodName, int param_count = -1, const char* returnTypeName = nullptr, const char* paramTypeName = nullptr, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
+		{
 			return get_instance().get_method_overload_impl(className, methodName, param_count, returnTypeName, paramTypeName, assemblyName, nameSpace);
 		};
-        static MonoClass* get_class(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
+		static MonoClass* get_class(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
 		{
 			return get_instance().get_class_impl(className, assemblyName, nameSpace);
 		};
-        static MonoClass* get_class_from_method(MonoMethod* method)
+		static MonoClass* get_class_from_method(MonoMethod* method)
 		{
 			return get_instance().get_class_from_method_impl(method);
 		};
@@ -155,7 +168,10 @@ namespace big
 		{
 			return get_instance().mono_object_unbox_impl(obj);
 		}
-        static bool is_initialized() { return get_instance().initalized; };
+		static bool is_initialized()
+		{
+			return get_instance().initalized;
+		};
 		template<const_str Class, const_str Field, typename T>
 		static T get_static_field_value()
 		{
@@ -170,7 +186,7 @@ namespace big
 			MonoObject* value = *(MonoObject**)address;
 
 			if constexpr (std::is_same_v<T, MonoObject*>)
-        		return value;
+				return value;
 
 			return T(value);
 		}
@@ -204,7 +220,7 @@ namespace big
 				return false;
 
 			auto temp = std::forward<T>(value);
-			
+
 			set_field_value(obj, field, &temp);
 
 			return true;
@@ -221,7 +237,7 @@ namespace big
 				return {};
 
 			static MonoClassField* items_field = get_field(klass, "_items");
-			static MonoClassField* size_field  = get_field(klass, "_size");
+			static MonoClassField* size_field = get_field(klass, "_size");
 
 			if (!items_field || !size_field)
 				return {};
@@ -236,9 +252,8 @@ namespace big
 				return {};
 
 			return mono_array_view<T>(
-				reinterpret_cast<MonoArray*>(items),
-				size
-			);
+			    reinterpret_cast<MonoArray*>(items),
+			    size);
 		}
 		template<typename T = MonoObject*>
 		static std::vector<T> from_list(MonoObject* list)
@@ -252,7 +267,7 @@ namespace big
 				return out;
 
 			static auto getCount = class_get_method_from_name(klass, "get_Count", 0);
-			static auto getItem  = class_get_method_from_name(klass, "get_Item", 1);
+			static auto getItem = class_get_method_from_name(klass, "get_Item", 1);
 
 			if (!getCount || !getItem)
 				return out;
@@ -267,7 +282,7 @@ namespace big
 
 			for (int i = 0; i < count; ++i)
 			{
-				void* args[1] = { &i };
+				void* args[1] = {&i};
 				auto item = invoke_method(getItem, list, args);
 
 				if (!item)
@@ -285,6 +300,7 @@ namespace big
 
 			return out;
 		}
+
 	private:
 		bool initalized = false;
 
@@ -292,6 +308,20 @@ namespace big
 		static MonoClass* object_get_class(MonoObject* obj)
 		{
 			return get_instance().mono_object_get_class(obj);
+		}
+		static MonoObject* boxed_field(MonoObject* obj, MonoClassField* field)
+		{
+			if (!obj || !field)
+				return nullptr;
+			auto& instance = get_instance();
+			return instance.m_field_get_value_object(instance.get_root_domain_impl(), field, obj);
+		}
+		static MonoObject* reflection_type(MonoClass* klass)
+		{
+			if (!klass)
+				return nullptr;
+			auto& instance = get_instance();
+			return instance.m_type_get_object(instance.get_root_domain_impl(), instance.m_class_get_type(klass));
 		}
 		static MonoObject* object_new(MonoClass* klass)
 		{
@@ -321,6 +351,10 @@ namespace big
 		{
 			return get_instance().mono_class_get_namespace(klass);
 		}
+		static MonoClass* class_get_parent(MonoClass* klass)
+		{
+			return get_instance().mono_class_get_parent ? get_instance().mono_class_get_parent(klass) : nullptr;
+		}
 		static void* array_with_size(MonoArray* array, int size, uintptr_t idx)
 		{
 			return get_instance().mono_array_addr_with_size(array, size, idx);
@@ -329,44 +363,52 @@ namespace big
 		{
 			return get_instance().mono_array_length(array);
 		}
-		static void free(void* ptr) { get_instance().mono_free(ptr); }
+		static void free(void* ptr)
+		{
+			get_instance().mono_free(ptr);
+		}
 		static std::string_view get_name(MonoObject* obj)
 		{
 			MonoClass* elem_class = mono::object_get_class(obj);
 			return mono::class_get_name(elem_class);
 		}
-	private:
-        // --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
 
-        mono_thread_attach_t mono_thread_attach = nullptr;
-        mono_get_root_domain_t mono_get_root_domain = nullptr;
-        mono_domain_get_t mono_domain_get = nullptr;
-        mono_domain_assembly_open_t mono_domain_assembly_open = nullptr;
-        mono_assembly_get_image_t mono_assembly_get_image = nullptr;
-        mono_class_from_name_t mono_class_from_name = nullptr;
-        mono_class_get_method_from_name_t mono_class_get_method_from_name = nullptr;
-        mono_class_get_methods_t mono_class_get_methods = nullptr;
-        mono_method_get_name_t mono_method_get_name = nullptr;
-        mono_method_signature_t mono_method_signature = nullptr;
-        mono_signature_get_param_count_t mono_signature_get_param_count = nullptr;
-        mono_signature_get_return_type_t mono_signature_get_return_type = nullptr;
-        mono_signature_get_params_t mono_signature_get_params = nullptr;
-        mono_type_get_name_t mono_type_get_name = nullptr;
-        mono_compile_method_t mono_compile_method = nullptr;
-        mono_runtime_invoke_t mono_runtime_invoke = nullptr;
+	private:
+		// --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
+		MonoObject* (*m_field_get_value_object)(MonoDomain*, MonoClassField*, MonoObject*) = nullptr;
+		MonoType* (*m_class_get_type)(MonoClass*) = nullptr;
+		MonoObject* (*m_type_get_object)(MonoDomain*, MonoType*) = nullptr;
+
+		mono_thread_attach_t mono_thread_attach = nullptr;
+		mono_get_root_domain_t mono_get_root_domain = nullptr;
+		mono_domain_get_t mono_domain_get = nullptr;
+		mono_domain_assembly_open_t mono_domain_assembly_open = nullptr;
+		mono_assembly_get_image_t mono_assembly_get_image = nullptr;
+		mono_class_from_name_t mono_class_from_name = nullptr;
+		mono_class_get_method_from_name_t mono_class_get_method_from_name = nullptr;
+		mono_class_get_methods_t mono_class_get_methods = nullptr;
+		mono_method_get_name_t mono_method_get_name = nullptr;
+		mono_method_signature_t mono_method_signature = nullptr;
+		mono_signature_get_param_count_t mono_signature_get_param_count = nullptr;
+		mono_signature_get_return_type_t mono_signature_get_return_type = nullptr;
+		mono_signature_get_params_t mono_signature_get_params = nullptr;
+		mono_type_get_name_t mono_type_get_name = nullptr;
+		mono_compile_method_t mono_compile_method = nullptr;
+		mono_runtime_invoke_t mono_runtime_invoke = nullptr;
 		mono_object_unbox_t mono_object_unbox = nullptr;
 		mono_object_get_class_t mono_object_get_class = nullptr;
 		mono_object_new_t mono_object_new = nullptr;
 
-        // --- Member untuk Fungsi Class dan Field ---
+		// --- Member untuk Fungsi Class dan Field ---
 
-        mono_class_get_field_from_name_t mono_class_get_field_from_name = nullptr;
-        mono_field_get_value_t mono_field_get_value = nullptr;
-        mono_field_set_value_t mono_field_set_value = nullptr;
-        mono_method_get_class_t mono_method_get_class = nullptr;
-        mono_class_vtable_t mono_class_vtable = nullptr;
-        mono_vtable_get_static_field_data_t mono_vtable_get_static_field_data = nullptr;
-        mono_field_get_offset_t mono_field_get_offset = nullptr;
+		mono_class_get_field_from_name_t mono_class_get_field_from_name = nullptr;
+		mono_class_get_parent_t mono_class_get_parent = nullptr;
+		mono_field_get_value_t mono_field_get_value = nullptr;
+		mono_field_set_value_t mono_field_set_value = nullptr;
+		mono_method_get_class_t mono_method_get_class = nullptr;
+		mono_class_vtable_t mono_class_vtable = nullptr;
+		mono_vtable_get_static_field_data_t mono_vtable_get_static_field_data = nullptr;
+		mono_field_get_offset_t mono_field_get_offset = nullptr;
 		mono_class_get_name_t mono_class_get_name = nullptr;
 		mono_class_get_namespace_t mono_class_get_namespace = nullptr;
 		mono_string_to_utf8_t mono_string_to_utf8 = nullptr;

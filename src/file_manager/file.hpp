@@ -10,7 +10,7 @@ namespace big
 		file(const std::filesystem::path& file_path = "");
 		void operator=(const file& other);
 		operator std::filesystem::path();
-		operator std::filesystem::path& ();
+		operator std::filesystem::path&();
 
 		file copy(const std::filesystem::path& new_path);
 		bool exists() const;

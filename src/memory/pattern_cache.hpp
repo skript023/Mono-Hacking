@@ -8,8 +8,8 @@ namespace memory
 		bool m_initialized;
 		const std::string_view m_name;
 		std::unordered_map<std::uint64_t, int> m_data;
-	public:
 
+	public:
 		pattern_cache(const std::string_view name);
 
 		void update();

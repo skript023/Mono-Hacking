@@ -9,7 +9,7 @@ namespace big::features
 {
 	int_command _inventory_width("inventory_width", "Inventory Width", "Width of the inventory.", 8, 1000, 8);
 	int_command _inventory_height("inventory_height", "Inventory Height", "Height of the inventory.", 4, 1000, 4);
-    
+
 	static void update_gui_size(int rows)
 	{
 		MonoClass* gui_class = mono::get_class("InventoryGui", "assembly_valheim");

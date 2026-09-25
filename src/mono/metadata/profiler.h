@@ -34,31 +34,33 @@ MONO_BEGIN_DECLS
 #define MONO_PROFILER_API_VERSION 3
 
 typedef struct _MonoProfiler MonoProfiler;
-typedef struct _MonoProfilerDesc *MonoProfilerHandle;
+typedef struct _MonoProfilerDesc* MonoProfilerHandle;
 
-typedef void (*MonoProfilerCleanupCallback) (MonoProfiler *prof);
+typedef void (*MonoProfilerCleanupCallback)(MonoProfiler* prof);
 
-MONO_API void mono_profiler_load (const char *desc);
-MONO_API MonoProfilerHandle mono_profiler_create (MonoProfiler *prof);
-MONO_API void mono_profiler_set_cleanup_callback (MonoProfilerHandle handle, MonoProfilerCleanupCallback cb);
+MONO_API void mono_profiler_load(const char* desc);
+MONO_API MonoProfilerHandle mono_profiler_create(MonoProfiler* prof);
+MONO_API void mono_profiler_set_cleanup_callback(MonoProfilerHandle handle, MonoProfilerCleanupCallback cb);
 
-typedef struct {
-	MonoMethod *method;
+typedef struct
+{
+	MonoMethod* method;
 	uint32_t il_offset;
 	uint32_t counter;
-	const char *file_name;
+	const char* file_name;
 	uint32_t line;
 	uint32_t column;
 } MonoProfilerCoverageData;
 
-typedef mono_bool (*MonoProfilerCoverageFilterCallback) (MonoProfiler *prof, MonoMethod *method);
-typedef void (*MonoProfilerCoverageCallback) (MonoProfiler *prof, const MonoProfilerCoverageData *data);
+typedef mono_bool (*MonoProfilerCoverageFilterCallback)(MonoProfiler* prof, MonoMethod* method);
+typedef void (*MonoProfilerCoverageCallback)(MonoProfiler* prof, const MonoProfilerCoverageData* data);
 
-MONO_API mono_bool mono_profiler_enable_coverage (void);
-MONO_API void mono_profiler_set_coverage_filter_callback (MonoProfilerHandle handle, MonoProfilerCoverageFilterCallback cb);
-MONO_API mono_bool mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, MonoProfilerCoverageCallback cb);
+MONO_API mono_bool mono_profiler_enable_coverage(void);
+MONO_API void mono_profiler_set_coverage_filter_callback(MonoProfilerHandle handle, MonoProfilerCoverageFilterCallback cb);
+MONO_API mono_bool mono_profiler_get_coverage_data(MonoProfilerHandle handle, MonoMethod* method, MonoProfilerCoverageCallback cb);
 
-typedef enum {
+typedef enum
+{
 	/**
 	 * Do not perform sampling. Will make the sampling thread sleep until the
 	 * sampling mode is changed to one of the below modes.
@@ -76,16 +78,17 @@ typedef enum {
 	MONO_PROFILER_SAMPLE_MODE_REAL = 2,
 } MonoProfilerSampleMode;
 
-MONO_API mono_bool mono_profiler_enable_sampling (MonoProfilerHandle handle);
-MONO_API mono_bool mono_profiler_set_sample_mode (MonoProfilerHandle handle, MonoProfilerSampleMode mode, uint32_t freq);
-MONO_API mono_bool mono_profiler_get_sample_mode (MonoProfilerHandle handle, MonoProfilerSampleMode *mode, uint32_t *freq);
+MONO_API mono_bool mono_profiler_enable_sampling(MonoProfilerHandle handle);
+MONO_API mono_bool mono_profiler_set_sample_mode(MonoProfilerHandle handle, MonoProfilerSampleMode mode, uint32_t freq);
+MONO_API mono_bool mono_profiler_get_sample_mode(MonoProfilerHandle handle, MonoProfilerSampleMode* mode, uint32_t* freq);
 
-MONO_API mono_bool mono_profiler_enable_allocations (void);
-MONO_API mono_bool mono_profiler_enable_clauses (void);
+MONO_API mono_bool mono_profiler_enable_allocations(void);
+MONO_API mono_bool mono_profiler_enable_clauses(void);
 
 typedef struct _MonoProfilerCallContext MonoProfilerCallContext;
 
-typedef enum {
+typedef enum
+{
 	/**
 	 * Do not instrument calls.
 	 */
@@ -116,17 +119,18 @@ typedef enum {
 	MONO_PROFILER_CALL_INSTRUMENTATION_EXCEPTION_LEAVE = 1 << 6,
 } MonoProfilerCallInstrumentationFlags;
 
-typedef MonoProfilerCallInstrumentationFlags (*MonoProfilerCallInstrumentationFilterCallback) (MonoProfiler *prof, MonoMethod *method);
+typedef MonoProfilerCallInstrumentationFlags (*MonoProfilerCallInstrumentationFilterCallback)(MonoProfiler* prof, MonoMethod* method);
 
-MONO_API void mono_profiler_set_call_instrumentation_filter_callback (MonoProfilerHandle handle, MonoProfilerCallInstrumentationFilterCallback cb);
-MONO_API mono_bool mono_profiler_enable_call_context_introspection (void);
-MONO_API void *mono_profiler_call_context_get_this (MonoProfilerCallContext *context);
-MONO_API void *mono_profiler_call_context_get_argument (MonoProfilerCallContext *context, uint32_t position);
-MONO_API void *mono_profiler_call_context_get_local (MonoProfilerCallContext *context, uint32_t position);
-MONO_API void *mono_profiler_call_context_get_result (MonoProfilerCallContext *context);
-MONO_API void mono_profiler_call_context_free_buffer (void *buffer);
+MONO_API void mono_profiler_set_call_instrumentation_filter_callback(MonoProfilerHandle handle, MonoProfilerCallInstrumentationFilterCallback cb);
+MONO_API mono_bool mono_profiler_enable_call_context_introspection(void);
+MONO_API void* mono_profiler_call_context_get_this(MonoProfilerCallContext* context);
+MONO_API void* mono_profiler_call_context_get_argument(MonoProfilerCallContext* context, uint32_t position);
+MONO_API void* mono_profiler_call_context_get_local(MonoProfilerCallContext* context, uint32_t position);
+MONO_API void* mono_profiler_call_context_get_result(MonoProfilerCallContext* context);
+MONO_API void mono_profiler_call_context_free_buffer(void* buffer);
 
-typedef enum {
+typedef enum
+{
 	/**
 	 * The \c data parameter is a \c MonoMethod pointer.
 	 */
@@ -154,7 +158,8 @@ typedef enum {
 	MONO_PROFILER_CODE_BUFFER_EXCEPTION_HANDLING = 9,
 } MonoProfilerCodeBufferType;
 
-typedef enum {
+typedef enum
+{
 	MONO_GC_EVENT_PRE_STOP_WORLD = 6,
 	/**
 	 * When this event arrives, the GC and suspend locks are acquired.
@@ -199,19 +204,19 @@ typedef enum {
  */
 
 #define _MONO_PROFILER_EVENT(type, ...) \
-	typedef void (*MonoProfiler ## type ## Callback) (__VA_ARGS__);
+	typedef void (*MonoProfiler##type##Callback)(__VA_ARGS__);
 #define MONO_PROFILER_EVENT_0(name, type) \
-		_MONO_PROFILER_EVENT(type, MonoProfiler *prof)
+	_MONO_PROFILER_EVENT(type, MonoProfiler* prof)
 #define MONO_PROFILER_EVENT_1(name, type, arg1_type, arg1_name) \
-		_MONO_PROFILER_EVENT(type, MonoProfiler *prof, arg1_type arg1_name)
+	_MONO_PROFILER_EVENT(type, MonoProfiler* prof, arg1_type arg1_name)
 #define MONO_PROFILER_EVENT_2(name, type, arg1_type, arg1_name, arg2_type, arg2_name) \
-		_MONO_PROFILER_EVENT(type, MonoProfiler *prof, arg1_type arg1_name, arg2_type arg2_name)
+	_MONO_PROFILER_EVENT(type, MonoProfiler* prof, arg1_type arg1_name, arg2_type arg2_name)
 #define MONO_PROFILER_EVENT_3(name, type, arg1_type, arg1_name, arg2_type, arg2_name, arg3_type, arg3_name) \
-		_MONO_PROFILER_EVENT(type, MonoProfiler *prof, arg1_type arg1_name, arg2_type arg2_name, arg3_type arg3_name)
+	_MONO_PROFILER_EVENT(type, MonoProfiler* prof, arg1_type arg1_name, arg2_type arg2_name, arg3_type arg3_name)
 #define MONO_PROFILER_EVENT_4(name, type, arg1_type, arg1_name, arg2_type, arg2_name, arg3_type, arg3_name, arg4_type, arg4_name) \
-		_MONO_PROFILER_EVENT(type, MonoProfiler *prof, arg1_type arg1_name, arg2_type arg2_name, arg3_type arg3_name, arg4_type arg4_name)
+	_MONO_PROFILER_EVENT(type, MonoProfiler* prof, arg1_type arg1_name, arg2_type arg2_name, arg3_type arg3_name, arg4_type arg4_name)
 #define MONO_PROFILER_EVENT_5(name, type, arg1_type, arg1_name, arg2_type, arg2_name, arg3_type, arg3_name, arg4_type, arg4_name, arg5_type, arg5_name) \
-		_MONO_PROFILER_EVENT(type, MonoProfiler *prof, arg1_type arg1_name, arg2_type arg2_name, arg3_type arg3_name, arg4_type arg4_name, arg5_type arg5_name)
+	_MONO_PROFILER_EVENT(type, MonoProfiler* prof, arg1_type arg1_name, arg2_type arg2_name, arg3_type arg3_name, arg4_type arg4_name, arg5_type arg5_name)
 #include <mono/metadata/profiler-events.h>
 #undef MONO_PROFILER_EVENT_0
 #undef MONO_PROFILER_EVENT_1
@@ -222,7 +227,7 @@ typedef enum {
 #undef _MONO_PROFILER_EVENT
 
 #define _MONO_PROFILER_EVENT(name, type) \
-	MONO_API void mono_profiler_set_ ## name ## _callback (MonoProfilerHandle handle, MonoProfiler ## type ## Callback cb);
+	MONO_API void mono_profiler_set_##name##_callback(MonoProfilerHandle handle, MonoProfiler##type##Callback cb);
 #define MONO_PROFILER_EVENT_0(name, type) \
 	_MONO_PROFILER_EVENT(name, type)
 #define MONO_PROFILER_EVENT_1(name, type, arg1_type, arg1_name) \

@@ -1,5 +1,12 @@
 #pragma once
+
+#ifdef RENDERER_SMOKE_TEST
+	#include "renderer_test_common.hpp"
+#else
+	#include "common.hpp"
+#endif
 #include "render_backend.hpp"
+
 namespace big
 {
 	// Capture supports startup and existing devices through dummy-device hooks.
@@ -12,5 +19,6 @@ namespace big
 		static void detach();
 		void shutdown() override;
 		ImTextureID upload_rgba(const unsigned char* pixels, int width, int height) override;
+		void release_texture(ImTextureID texture) override;
 	};
 }

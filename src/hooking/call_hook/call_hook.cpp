@@ -10,7 +10,7 @@ namespace
 namespace big
 {
 	call_hook_memory::call_hook_memory()
-	{ 
+	{
 		m_memory = VirtualAlloc((void*)((uintptr_t)GetModuleHandle(0) + 0x20000000), 1024, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 		m_offset = 0;
 	}

@@ -50,7 +50,9 @@ namespace big
 			m_context.eval(R"(
 				logger.info("This is a test log from javascript");
 				console.log('hello from js', 123, true);
-			)", "<eval>", JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);
+			)",
+			    "<eval>",
+			    JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);
 		}
 		catch (qjs::exception&)
 		{

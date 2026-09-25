@@ -7,7 +7,6 @@ namespace big
 	{
 		if (g_settings.self.flying)
 		{
-
 			return true;
 		}
 

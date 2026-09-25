@@ -3,7 +3,7 @@
 namespace big
 {
 	folder::folder(const std::filesystem::path& folder_path) :
-		m_folder_path(folder_path)
+	    m_folder_path(folder_path)
 	{
 	}
 

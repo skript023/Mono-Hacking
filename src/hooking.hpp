@@ -61,6 +61,18 @@ namespace big
 		static bool player_in_god_mode(MonoObject* player);
 		static bool player_in_ghost_mode(MonoObject* player);
 		static bool player_no_cost_cheat(MonoObject* player);
+		static double smelter_delta(MonoObject* object);
+		static double fermenter_time(MonoObject* object);
+		static float hive_delta(MonoObject* object);
+		static float plant_grow_time(MonoObject* object);
+		static void plant_update_health(MonoObject* object, double time_since_planted);
+		static float cooking_delta(MonoObject* object);
+		static float sap_collector_delta(MonoObject* object);
+		static MonoString* environment_override(MonoObject* object);
+		static void environment_update(MonoObject* object);
+		static void container_stack_response(MonoObject* object, int64_t sender, bool granted);
+		static bool inventory_add_stack_item(MonoObject* inventory, MonoObject* item);
+		static MonoString* item_get_tooltip(MonoObject* item, int quality, bool crafting, float world_level, int stack_override, bool appending);
 		static void humanoid_drain_durability(MonoObject* humanoid, MonoObject* item, float dt);
 		static float player_get_run_speed_factor(MonoObject* player);
 		static float player_get_jog_speed_factor(MonoObject* player);
@@ -78,12 +90,14 @@ namespace big
 	class hooking
 	{
 		friend hooks;
+
 	public:
 		explicit hooking();
 		~hooking();
 
 		void enable();
 		void disable();
+
 	private:
 		bool m_enabled{};
 

@@ -24,8 +24,8 @@ namespace big
 		command(std::string name, std::string label, std::string description, int num_args = 0);
 		void call();
 
-		virtual void save_state(nlohmann::json& value){};
-		virtual void load_state(nlohmann::json& value){};
+		virtual void save_state(nlohmann::json& value) {};
+		virtual void load_state(nlohmann::json& value) {};
 
 		const std::string& get_name()
 		{

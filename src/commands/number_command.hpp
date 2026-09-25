@@ -13,7 +13,7 @@ namespace big
 		{
 			value = m_state;
 		};
-		virtual void load_state(nlohmann::json& value) override 
+		virtual void load_state(nlohmann::json& value) override
 		{
 			m_state = value;
 		};
@@ -24,13 +24,16 @@ namespace big
 
 	public:
 		number_command(std::string name, std::string label, std::string description, NumberType min, NumberType max, int def_val = 0) :
-			command(name, label, description, 0),
-			m_min(min),
-			m_max(max),
-			m_state(def_val)
+		    command(name, label, description, 0),
+		    m_min(min),
+		    m_max(max),
+		    m_state(def_val)
 		{
 		}
-		NumberType get_state() { return m_state; };
+		NumberType get_state()
+		{
+			return m_state;
+		};
 		void set_state(int state)
 		{
 			on_change();
@@ -48,5 +51,6 @@ namespace big
 	};
 	template<typename NumberType>
 	inline void number_command<NumberType>::on_call()
-	{}
+	{
+	}
 }

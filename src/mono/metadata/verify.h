@@ -12,7 +12,8 @@
 
 MONO_BEGIN_DECLS
 
-typedef enum {
+typedef enum
+{
 	MONO_VERIFY_OK,
 	MONO_VERIFY_ERROR,
 	MONO_VERIFY_WARNING,
@@ -23,7 +24,7 @@ typedef enum {
 	MONO_VERIFY_NOT_VERIFIABLE = 8,
 
 	/*OR it with other flags*/
-	
+
 	/* Abort the verification if the code is not verifiable.
 	 * The standard behavior is to abort if the code is not valid.
 	 * */
@@ -45,22 +46,23 @@ typedef enum {
 
 } MonoVerifyStatus;
 
-typedef struct {
-	char            *message;
+typedef struct
+{
+	char* message;
 	MonoVerifyStatus status;
 } MonoVerifyInfo;
 
-typedef struct {
+typedef struct
+{
 	MonoVerifyInfo info;
 	int8_t exception_type; /*should be one of MONO_EXCEPTION_* */
 } MonoVerifyInfoExtended;
 
 
-MONO_API GSList* mono_method_verify       (MonoMethod *method, int level);
-MONO_API void    mono_free_verify_list    (GSList *list);
-MONO_API char*   mono_verify_corlib       (void);
+MONO_API GSList* mono_method_verify(MonoMethod* method, int level);
+MONO_API void mono_free_verify_list(GSList* list);
+MONO_API char* mono_verify_corlib(void);
 
 MONO_END_DECLS
 
-#endif  /* __MONO_METADATA_VERIFY_H__ */
-
+#endif /* __MONO_METADATA_VERIFY_H__ */

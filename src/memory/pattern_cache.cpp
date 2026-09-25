@@ -3,7 +3,9 @@
 
 namespace memory
 {
-	pattern_cache::pattern_cache(const std::string_view name): m_initialized(false), m_name(name)
+	pattern_cache::pattern_cache(const std::string_view name) :
+	    m_initialized(false),
+	    m_name(name)
 	{
 		auto file = big::file_manager::get_project_file(std::format("./{}.bin", m_name));
 		if (file.exists())

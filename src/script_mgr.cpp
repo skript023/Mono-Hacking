@@ -26,7 +26,7 @@ namespace big
 		static bool ensure_main_fiber = (ConvertThreadToFiber(nullptr), true);
 
 		std::lock_guard lock(m_mutex);
-		for (auto const &script : m_scripts)
+		for (auto const& script : m_scripts)
 		{
 			script->tick();
 		}
