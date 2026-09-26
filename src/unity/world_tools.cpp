@@ -1,5 +1,4 @@
 #include "world_tools.hpp"
-#include "menu_settings.hpp"
 #include "notification/notification_service.hpp"
 #include "utility/unity.hpp"
 
@@ -150,27 +149,6 @@ namespace big
 		{
 			mono::invoke_method(reset_method, res, nullptr);
 			notification::success("Raid Controller", "Active raid stopped and dismissed!");
-		}
-	}
-
-	void world_tools::update_raid_system_impl()
-	{
-		if (g_settings.self.disable_raids)
-		{
-			auto res = unity::get_rand_event_system();
-			if (res)
-			{
-				auto res_class = mono::get_class("RandEventSystem", "assembly_valheim");
-				if (res_class)
-				{
-					static auto f_chance = mono::get_field(res_class, "m_eventChance");
-					if (f_chance)
-					{
-						float zero = 0.f;
-						mono::set_field_value(res, f_chance, &zero);
-					}
-				}
-			}
 		}
 	}
 

@@ -7,13 +7,8 @@
 #include "unity/online_players.hpp"
 #include "unity/base_tools.hpp"
 #include "unity/animal_tools.hpp"
-#include "unity/ship_tools.hpp"
-#include "unity/buff_tools.hpp"
-#include "unity/fishing_tools.hpp"
-#include "unity/world_tools.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
-
 
 namespace big
 {
@@ -23,10 +18,8 @@ namespace big
 		base_tools::hotkey_tick();
 		animal_tools::update();
 		animal_tools::hotkey_tick();
-		ship_tools::update();
-		buff_tools::update();
-		fishing_tools::update();
 	}
+
 	void main_worker::run()
 	{
 		commands::enable_bool_commands();
@@ -36,6 +29,7 @@ namespace big
 			TRY_CLAUSE
 			{
 				update();
+				commands::run_looped_command();
 				g_pointers->m_resolution.x = unity::get_screen_width();
 				g_pointers->m_resolution.y = unity::get_screen_height();
 			}
@@ -44,16 +38,15 @@ namespace big
 			script::get_current()->yield();
 		}
 	}
+
 	void main_worker::slow_run()
 	{
 		while (g_running)
 		{
 			TRY_CLAUSE
 			{
-				commands::run_looped_command();
 				online_players::update();
 				base_tools::update();
-				world_tools::update_raid_system();
 			}
 			EXCEPT_CLAUSE
 

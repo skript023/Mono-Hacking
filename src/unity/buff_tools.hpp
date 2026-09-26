@@ -20,9 +20,9 @@ namespace big
 		{
 			return instance().get_boss_powers_impl();
 		}
-		static void apply_rested(int comfort = 20)
+		static void apply_rested(int comfort = 20, bool notify = true)
 		{
-			return instance().apply_rested_impl(comfort);
+			return instance().apply_rested_impl(comfort, notify);
 		}
 		static void activate_guardian_power(const std::string& power_name)
 		{
@@ -36,17 +36,13 @@ namespace big
 		{
 			return instance().apply_eitr_shield_impl(hp);
 		}
-		static void clear_all_debuffs()
+		static void clear_all_debuffs(bool notify = true)
 		{
-			return instance().clear_all_debuffs_impl();
+			return instance().clear_all_debuffs_impl(notify);
 		}
 		static void remove_status_effect(const std::string& name)
 		{
 			return instance().remove_status_effect_impl(name);
-		}
-		static void update()
-		{
-			return instance().update_impl();
 		}
 
 	private:
@@ -60,12 +56,11 @@ namespace big
 		}
 
 		const std::vector<boss_power>& get_boss_powers_impl();
-		void apply_rested_impl(int comfort);
+		void apply_rested_impl(int comfort, bool notify);
 		void activate_guardian_power_impl(const std::string& power_name);
 		void activate_all_guardian_powers_impl();
 		void apply_eitr_shield_impl(float hp);
-		void clear_all_debuffs_impl();
+		void clear_all_debuffs_impl(bool notify);
 		void remove_status_effect_impl(const std::string& name);
-		void update_impl();
 	};
 }

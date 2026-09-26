@@ -1,9 +1,9 @@
 #include "buff_tools.hpp"
-#include "menu_settings.hpp"
 #include "notification/notification_service.hpp"
 #include "utility/unity.hpp"
 
 #include <chrono>
+#include <cstring>
 #include <format>
 
 namespace big
@@ -81,21 +81,125 @@ namespace big
 		{
 			static thread_local MonoMethod* method = nullptr;
 			if (!method)
-				method = mono::get_method_overload("SEMan", "AddStatusEffect", 5, "StatusEffect", "System.Int32", "assembly_valheim");
+				method = mono::get_method_overload("SEMan", "AddStatusEffect", 4, "StatusEffect", "Int32", "assembly_valheim");
 			if (!method)
 				method = mono::get_method_overload("SEMan", "AddStatusEffect", 4, "StatusEffect", "System.Int32", "assembly_valheim");
+			if (!method)
+				method = mono::get_method("SEMan", "AddStatusEffect", 4, "assembly_valheim");
 			if (!method)
 			{
 				notification::warning("Buff Manager", "Compatible AddStatusEffect method not found.");
 				return nullptr;
 			}
 			bool reset_time = true;
-			int16_t variant = -1;
-			void* args[] = {&hash, &reset_time, &level, &skill, &variant};
+			void* args[] = {&hash, &reset_time, &level, &skill};
 			auto effect = mono::invoke_method(method, seman, args);
 			if (!effect)
-				notification::warning("Buff Manager", "Status effect was not applied locally. Check player ownership and effect availability.");
+			{
+				// If status effect was already active, Valheim's AddStatusEffect resets time and returns null.
+				// Query GetStatusEffect to verify if the effect is currently active.
+				static thread_local MonoMethod* get_se_method = nullptr;
+				if (!get_se_method)
+					get_se_method = mono::get_method_overload("SEMan", "GetStatusEffect", 1, "StatusEffect", "Int32", "assembly_valheim");
+				if (!get_se_method)
+					get_se_method = mono::get_method("SEMan", "GetStatusEffect", 1, "assembly_valheim");
+				if (get_se_method)
+				{
+					void* get_args[] = {&hash};
+					effect = mono::invoke_method(get_se_method, seman, get_args);
+				}
+			}
 			return effect;
+		}
+
+		MonoObject* find_shield_in_object_db(int& out_hash)
+		{
+			auto obj_db = unity::get_object_db();
+			if (!obj_db)
+				return nullptr;
+
+			auto db_klass = mono::object_get_class(obj_db);
+			if (!db_klass)
+				return nullptr;
+
+			auto se_list_field = mono::get_field(db_klass, "m_StatusEffects");
+			if (!se_list_field)
+				return nullptr;
+
+			MonoObject* se_list = nullptr;
+			mono::get_field_value(obj_db, se_list_field, &se_list);
+			if (!se_list)
+				return nullptr;
+
+			auto effects = unity::list_to_vector(se_list);
+			for (auto* se : effects)
+			{
+				if (!se)
+					continue;
+				auto se_klass = mono::object_get_class(se);
+				if (!se_klass)
+					continue;
+				const char* name = mono::class_get_name(se_klass);
+				if (name && std::strcmp(name, "SE_Shield") == 0)
+				{
+					auto hash_method = mono::class_get_method_from_name(se_klass, "NameHash", 0);
+					if (hash_method)
+					{
+						auto ret = mono::invoke_method(hash_method, se, nullptr);
+						if (ret)
+						{
+							auto unboxed = mono::object_unbox(ret);
+							if (unboxed)
+								out_hash = *reinterpret_cast<int*>(unboxed);
+						}
+					}
+					return se;
+				}
+			}
+			return nullptr;
+		}
+
+		MonoObject* get_active_shield(MonoObject* seman, int known_hash = 0)
+		{
+			if (known_hash != 0)
+			{
+				static thread_local MonoMethod* get_se_method = nullptr;
+				if (!get_se_method)
+					get_se_method = mono::get_method_overload("SEMan", "GetStatusEffect", 1, "StatusEffect", "Int32", "assembly_valheim");
+				if (!get_se_method)
+					get_se_method = mono::get_method("SEMan", "GetStatusEffect", 1, "assembly_valheim");
+				if (get_se_method)
+				{
+					void* args[] = {&known_hash};
+					auto res = mono::invoke_method(get_se_method, seman, args);
+					if (res)
+						return res;
+				}
+			}
+
+			static thread_local MonoMethod* get_all_method = nullptr;
+			if (!get_all_method)
+				get_all_method = mono::get_method("SEMan", "GetStatusEffects", 0, "assembly_valheim");
+			if (get_all_method)
+			{
+				auto list_obj = mono::invoke_method(get_all_method, seman, nullptr);
+				if (list_obj)
+				{
+					auto active_effects = unity::list_to_vector(list_obj);
+					for (auto* se : active_effects)
+					{
+						if (!se)
+							continue;
+						auto klass = mono::object_get_class(se);
+						if (!klass)
+							continue;
+						const char* name = mono::class_get_name(klass);
+						if (name && std::strcmp(name, "SE_Shield") == 0)
+							return se;
+					}
+				}
+			}
+			return nullptr;
 		}
 
 		MonoMethod* get_remove_effect_method()
@@ -112,12 +216,13 @@ namespace big
 		return s_boss_powers;
 	}
 
-	void buff_tools::apply_rested_impl(int comfort)
+	void buff_tools::apply_rested_impl(int comfort, bool notify)
 	{
 		auto seman = get_seman();
 		if (!seman)
 		{
-			notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
+			if (notify)
+				notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
 			return;
 		}
 
@@ -126,7 +231,8 @@ namespace big
 		if (!add_effect(seman, hash, item_level, 0.f))
 			return;
 
-		notification::success("Buff Manager", std::format("Rested buff applied with Comfort Level {}!", item_level));
+		if (notify)
+			notification::success("Buff Manager", std::format("Rested buff applied with Comfort Level {}!", item_level));
 	}
 
 	void buff_tools::activate_guardian_power_impl(const std::string& power_name)
@@ -168,15 +274,108 @@ namespace big
 	{
 		auto seman = get_seman();
 		if (!seman)
+		{
+			notification::warning("Eitr Shield", "Player or StatusEffect manager is not ready.");
 			return;
+		}
 
-		// Staff of Protection bubble
-		int hash = get_stable_hash("StaffShield");
-		int level = static_cast<int>(hp);
-		if (!add_effect(seman, hash, level, 100.f))
+		int shield_hash = 0;
+		MonoObject* shield_prefab = find_shield_in_object_db(shield_hash);
+
+		if (shield_hash == 0)
+			shield_hash = get_stable_hash("Staff_shield");
+
+		MonoObject* active_shield = get_active_shield(seman, shield_hash);
+
+		if (!active_shield)
+		{
+			if (shield_prefab)
+			{
+				static thread_local MonoMethod* add_se_method = nullptr;
+				if (!add_se_method)
+					add_se_method = mono::get_method_overload("SEMan", "AddStatusEffect", 4, "StatusEffect", "StatusEffect", "assembly_valheim");
+				if (add_se_method)
+				{
+					bool reset_time = true;
+					int item_level = 1;
+					float skill_level = 100.f;
+					void* args[] = {shield_prefab, &reset_time, &item_level, &skill_level};
+					active_shield = mono::invoke_method(add_se_method, seman, args);
+				}
+			}
+
+			if (!active_shield)
+			{
+				const int candidate_hashes[] = {
+				    shield_hash,
+				    get_stable_hash("Staff_shield"),
+				    get_stable_hash("SE_Shield"),
+				    get_stable_hash("StaffShield")};
+
+				for (int h : candidate_hashes)
+				{
+					if (h == 0)
+						continue;
+					active_shield = add_effect(seman, h, 1, 100.f);
+					if (active_shield)
+					{
+						shield_hash = h;
+						break;
+					}
+					active_shield = get_active_shield(seman, h);
+					if (active_shield)
+					{
+						shield_hash = h;
+						break;
+					}
+				}
+			}
+		}
+
+		if (!active_shield)
+			active_shield = get_active_shield(seman, shield_hash);
+
+		if (!active_shield)
+		{
+			notification::warning("Eitr Shield", "Could not apply Staff of Protection shield. Join a world first!");
 			return;
+		}
 
-		notification::success("Eitr Shield", std::format("Staff of Protection shield applied with {} HP!", hp));
+		// Configure shield stats on the active SE_Shield instance
+		auto se_klass = mono::object_get_class(active_shield);
+		if (se_klass)
+		{
+			auto absorb_field = mono::get_field(se_klass, "m_totalAbsorbDamage");
+			if (absorb_field)
+				mono::set_field_value(active_shield, absorb_field, &hp);
+
+			auto damage_field = mono::get_field(se_klass, "m_damage");
+			if (damage_field)
+			{
+				float zero = 0.f;
+				mono::set_field_value(active_shield, damage_field, &zero);
+			}
+		}
+
+		auto status_effect_klass = mono::get_class("StatusEffect", "assembly_valheim");
+		if (status_effect_klass)
+		{
+			auto ttl_field = mono::get_field(status_effect_klass, "m_ttl");
+			if (ttl_field)
+			{
+				float ttl = 3600.f;
+				mono::set_field_value(active_shield, ttl_field, &ttl);
+			}
+
+			auto time_field = mono::get_field(status_effect_klass, "m_time");
+			if (time_field)
+			{
+				float zero = 0.f;
+				mono::set_field_value(active_shield, time_field, &zero);
+			}
+		}
+
+		notification::success("Eitr Shield", std::format("Staff of Protection shield applied with {:.0f} HP (1 hour)!", hp));
 	}
 
 	void buff_tools::remove_status_effect_impl(const std::string& name)
@@ -195,12 +394,13 @@ namespace big
 		mono::invoke_method(remove_se_method, seman, args);
 	}
 
-	void buff_tools::clear_all_debuffs_impl()
+	void buff_tools::clear_all_debuffs_impl(bool notify)
 	{
 		auto seman = get_seman();
 		if (!seman)
 		{
-			notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
+			if (notify)
+				notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
 			return;
 		}
 
@@ -216,41 +416,8 @@ namespace big
 			mono::invoke_method(remove_se_method, seman, args);
 		}
 
-		notification::success("Debuff Purge", "All harmful status effects removed (Wet, Poison, Freeze, Burn, etc.)!");
-	}
-
-	void buff_tools::update_impl()
-	{
-		if (g_settings.self.auto_cleanse_debuffs)
-		{
-			auto seman = get_seman();
-			if (seman)
-			{
-				auto remove_se_method = get_remove_effect_method();
-				if (remove_se_method)
-				{
-					bool quiet = true;
-					for (const auto& debuff : s_debuff_names)
-					{
-						int hash = get_stable_hash(debuff);
-						void* args[2] = {&hash, &quiet};
-						mono::invoke_method(remove_se_method, seman, args);
-					}
-				}
-			}
-		}
-
-		if (g_settings.self.keep_rested)
-		{
-			if (!get_seman())
-				return;
-			static auto last_applied = std::chrono::steady_clock::now();
-			auto now = std::chrono::steady_clock::now();
-			if (now - last_applied > std::chrono::seconds(10))
-			{
-				last_applied = now;
-				apply_rested(25);
-			}
-		}
+		if (notify)
+			notification::success("Debuff Purge", "All harmful status effects removed (Wet, Poison, Freeze, Burn, etc.)!");
 	}
 }
+

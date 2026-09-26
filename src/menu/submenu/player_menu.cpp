@@ -555,13 +555,13 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Buffs & Effects", "SubmenuBuffs"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("Keep Rested (Comfort 25+)", "Automatically maintain maximum Rested buff.", &g_settings.self.keep_rested);
+			sub->add_option<bool_option<bool>>("keep_rested"_hash);
 			sub->add_option<reguler_option>("Apply Max Rested Buff Now", "Apply Rested status effect with comfort level 25 (30m+).", [] {
 				queue_job([] {
 					buff_tools::apply_rested(25);
 				});
 			});
-			sub->add_option<bool_option<bool>>("Auto-Purge Harmful Debuffs", "Automatically cleanse Wet, Poison, Burning, Freeze, etc.", &g_settings.self.auto_cleanse_debuffs);
+			sub->add_option<bool_option<bool>>("auto_cleanse_debuffs"_hash);
 			sub->add_option<reguler_option>("Clear All Harmful Debuffs", "Immediately cleanse all negative status effects.", [] {
 				queue_job([] {
 					buff_tools::clear_all_debuffs();
@@ -593,9 +593,9 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Ship & Sailing", "SubmenuShip"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("Ashlands Ocean Boiling Immunity", "Normal wooden ships can sail safely in Ashlands waters without burning.", &g_settings.self.ship_ashlands_immune);
-			sub->add_option<bool_option<bool>>("No Wave & Collision Damage", "Ships take zero impact damage from crashing waves, rocks, or capsizing.", &g_settings.self.ship_no_wave_damage);
-			sub->add_option<number_option<float>>("Ship Speed Multiplier", "Multiply sail speed, reverse thrust, and rudder responsiveness.", &g_settings.self.ship_speed_multiplier, 1.f, 5.f, 0.5f, 1);
+			sub->add_option<bool_option<bool>>("ship_ashlands_immune"_hash);
+			sub->add_option<bool_option<bool>>("ship_no_wave_damage"_hash);
+			sub->add_option<bool_slider_float_option>("ship_speed"_hash, "ship_speed_multiplier"_hash, 0.5f, 1);
 			sub->add_option<reguler_option>("Emergency Anchor", "Instantly brake and halt ship momentum to prevent drifting.", [] {
 				queue_job([] {
 					ship_tools::emergency_anchor();
@@ -614,9 +614,9 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Fishing Assistant", "SubmenuFishing"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("Unbreakable Fishing Line", "Fishing line never snaps regardless of fish strength or distance.", &g_settings.self.fishing_unbreakable_line);
-			sub->add_option<bool_option<bool>>("Zero Stamina Fishing", "Reeling and holding hooked fish consumes 0 stamina.", &g_settings.self.fishing_no_stamina);
-			sub->add_option<bool_option<bool>>("Auto Reel-in & Catch", "Automatically reel in and catch fish the instant they bite.", &g_settings.self.fishing_auto_catch);
+			sub->add_option<bool_option<bool>>("fishing_unbreakable_line"_hash);
+			sub->add_option<bool_option<bool>>("fishing_no_stamina"_hash);
+			sub->add_option<bool_option<bool>>("fishing_auto_catch"_hash);
 			sub->add_option<reguler_option>("Instant Catch Current Fish", "Reel in active bobber directly into inventory.", [] {
 				queue_job([] {
 					fishing_tools::instant_catch();
@@ -625,7 +625,7 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Base Raids & Events", "SubmenuRaids"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("Disable Base Raids", "Prevent all random monster attacks from spawning near your base.", &g_settings.self.disable_raids);
+			sub->add_option<bool_option<bool>>("disable_raids"_hash);
 			sub->add_option<reguler_option>("Stop Active Raid", "Instantly end and dismiss any ongoing raid event.", [] {
 				queue_job([] {
 					world_tools::stop_current_raid();
@@ -644,7 +644,7 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Tombstone Recovery", "SubmenuTombstone"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("Retain Skills on Death", "Prevent losing 5% of skill levels upon dying.", &g_settings.self.keep_skills_on_death);
+			sub->add_option<bool_option<bool>>("keep_skills_on_death"_hash);
 			sub->add_option<reguler_option>("Teleport to Last Tombstone", "Instantly warp to the location where you last died.", [] {
 				queue_job([] {
 					world_tools::teleport_to_tombstone();

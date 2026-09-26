@@ -1,5 +1,6 @@
 #pragma once
 #include "mono/mono.hpp"
+#include <vector>
 
 namespace big
 {
@@ -13,10 +14,7 @@ namespace big
 			float line_length{0.f};
 		};
 
-		static void update()
-		{
-			return instance().update_impl();
-		}
+		static std::vector<MonoObject*> get_floats();
 		static fishing_status get_status()
 		{
 			return instance().get_status_impl();
@@ -36,7 +34,6 @@ namespace big
 			return value;
 		}
 
-		void update_impl();
 		fishing_status get_status_impl();
 		void instant_catch_impl();
 	};

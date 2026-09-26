@@ -1,5 +1,4 @@
 #include "ship_tools.hpp"
-#include "menu_settings.hpp"
 #include "notification/notification_service.hpp"
 #include "utility/unity.hpp"
 
@@ -12,76 +11,6 @@ namespace big
 			return nullptr;
 
 		return mono::invoke_method(method, nullptr, nullptr);
-	}
-
-	void ship_tools::update_impl()
-	{
-		auto ship = get_local_ship();
-		if (!ship)
-			return;
-
-		auto ship_class = mono::get_class("Ship", "assembly_valheim");
-		if (!ship_class)
-			return;
-
-		// Ashlands boiling water immunity
-		if (g_settings.self.ship_ashlands_immune)
-		{
-			static auto f_ashlands = mono::get_field(ship_class, "m_ashlandsReady");
-			if (f_ashlands)
-			{
-				bool ready = true;
-				mono::set_field_value(ship, f_ashlands, &ready);
-			}
-		}
-
-		// Wave impact & collision damage immunity
-		if (g_settings.self.ship_no_wave_damage)
-		{
-			static auto f_impact_dmg = mono::get_field(ship_class, "m_waterImpactDamage");
-			static auto f_impact_force = mono::get_field(ship_class, "m_minWaterImpactForce");
-			static auto f_upside_dmg = mono::get_field(ship_class, "m_upsideDownDmg");
-
-			if (f_impact_dmg)
-			{
-				float zero = 0.f;
-				mono::set_field_value(ship, f_impact_dmg, &zero);
-			}
-			if (f_impact_force)
-			{
-				float max_force = 999999.f;
-				mono::set_field_value(ship, f_impact_force, &max_force);
-			}
-			if (f_upside_dmg)
-			{
-				float zero = 0.f;
-				mono::set_field_value(ship, f_upside_dmg, &zero);
-			}
-		}
-
-		// Speed & Steering multipliers
-		float mult = g_settings.self.ship_speed_multiplier;
-		if (mult > 1.05f)
-		{
-			static auto f_sail_force = mono::get_field(ship_class, "m_sailForceFactor");
-			static auto f_stear_force = mono::get_field(ship_class, "m_stearForce");
-			static auto f_back_force = mono::get_field(ship_class, "m_backwardForce");
-			static auto f_rudder_spd = mono::get_field(ship_class, "m_rudderSpeed");
-
-			float sail_force = 0.1f * mult;
-			float stear_force = 0.5f * std::min(mult, 3.f);
-			float back_force = 50.f * mult;
-			float rudder_spd = 0.5f * std::min(mult, 2.5f);
-
-			if (f_sail_force)
-				mono::set_field_value(ship, f_sail_force, &sail_force);
-			if (f_stear_force)
-				mono::set_field_value(ship, f_stear_force, &stear_force);
-			if (f_back_force)
-				mono::set_field_value(ship, f_back_force, &back_force);
-			if (f_rudder_spd)
-				mono::set_field_value(ship, f_rudder_spd, &rudder_spd);
-		}
 	}
 
 	ship_tools::ship_status ship_tools::get_status_impl()

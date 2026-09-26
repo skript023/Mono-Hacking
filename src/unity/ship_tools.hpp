@@ -23,10 +23,6 @@ namespace big
 		{
 			return instance().get_local_ship_impl();
 		}
-		static void update()
-		{
-			return instance().update_impl();
-		}
 		static ship_status get_status()
 		{
 			return instance().get_status_impl();
@@ -55,7 +51,6 @@ namespace big
 		}
 
 		MonoObject* get_local_ship_impl();
-		void update_impl();
 		ship_status get_status_impl();
 		void emergency_anchor_impl();
 		void boost_forward_impl(float force);

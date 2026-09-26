@@ -33,10 +33,6 @@ namespace big
 		{
 			return instance().stop_current_raid_impl();
 		}
-		static void update_raid_system()
-		{
-			return instance().update_raid_system_impl();
-		}
 
 		// Death & Tombstone
 		static bool has_death_point()
@@ -76,7 +72,6 @@ namespace big
 		std::string get_current_raid_name_impl();
 		void trigger_raid_impl(const std::string& internal_name);
 		void stop_current_raid_impl();
-		void update_raid_system_impl();
 		bool has_death_point_impl();
 		Vector3 get_death_point_impl();
 		bool teleport_to_tombstone_impl();
