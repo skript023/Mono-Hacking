@@ -165,6 +165,12 @@ namespace big::unity
 			auto array = mono::new_reference_array(original, target);
 			m_roots.push_back(retain_impl(reinterpret_cast<MonoObject*>(array)));
 			arrays[group] = array;
+			if (group > 0)
+			{
+				for (int index = 0; index < std::min(count, target); ++index)
+					mono::set_array_reference(array, index, element_impl(original, index));
+				continue;
+			}
 			auto get_transform = method_impl("Component", "get_transform", 0);
 			auto get_position = method_impl("Transform", "get_localPosition", 0);
 			auto last = element_impl(original, count - 1);
@@ -198,10 +204,68 @@ namespace big::unity
 				mono::set_array_reference(array, index, component);
 			}
 		}
+		auto icons = reinterpret_cast<MonoArray*>(mono::retained_object(m_originals[1]));
+		auto times = reinterpret_cast<MonoArray*>(mono::retained_object(m_originals[2]));
+		const int count = mono::array_length(icons);
+		if (count != mono::array_length(times))
+			throw std::runtime_error("Food icon and timer counts differ");
+		auto get_transform = method_impl("Component", "get_transform", 0);
+		auto get_parent = method_impl("Transform", "get_parent", 0);
+		auto icon = element_impl(icons, count - 1);
+		auto timer = element_impl(times, count - 1);
+		auto icon_transform = call_impl(get_transform, icon);
+		auto time_transform = call_impl(get_transform, timer);
+		auto parent = call_impl(get_parent, icon_transform);
+		auto time_parent = call_impl(get_parent, time_transform);
+		auto previous_transform = call_impl(get_transform, element_impl(icons, count - 2));
+		auto previous_parent = call_impl(get_parent, previous_transform);
+		if (!parent || parent != time_parent || !previous_parent)
+			throw std::runtime_error("Unexpected food slot hierarchy");
+		auto get_position = method_impl("Transform", "get_localPosition", 0);
+		auto position_box = call_impl(get_position, parent);
+		if (!position_box)
+			throw std::runtime_error("Missing food container position");
+		auto position = *static_cast<Vector3*>(mono::object_unbox(position_box));
+		auto previous_box = call_impl(get_position, previous_parent);
+		if (!previous_box)
+			throw std::runtime_error("Missing previous food container position");
+		auto previous_position = *static_cast<Vector3*>(mono::object_unbox(previous_box));
+		Vector3 spacing{position.x - previous_position.x, position.y - previous_position.y, 0.f};
+		if (std::abs(spacing.x) + std::abs(spacing.y) < 0.01f)
+			throw std::runtime_error("Food containers have no spacing");
+		auto get_index = method_impl("Transform", "GetSiblingIndex", 0);
+		auto icon_index_box = call_impl(get_index, icon_transform);
+		if (!icon_index_box)
+			throw std::runtime_error("Missing food icon child index");
+		int icon_index = *static_cast<int*>(mono::object_unbox(icon_index_box));
+		auto time_index_box = call_impl(get_index, time_transform);
+		if (!time_index_box)
+			throw std::runtime_error("Missing food timer child index");
+		int time_index = *static_cast<int*>(mono::object_unbox(time_index_box));
+		auto get_component = mono::get_method_exact("Component", "GetComponent", {"System.Type"}, "UnityEngine.CoreModule", "UnityEngine");
+		for (int index = count; index < target; ++index)
+		{
+			float step = static_cast<float>(index - count + 1);
+			// Clone the shared frame once, then use its existing icon and timer children.
+			auto container = clone_impl(parent, {spacing.x * step, spacing.y * step, 0.f});
+			void* icon_args[] = {&icon_index};
+			void* time_args[] = {&time_index};
+			auto icon_child = call_impl(method_impl("Transform", "GetChild", 1), container, icon_args);
+			auto time_child = call_impl(method_impl("Transform", "GetChild", 1), container, time_args);
+			void* icon_type[] = {mono::reflection_type(mono::object_get_class(icon))};
+			auto cloned_icon = call_impl(get_component, icon_child, icon_type);
+			void* time_type[] = {mono::reflection_type(mono::object_get_class(timer))};
+			auto cloned_time = call_impl(get_component, time_child, time_type);
+			if (!cloned_icon || !cloned_time)
+				throw std::runtime_error("Cloned food container is incomplete");
+			mono::set_array_reference(arrays[1], index, cloned_icon);
+			mono::set_array_reference(arrays[2], index, cloned_time);
+		}
 		// No yielding: UpdateFood must never observe unequal lengths or incomplete slots.
 		for (size_t i = 0; i < arrays.size(); ++i)
 			mono::set_field_value(hud, m_fields[i], arrays[i]);
 		m_target = target;
+		LOG(INFO) << "[HUD] Food containers expanded to " << target << " slots; spacing=" << spacing.y;
 	}
 	void hud_manager::update_impl()
 	{
