@@ -45,6 +45,7 @@ namespace big
 		detour_hook::add<hooks::convert_thread_to_fiber>("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>());
 
 		add_mono_hook<hooks::is_teleportable>("Inventory::IsTeleportable", "Inventory", "IsTeleportable", 1, "assembly_valheim");
+		add_mono_hook<hooks::game_update>("Game::Update", "Game", "Update", 0, "assembly_valheim");
 		add_mono_hook<hooks::update>("Player::Update", "Player", "Update", 0, "assembly_valheim");
 		add_mono_hook<hooks::create_tomb_stone>("Player::CreateTombStone", "Player", "CreateTombStone", 0, "assembly_valheim");
 		add_mono_hook<hooks::is_debug_flying>("Player::IsDebugFlying", "Player", "IsDebugFlying", 0, "assembly_valheim");
@@ -100,6 +101,11 @@ namespace big
 		add_mono_hook<hooks::attack_modify_damage>("Attack::ModifyDamage", "Attack", "ModifyDamage", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_can_eat>("Player::CanEat", "Player", "CanEat", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_eat_food>("Player::EatFood", "Player", "EatFood", 1, "assembly_valheim");
+		if (auto bypass = mono::get_compile_method("PlayerProfile", "get_s_bypassCheatChecks", 0, "assembly_valheim"))
+			detour_hook::add<hooks::bypass_cheat_checks>("PlayerProfile::get_s_bypassCheatChecks", bypass);
+		if (auto any_cheated = mono::get_compile_method("Inventory", "AnyCheatedItem", 0, "assembly_valheim"))
+			detour_hook::add<hooks::inventory_any_cheated_item>("Inventory::AnyCheatedItem", any_cheated);
+		add_mono_hook<hooks::drop_invalid_items>("Humanoid::DropInvalidItems", "Humanoid", "DropInvalidItems", 0, "assembly_valheim");
 
 		g_hooking = this;
 	}

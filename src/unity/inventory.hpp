@@ -15,6 +15,7 @@ namespace big
 		void set_width(int width);
 		int get_height();
 		int get_width();
+		void sanitize_all();
 		MonoObject* get_object() const
 		{
 			return m_inventory;

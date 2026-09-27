@@ -4,6 +4,16 @@
 
 namespace big
 {
+	bool hooks::bypass_cheat_checks()
+	{
+		return true;
+	}
+
+	bool hooks::inventory_any_cheated_item(MonoObject* inventory)
+	{
+		return false;
+	}
+
 	MonoString* hooks::item_get_tooltip(MonoObject* item, int quality, bool crafting, float world_level, int stack_override, bool appending)
 	{
 		TRY_CLAUSE

@@ -198,4 +198,12 @@ namespace big
 
 		return *reinterpret_cast<bool*>(ret);
 	}
+	void item_drop::save()
+	{
+		static auto method = mono::get_method("ItemDrop", "Save", 0, "assembly_valheim");
+		if (method && obj)
+		{
+			mono::invoke_method(method, obj, nullptr);
+		}
+	}
 }

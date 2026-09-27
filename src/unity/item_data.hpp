@@ -25,6 +25,12 @@ namespace big
 		int get_variant();
 		void set_grid_pos(iVector2 pos);
 		iVector2 get_grid_pos();
+		void set_cheated(bool cheated);
+		bool get_cheated();
+		void set_crafter_id(int64_t crafter_id);
+		int64_t get_crafter_id();
+		void set_crafter_name(const std::string& name);
+		std::string get_crafter_name();
 
 		operator bool() const
 		{

@@ -87,6 +87,17 @@ namespace big
 	{
 		if (base_tools::filtering_stack && base_tools::protected_item(item))
 			return false;
-		return detour_base::get_original<inventory_add_stack_item>()(inventory, item);
+
+		if (item)
+		{
+			mono::set_field_value<"ItemDrop/ItemData", "m_cheated">(item, false);
+		}
+
+		auto ret = detour_base::get_original<inventory_add_stack_item>()(inventory, item);
+		if (item)
+		{
+			mono::set_field_value<"ItemDrop/ItemData", "m_cheated">(item, false);
+		}
+		return ret;
 	}
 }

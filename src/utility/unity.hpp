@@ -143,6 +143,14 @@ namespace big::unity
 
 	inline MonoObject* get_object_db()
 	{
+		static MonoMethod* get_inst = mono::get_method("ObjectDB", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
+			if (obj)
+				return obj;
+		}
+
 		MonoClass* klass = mono::get_class("ObjectDB", "assembly_valheim");
 		if (klass == nullptr)
 			return nullptr;
@@ -563,7 +571,7 @@ namespace big::unity
 
 	inline void teleport_to(Vector3 const& position, Vector4 const& rotation, bool distantTeleport)
 	{
-		static MonoObject* player = unity::get_local_player();
+		MonoObject* player = unity::get_local_player();
 
 		if (!player)
 			return;
@@ -1173,6 +1181,16 @@ namespace big::unity
 		return nullptr;
 	}
 
+	inline bool is_in_world()
+	{
+		return get_game() != nullptr;
+	}
+
+	inline bool is_in_game()
+	{
+		return get_game() != nullptr && get_local_player() != nullptr;
+	}
+
 	inline void explore_all_map()
 	{
 		MonoObject* minimap = get_minimap();
@@ -1263,5 +1281,56 @@ namespace big::unity
 			discover_closest_location(entry.location_name, entry.pin_name, entry.pin_type, false, false);
 		}
 		LOG(INFO) << "Discover bosses and traders requested";
+	}
+
+	inline void sanitize_local_player_inventory()
+	{
+		auto player_obj = get_local_player();
+		if (!player_obj)
+			return;
+
+		auto inv_class = mono::get_class("Inventory", "assembly_valheim");
+		auto player_class = mono::get_class("Player", "assembly_valheim");
+		if (!inv_class || !player_class)
+			return;
+
+		auto inv_field = mono::get_field(player_class, "m_inventory");
+		if (!inv_field)
+			return;
+
+		MonoObject* inv_obj = nullptr;
+		mono::get_field_value(player_obj, inv_field, &inv_obj);
+		if (!inv_obj)
+			return;
+
+		static auto get_all_method = mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim");
+		if (!get_all_method)
+			return;
+
+		auto all_items = mono::invoke_method(get_all_method, inv_obj, nullptr);
+		if (!all_items)
+			return;
+
+		auto items_vec = list_to_vector(all_items);
+		int max_y = 3;
+		for (auto* itm_obj : items_vec)
+		{
+			if (!itm_obj)
+				continue;
+			bool cheated = mono::get_field_value<"ItemDrop/ItemData", "m_cheated", bool>(itm_obj);
+			if (cheated)
+			{
+				mono::set_field_value<"ItemDrop/ItemData", "m_cheated">(itm_obj, false);
+			}
+			auto pos = mono::get_field_value<"ItemDrop/ItemData", "m_gridPos", iVector2>(itm_obj);
+			if (pos.y > max_y)
+				max_y = pos.y;
+		}
+
+		int current_height = mono::get_field_value<"Inventory", "m_height", int>(inv_obj);
+		if (current_height < max_y + 1)
+		{
+			mono::set_field_value<"Inventory", "m_height">(inv_obj, max_y + 1);
+		}
 	}
 }

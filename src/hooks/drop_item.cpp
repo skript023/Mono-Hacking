@@ -13,6 +13,7 @@ namespace big
 		TRY_CLAUSE
 		{
 			item_data itm(item);
+			itm.set_cheated(false);
 
 			auto ret = detour_base::get_original<hooks::drop_item>()(
 			    item,
@@ -20,15 +21,28 @@ namespace big
 			    position,
 			    rotation);
 
-			item_drop dropped(ret);
-
-			if (_enable_override_drop.get_state())
+			if (ret)
 			{
-				dropped.set_stack(_drop_amount.get_state());
+				item_drop dropped(ret);
+				auto data = dropped.get_data();
+				data.set_cheated(false);
+
+				if (_enable_override_drop.get_state())
+				{
+					dropped.set_stack(_drop_amount.get_state());
+				}
+
+				dropped.save();
 			}
 
 			return ret;
 		}
 		EXCEPT_CLAUSE
+	}
+
+	void hooks::drop_invalid_items(MonoObject* humanoid)
+	{
+		// Block Valheim from dropping out-of-bounds inventory items into the world on logout or size reduction
+		return;
 	}
 }

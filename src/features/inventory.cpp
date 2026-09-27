@@ -40,6 +40,47 @@ namespace big::features
 		mono::invoke(set_size_method, gui_inst, rows);
 	}
 
+	static int get_max_occupied_y(MonoObject* inv_obj)
+	{
+		if (!inv_obj)
+			return 3;
+
+		int max_y = 3;
+		static auto get_all_method = mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim");
+		if (get_all_method)
+		{
+			auto all_items = mono::invoke_method(get_all_method, inv_obj, nullptr);
+			if (all_items)
+			{
+				auto vec = unity::list_to_vector(all_items);
+				for (auto* itm : vec)
+				{
+					if (!itm)
+						continue;
+					auto pos = mono::get_field_value<"ItemDrop/ItemData", "m_gridPos", iVector2>(itm);
+					if (pos.y > max_y)
+						max_y = pos.y;
+				}
+			}
+		}
+		return max_y;
+	}
+
+	static void sync_player_invrows(MonoObject* player_obj, int rows)
+	{
+		if (!player_obj)
+			return;
+
+		static auto add_unique_method = mono::get_method("Player", "AddUniqueKeyValue", 2, "assembly_valheim");
+		if (add_unique_method)
+		{
+			auto ms_key = mono::to_mono_string("invrows");
+			auto ms_val = mono::to_mono_string(std::to_string(std::clamp(rows, 4, 9)));
+			void* uargs[2] = {ms_key, ms_val};
+			mono::invoke_method(add_unique_method, player_obj, uargs);
+		}
+	}
+
 	class inventory_size : public looped_command
 	{
 		using looped_command::looped_command;
@@ -57,10 +98,14 @@ namespace big::features
 			int height = _inventory_height.get_state();
 			int width = _inventory_width.get_state();
 
-			inventory.set_height(height);
+			int max_y = get_max_occupied_y(inventory.get_object());
+			int target_height = std::max(height, max_y + 1);
+
+			inventory.set_height(target_height);
 			inventory.set_width(width);
 
-			update_gui_size(height);
+			update_gui_size(target_height);
+			sync_player_invrows(player.get_object(), target_height);
 		}
 
 		virtual void on_disable() override
@@ -71,12 +116,15 @@ namespace big::features
 				auto inventory = player.get_inventory();
 				if (inventory.get_object())
 				{
-					inventory.set_height(4);
+					int max_y = get_max_occupied_y(inventory.get_object());
+					int safe_height = std::max(4, max_y + 1);
+
+					inventory.set_height(safe_height);
 					inventory.set_width(8);
+					update_gui_size(safe_height);
+					sync_player_invrows(player.get_object(), safe_height);
 				}
 			}
-
-			update_gui_size(4);
 		}
 	};
 

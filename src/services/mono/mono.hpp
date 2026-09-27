@@ -36,6 +36,7 @@ namespace big
 		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
 		MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
 		MonoMethod* get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const;
+		uint32_t get_param_count_impl(MonoMethod* method) const;
 		MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
 		MonoClass* get_class_from_method_impl(MonoMethod* method) const;
 		MonoClassField* get_field_impl(const char* className, const char* fieldName, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
@@ -82,6 +83,10 @@ namespace big
 		{
 			return get_instance().invoke_method_impl(method, obj, params, exception);
 		};
+		static uint32_t get_param_count(MonoMethod* method)
+		{
+			return get_instance().get_param_count_impl(method);
+		}
 		template<typename Return, typename... Args>
 		static Return invoke_compiled_method(void* compiledMethod, Args... args)
 		{

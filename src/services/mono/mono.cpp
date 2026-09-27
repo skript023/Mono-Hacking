@@ -273,6 +273,15 @@ namespace big
 		return nullptr;
 	}
 
+	uint32_t mono::get_param_count_impl(MonoMethod* method) const
+	{
+		if (!method || !mono_method_signature || !mono_signature_get_param_count)
+			return 0;
+
+		auto sig = mono_method_signature(method);
+		return sig ? mono_signature_get_param_count(sig) : 0;
+	}
+
 	MonoClass* mono::get_class_impl(const char* className, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoImage* image = get_image_impl(assemblyName);

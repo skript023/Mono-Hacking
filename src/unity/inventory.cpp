@@ -1,4 +1,5 @@
 #include "inventory.hpp"
+#include "utility/unity.hpp"
 
 namespace big
 {
@@ -31,5 +32,30 @@ namespace big
 	int inventory::get_width()
 	{
 		return mono::get_field_value<"Inventory", "m_width", int>(m_inventory);
+	}
+	void inventory::sanitize_all()
+	{
+		if (!m_inventory)
+			return;
+
+		static auto get_all_method = mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim");
+		if (!get_all_method)
+			return;
+
+		auto all_items = mono::invoke_method(get_all_method, m_inventory, nullptr);
+		if (!all_items)
+			return;
+
+		auto items_vec = unity::list_to_vector(all_items);
+		for (auto* itm_obj : items_vec)
+		{
+			if (!itm_obj)
+				continue;
+			bool cheated = mono::get_field_value<"ItemDrop/ItemData", "m_cheated", bool>(itm_obj);
+			if (cheated)
+			{
+				mono::set_field_value<"ItemDrop/ItemData", "m_cheated">(itm_obj, false);
+			}
+		}
 	}
 }

@@ -83,4 +83,45 @@ namespace big
 	{
 		return mono::get_field_value<"ItemDrop/ItemData", "m_gridPos", iVector2>(obj);
 	}
+	void item_data::set_cheated(bool cheated)
+	{
+		if (obj)
+		{
+			mono::set_field_value<"ItemDrop/ItemData", "m_cheated">(obj, cheated);
+		}
+	}
+	bool item_data::get_cheated()
+	{
+		if (!obj)
+			return false;
+		return mono::get_field_value<"ItemDrop/ItemData", "m_cheated", bool>(obj);
+	}
+	void item_data::set_crafter_id(int64_t crafter_id)
+	{
+		if (obj)
+		{
+			mono::set_field_value<"ItemDrop/ItemData", "m_crafterID">(obj, crafter_id);
+		}
+	}
+	int64_t item_data::get_crafter_id()
+	{
+		if (!obj)
+			return 0;
+		return mono::get_field_value<"ItemDrop/ItemData", "m_crafterID", int64_t>(obj);
+	}
+	void item_data::set_crafter_name(const std::string& name)
+	{
+		if (obj)
+		{
+			auto ms = mono::to_mono_string(name);
+			mono::set_field_value<"ItemDrop/ItemData", "m_crafterName">(obj, ms);
+		}
+	}
+	std::string item_data::get_crafter_name()
+	{
+		if (!obj)
+			return "";
+		auto ms = mono::get_field_value<"ItemDrop/ItemData", "m_crafterName", MonoString*>(obj);
+		return ms ? mono::from_mono_string(ms) : "";
+	}
 }

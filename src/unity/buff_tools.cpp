@@ -77,32 +77,56 @@ namespace big
 			return mono::invoke_method(method, player, nullptr);
 		}
 
+		MonoMethod* get_add_status_effect_method(bool by_prefab)
+		{
+			if (by_prefab)
+			{
+				return mono::get_method_overload("SEMan", "AddStatusEffect", -1, nullptr, "StatusEffect", "assembly_valheim");
+			}
+			else
+			{
+				auto m = mono::get_method_overload("SEMan", "AddStatusEffect", -1, nullptr, "Int32", "assembly_valheim");
+				if (!m)
+					m = mono::get_method_overload("SEMan", "AddStatusEffect", -1, nullptr, "System.Int32", "assembly_valheim");
+				return m;
+			}
+		}
+
+		MonoObject* invoke_add_status_effect(MonoObject* seman, MonoMethod* method, void* first_arg, int level, float skill)
+		{
+			if (!seman || !method)
+				return nullptr;
+
+			uint32_t param_count = mono::get_param_count(method);
+			bool reset_time = true;
+			short variant = -1;
+
+			if (param_count >= 5)
+			{
+				void* args[] = {first_arg, &reset_time, &level, &skill, &variant};
+				return mono::invoke_method(method, seman, args);
+			}
+			else
+			{
+				void* args[] = {first_arg, &reset_time, &level, &skill};
+				return mono::invoke_method(method, seman, args);
+			}
+		}
+
 		MonoObject* add_effect(MonoObject* seman, int hash, int level, float skill)
 		{
-			static thread_local MonoMethod* method = nullptr;
-			if (!method)
-				method = mono::get_method_overload("SEMan", "AddStatusEffect", 4, "StatusEffect", "Int32", "assembly_valheim");
-			if (!method)
-				method = mono::get_method_overload("SEMan", "AddStatusEffect", 4, "StatusEffect", "System.Int32", "assembly_valheim");
-			if (!method)
-				method = mono::get_method("SEMan", "AddStatusEffect", 4, "assembly_valheim");
+			static auto method = get_add_status_effect_method(false);
 			if (!method)
 			{
-				notification::warning("Buff Manager", "Compatible AddStatusEffect method not found.");
+				notification::warning("Buff Manager", "AddStatusEffect method not found.");
 				return nullptr;
 			}
-			bool reset_time = true;
-			void* args[] = {&hash, &reset_time, &level, &skill};
-			auto effect = mono::invoke_method(method, seman, args);
+			auto effect = invoke_add_status_effect(seman, method, &hash, level, skill);
 			if (!effect)
 			{
 				// If status effect was already active, Valheim's AddStatusEffect resets time and returns null.
 				// Query GetStatusEffect to verify if the effect is currently active.
-				static thread_local MonoMethod* get_se_method = nullptr;
-				if (!get_se_method)
-					get_se_method = mono::get_method_overload("SEMan", "GetStatusEffect", 1, "StatusEffect", "Int32", "assembly_valheim");
-				if (!get_se_method)
-					get_se_method = mono::get_method("SEMan", "GetStatusEffect", 1, "assembly_valheim");
+				static auto get_se_method = mono::get_method("SEMan", "GetStatusEffect", 1, "assembly_valheim");
 				if (get_se_method)
 				{
 					void* get_args[] = {&hash};
@@ -131,6 +155,7 @@ namespace big
 			if (!se_list)
 				return nullptr;
 
+			static auto hash_method = mono::get_method("StatusEffect", "NameHash", 0, "assembly_valheim");
 			auto effects = unity::list_to_vector(se_list);
 			for (auto* se : effects)
 			{
@@ -142,7 +167,6 @@ namespace big
 				const char* name = mono::class_get_name(se_klass);
 				if (name && std::strcmp(name, "SE_Shield") == 0)
 				{
-					auto hash_method = mono::class_get_method_from_name(se_klass, "NameHash", 0);
 					if (hash_method)
 					{
 						auto ret = mono::invoke_method(hash_method, se, nullptr);
@@ -291,17 +315,21 @@ namespace big
 		{
 			if (shield_prefab)
 			{
-				static thread_local MonoMethod* add_se_method = nullptr;
-				if (!add_se_method)
-					add_se_method = mono::get_method_overload("SEMan", "AddStatusEffect", 4, "StatusEffect", "StatusEffect", "assembly_valheim");
+				static auto add_se_method = get_add_status_effect_method(true);
 				if (add_se_method)
 				{
-					bool reset_time = true;
-					int item_level = 1;
-					float skill_level = 100.f;
-					void* args[] = {shield_prefab, &reset_time, &item_level, &skill_level};
-					active_shield = mono::invoke_method(add_se_method, seman, args);
+					active_shield = invoke_add_status_effect(seman, add_se_method, shield_prefab, 1, 100.f);
 				}
+			}
+
+			if (!active_shield && shield_hash != 0)
+			{
+				active_shield = add_effect(seman, shield_hash, 1, 100.f);
+			}
+
+			if (!active_shield)
+			{
+				active_shield = get_active_shield(seman, shield_hash);
 			}
 
 			if (!active_shield)
@@ -310,7 +338,8 @@ namespace big
 				    shield_hash,
 				    get_stable_hash("Staff_shield"),
 				    get_stable_hash("SE_Shield"),
-				    get_stable_hash("StaffShield")};
+				    get_stable_hash("StaffShield"),
+				    get_stable_hash("se_shield")};
 
 				for (int h : candidate_hashes)
 				{
@@ -345,9 +374,13 @@ namespace big
 		auto se_klass = mono::object_get_class(active_shield);
 		if (se_klass)
 		{
-			auto absorb_field = mono::get_field(se_klass, "m_totalAbsorbDamage");
+			auto absorb_field = mono::get_field(se_klass, "m_absorbDamage");
 			if (absorb_field)
 				mono::set_field_value(active_shield, absorb_field, &hp);
+
+			auto total_absorb_field = mono::get_field(se_klass, "m_totalAbsorbDamage");
+			if (total_absorb_field)
+				mono::set_field_value(active_shield, total_absorb_field, &hp);
 
 			auto damage_field = mono::get_field(se_klass, "m_damage");
 			if (damage_field)

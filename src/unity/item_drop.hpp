@@ -24,6 +24,7 @@ namespace big
 		bool can_eat();
 		std::string get_hover_name();
 		std::string get_hover_text();
+		void save();
 
 		operator bool() const
 		{

@@ -35,6 +35,7 @@ namespace big
 		static void update_water(MonoObject* _this, float dt);
 		static bool is_debug_flying(MonoObject* player);
 		static void update_guardian_power(MonoObject* player, float dt);
+		static void game_update(MonoObject* game);
 		static void update(MonoObject* player);
 		static void set_alerted(MonoObject* player, bool alerted);
 		static bool is_wind_controll_active(MonoObject* player);
@@ -79,6 +80,9 @@ namespace big
 		static void attack_modify_damage(MonoObject* attack, MonoObject* hit_data, float damage_factor);
 		static bool player_can_eat(MonoObject* player, MonoObject* item, bool show_messages);
 		static bool player_eat_food(MonoObject* player, MonoObject* item);
+		static bool bypass_cheat_checks();
+		static bool inventory_any_cheated_item(MonoObject* inventory);
+		static void drop_invalid_items(MonoObject* humanoid);
 	};
 
 	struct minhook_keepalive

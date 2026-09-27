@@ -1,6 +1,7 @@
 #include "item_spawner.hpp"
 #include "item_icons.hpp"
 #include "unity/item_data.hpp"
+#include "unity/item_drop.hpp"
 #include "unity/localization.hpp"
 #include "unity/player.hpp"
 #include "utility/unity.hpp"
@@ -411,15 +412,16 @@ namespace big
 
 			int clamped_amount = std::max(1, amount);
 			int clamped_quality = std::max(1, quality);
+			int64_t crafter_id = p.get_player_id();
+			std::string crafter_name = p.get_player_name();
+			auto ms_crafter = mono::to_mono_string(crafter_name);
 
 			// 1. Prefer native Valheim Inventory::AddItem(string name, int stack, int quality, int variant, long crafterID, string crafterName, bool cheated, bool pickedUp)
 			static auto add_item_8_args = mono::get_method("Inventory", "AddItem", 8, "assembly_valheim");
 			if (add_item_8_args)
 			{
 				auto ms_name = mono::to_mono_string(prefab_name);
-				auto ms_crafter = mono::to_mono_string("");
 				int variant = 0;
-				int64_t crafter_id = 0;
 				bool cheated = false;
 				bool picked_up = true;
 
@@ -436,6 +438,10 @@ namespace big
 				auto result = mono::invoke_method(add_item_8_args, inv.get_object(), args);
 				if (result)
 				{
+					item_data ret_data(result);
+					ret_data.set_cheated(false);
+					ret_data.set_crafter_id(crafter_id);
+					ret_data.set_crafter_name(crafter_name);
 					notification::success("Item Spawner", std::format("Added {}x {} (Q{}) to inventory!", clamped_amount, prefab_name, clamped_quality));
 					return;
 				}
@@ -495,34 +501,34 @@ namespace big
 				return;
 			}
 
-			// Only if clamped_quality > 1, update quality on the target added item only!
-			if (clamped_quality > 1)
+			// Update quality, durability, crafter, and clear cheated flag on target added item
+			auto inv_class = mono::get_class("Inventory", "assembly_valheim");
+			auto get_all_method = inv_class ? mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim") : nullptr;
+			if (get_all_method)
 			{
-				auto inv_class = mono::get_class("Inventory", "assembly_valheim");
-				auto get_all_method = inv_class ? mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim") : nullptr;
-				if (get_all_method)
+				auto all_items = mono::invoke_method(get_all_method, inv.get_object(), nullptr);
+				auto vec_items = unity::list_to_vector(all_items);
+				for (auto it = vec_items.rbegin(); it != vec_items.rend(); ++it)
 				{
-					auto all_items = mono::invoke_method(get_all_method, inv.get_object(), nullptr);
-					auto vec_items = unity::list_to_vector(all_items);
-					for (auto it = vec_items.rbegin(); it != vec_items.rend(); ++it)
-					{
-						if (!*it)
-							continue;
-						item_data idata(*it);
-						auto shared_obj = mono::get_field_value<"ItemDrop/ItemData", "m_shared", MonoObject*>(*it);
-						if (!shared_obj)
-							continue;
+					if (!*it)
+						continue;
+					item_data idata(*it);
+					auto shared_obj = mono::get_field_value<"ItemDrop/ItemData", "m_shared", MonoObject*>(*it);
+					if (!shared_obj)
+						continue;
 
-						auto drop_prefab = mono::get_field_value<"ItemDrop/ItemData", "m_dropPrefab", MonoObject*>(*it);
-						std::string drop_name = drop_prefab ? unity::get_name(drop_prefab) : "";
-						if (drop_name == prefab_name || (drop_name.empty() && idata.get_quality() == 1))
-						{
-							int max_q = mono::get_field_value<"ItemDrop/ItemData/SharedData", "m_maxQuality", int>(shared_obj);
-							int target_q = (max_q > 1) ? std::min(clamped_quality, max_q) : 1;
-							idata.set_quality(target_q);
-							idata.set_durability(idata.get_max_durability());
-							break;
-						}
+					auto drop_prefab = mono::get_field_value<"ItemDrop/ItemData", "m_dropPrefab", MonoObject*>(*it);
+					std::string drop_name = drop_prefab ? unity::get_name(drop_prefab) : "";
+					if (drop_name == prefab_name || (drop_name.empty() && idata.get_quality() == 1))
+					{
+						int max_q = mono::get_field_value<"ItemDrop/ItemData/SharedData", "m_maxQuality", int>(shared_obj);
+						int target_q = (max_q > 1) ? std::min(clamped_quality, max_q) : 1;
+						idata.set_quality(target_q);
+						idata.set_durability(idata.get_max_durability());
+						idata.set_cheated(false);
+						idata.set_crafter_id(crafter_id);
+						idata.set_crafter_name(crafter_name);
+						break;
 					}
 				}
 			}
@@ -561,6 +567,7 @@ namespace big
 				return;
 			}
 
+			player p(player_obj);
 			auto znet = unity::get_znet_scene();
 			if (!znet)
 			{
@@ -593,21 +600,79 @@ namespace big
 			if (!instantiate_method)
 				return;
 
-			int spawn_count = std::clamp(amount, 1, 20);
-			for (int i = 0; i < spawn_count; ++i)
+			static auto comp_method = mono::get_method_overload("GameObject", "GetComponent", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+			if (!comp_method)
+				comp_method = mono::get_method_overload("Component", "GetComponent", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+
+			auto item_drop_class = mono::get_class("ItemDrop", "assembly_valheim");
+			auto mono_item_drop_type = item_drop_class ? mono::reflection_type(item_drop_class) : nullptr;
+
+			int64_t crafter_id = p.get_player_id();
+			std::string crafter_name = p.get_player_name();
+
+			bool is_item = false;
+			if (comp_method && mono_item_drop_type)
 			{
-				Vector3 offset_pos = spawn_pos + Vector3{(i % 5) * 0.8f, 0.f, (i / 5) * 0.8f};
-				void* inst_args[3] = {prefab, &offset_pos, &spawn_rot};
-				auto spawned = mono::invoke_method(instantiate_method, nullptr, inst_args);
-				if (spawned && level > 1)
-				{
-					character ch(spawned);
-					if (ch)
-						ch.set_level(level);
-				}
+				void* check_args[1] = {mono_item_drop_type};
+				is_item = (mono::invoke_method(comp_method, prefab, check_args) != nullptr);
 			}
 
-			notification::success("World Spawner", std::format("Spawned {}x {} at your position!", spawn_count, prefab_name));
+			if (is_item)
+			{
+				void* inst_args[3] = {prefab, &spawn_pos, &spawn_rot};
+				auto spawned = mono::invoke_method(instantiate_method, nullptr, inst_args);
+				if (spawned)
+				{
+					void* cargs[1] = {mono_item_drop_type};
+					auto drop_comp = mono::invoke_method(comp_method, spawned, cargs);
+					if (drop_comp)
+					{
+						item_drop idrop(drop_comp);
+						auto idata = idrop.get_data();
+						if (idata.get_object())
+						{
+							auto shared_obj = mono::get_field_value<"ItemDrop/ItemData", "m_shared", MonoObject*>(idata.get_object());
+							int max_stack = 1;
+							int max_quality = 1;
+							if (shared_obj)
+							{
+								max_stack = mono::get_field_value<"ItemDrop/ItemData/SharedData", "m_maxStackSize", int>(shared_obj);
+								max_quality = mono::get_field_value<"ItemDrop/ItemData/SharedData", "m_maxQuality", int>(shared_obj);
+							}
+
+							int target_stack = (max_stack > 1) ? std::clamp(amount, 1, max_stack) : 1;
+							int target_quality = (max_quality > 1) ? std::clamp(level, 1, max_quality) : 1;
+
+							idata.set_stack(target_stack);
+							idata.set_quality(target_quality);
+							idata.set_durability(idata.get_max_durability());
+							idata.set_cheated(false);
+							idata.set_crafter_id(crafter_id);
+							idata.set_crafter_name(crafter_name);
+						}
+
+						idrop.save();
+					}
+				}
+				notification::success("World Spawner", std::format("Spawned {}x {} (Q{}) clean in world!", amount, prefab_name, level));
+			}
+			else
+			{
+				int spawn_count = std::clamp(amount, 1, 20);
+				for (int i = 0; i < spawn_count; ++i)
+				{
+					Vector3 offset_pos = spawn_pos + Vector3{(i % 5) * 0.8f, 0.f, (i / 5) * 0.8f};
+					void* inst_args[3] = {prefab, &offset_pos, &spawn_rot};
+					auto spawned = mono::invoke_method(instantiate_method, nullptr, inst_args);
+					if (spawned && level > 1)
+					{
+						character ch(spawned);
+						if (ch)
+							ch.set_level(level);
+					}
+				}
+				notification::success("World Spawner", std::format("Spawned {}x {} at your position!", spawn_count, prefab_name));
+			}
 		}
 		EXCEPT_CLAUSE
 	}
