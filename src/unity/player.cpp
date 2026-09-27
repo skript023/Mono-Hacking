@@ -281,7 +281,7 @@ namespace big
 		return mono::list<food>(result);
 	}
 
-	mono_array_view<player> player::get_all_players()
+	mono_array_view<player> player::get_all_players_impl()
 	{
 		static MonoMethod* method = mono::get_method("Player", "GetAllPlayers", 0, "assembly_valheim");
 
@@ -299,7 +299,7 @@ namespace big
 		return mono::list<player>(result);
 	}
 
-	mono_array_view<player> player::get_all_splayers()
+	mono_array_view<player> player::get_all_splayers_impl()
 	{
 		auto result = mono::get_static_field_value<"Player", "s_players", MonoObject*>();
 #ifdef _DEBUG

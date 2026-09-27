@@ -62,5 +62,13 @@ namespace big
 		void apply_eitr_shield_impl(float hp);
 		void clear_all_debuffs_impl(bool notify);
 		void remove_status_effect_impl(const std::string& name);
+		int get_stable_hash_impl(const std::string& name);
+		MonoObject* get_seman_impl();
+		MonoMethod* get_add_status_effect_method_impl(bool by_prefab);
+		MonoObject* invoke_add_status_effect_impl(MonoObject* seman, MonoMethod* method, void* first_arg, int level, float skill);
+		MonoObject* add_effect_impl(MonoObject* seman, int hash, int level, float skill);
+		MonoObject* find_shield_in_object_db_impl(int& out_hash);
+		MonoObject* get_active_shield_impl(MonoObject* seman, int known_hash = 0);
+		MonoMethod* get_remove_effect_method_impl();
 	};
 }

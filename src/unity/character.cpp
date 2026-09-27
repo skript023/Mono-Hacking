@@ -342,7 +342,7 @@ namespace big
 
 		return *reinterpret_cast<Vector3*>(mono::object_unbox(obj));
 	}
-	mono_array_view<character> character::get_all_characters()
+	mono_array_view<character> character::get_all_characters_impl()
 	{
 		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
 
@@ -359,7 +359,7 @@ namespace big
 #endif
 		return mono::list<character>(result);
 	}
-	mono_array_view<character> character::get_all_scharacters()
+	mono_array_view<character> character::get_all_scharacters_impl()
 	{
 		auto result = mono::get_static_field_value<"Character", "s_characters", MonoObject*>();
 #ifdef _DEBUG

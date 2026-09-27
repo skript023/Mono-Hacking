@@ -32,207 +32,205 @@ namespace big
 		    "Encumbered",
 		    "SoftDeath"};
 
-		int get_stable_hash(const std::string& name)
+	}
+
+	int buff_tools::get_stable_hash_impl(const std::string& name)
+	{
+		static thread_local MonoMethod* method = nullptr;
+		if (!method)
+			method = mono::get_method("StringExtensionMethods", "GetStableHashCode", 1, "assembly_utils");
+		if (method)
 		{
-			static thread_local MonoMethod* method = nullptr;
-			if (!method)
-				method = mono::get_method("StringExtensionMethods", "GetStableHashCode", 1, "assembly_utils");
-			if (method)
+			auto ms = mono::to_mono_string(name);
+			void* args[1] = {ms};
+			auto ret = mono::invoke_method(method, nullptr, args);
+			if (ret)
 			{
-				auto ms = mono::to_mono_string(name);
-				void* args[1] = {ms};
-				auto ret = mono::invoke_method(method, nullptr, args);
-				if (ret)
-				{
-					auto unboxed = mono::object_unbox(ret);
-					if (unboxed)
-						return *reinterpret_cast<int*>(unboxed);
-				}
-			}
-
-			// Fallback djb2 stable hash
-			uint32_t h1 = 5381, h2 = h1;
-			for (size_t i = 0; i < name.length() && name[i] != 0; i += 2)
-			{
-				h1 = ((h1 << 5) + h1) ^ static_cast<int>(name[i]);
-				if (i == name.length() - 1 || name[i + 1] == 0)
-					break;
-				h2 = ((h2 << 5) + h2) ^ static_cast<int>(name[i + 1]);
-			}
-			return static_cast<int>(h1 + h2 * 1566083941u);
-		}
-
-		MonoObject* get_seman()
-		{
-			auto player = unity::get_local_player();
-			if (!player)
-				return nullptr;
-
-			static thread_local MonoMethod* method = nullptr;
-			if (!method)
-				method = mono::get_method("Character", "GetSEMan", 0, "assembly_valheim");
-			if (!method)
-				return nullptr;
-
-			return mono::invoke_method(method, player, nullptr);
-		}
-
-		MonoMethod* get_add_status_effect_method(bool by_prefab)
-		{
-			if (by_prefab)
-			{
-				return mono::get_method_overload("SEMan", "AddStatusEffect", -1, nullptr, "StatusEffect", "assembly_valheim");
-			}
-			else
-			{
-				auto m = mono::get_method_overload("SEMan", "AddStatusEffect", -1, nullptr, "Int32", "assembly_valheim");
-				if (!m)
-					m = mono::get_method_overload("SEMan", "AddStatusEffect", -1, nullptr, "System.Int32", "assembly_valheim");
-				return m;
+				auto unboxed = mono::object_unbox(ret);
+				if (unboxed)
+					return *reinterpret_cast<int*>(unboxed);
 			}
 		}
 
-		MonoObject* invoke_add_status_effect(MonoObject* seman, MonoMethod* method, void* first_arg, int level, float skill)
+		// Fallback djb2 stable hash
+		uint32_t h1 = 5381, h2 = h1;
+		for (size_t i = 0; i < name.length() && name[i] != 0; i += 2)
 		{
-			if (!seman || !method)
-				return nullptr;
-
-			uint32_t param_count = mono::get_param_count(method);
-			bool reset_time = true;
-			short variant = -1;
-
-			if (param_count >= 5)
-			{
-				void* args[] = {first_arg, &reset_time, &level, &skill, &variant};
-				return mono::invoke_method(method, seman, args);
-			}
-			else
-			{
-				void* args[] = {first_arg, &reset_time, &level, &skill};
-				return mono::invoke_method(method, seman, args);
-			}
+			h1 = ((h1 << 5) + h1) ^ static_cast<int>(name[i]);
+			if (i == name.length() - 1 || name[i + 1] == 0)
+				break;
+			h2 = ((h2 << 5) + h2) ^ static_cast<int>(name[i + 1]);
 		}
+		return static_cast<int>(h1 + h2 * 1566083941u);
+	}
 
-		MonoObject* add_effect(MonoObject* seman, int hash, int level, float skill)
+	MonoObject* buff_tools::get_seman_impl()
+	{
+		auto player = unity::get_local_player();
+		if (!player)
+			return nullptr;
+
+		static thread_local MonoMethod* method = nullptr;
+		if (!method)
+			method = mono::get_method("Character", "GetSEMan", 0, "assembly_valheim");
+		if (!method)
+			return nullptr;
+
+		return mono::invoke_method(method, player, nullptr);
+	}
+
+	MonoMethod* buff_tools::get_add_status_effect_method_impl(bool by_prefab)
+	{
+		const char* first_type = by_prefab ? "StatusEffect" : "System.Int32";
+		auto method = mono::get_method_exact("SEMan", "AddStatusEffect", {first_type, "System.Boolean", "System.Int32", "System.Single", "System.Int16"}, "assembly_valheim");
+		if (!method)
+			method = mono::get_method_exact("SEMan", "AddStatusEffect", {first_type, "System.Boolean", "System.Int32", "System.Single"}, "assembly_valheim");
+		return method;
+	}
+
+	MonoObject* buff_tools::invoke_add_status_effect_impl(MonoObject* seman, MonoMethod* method, void* first_arg, int level, float skill)
+	{
+		if (!seman || !method)
+			return nullptr;
+
+		uint32_t param_count = mono::get_param_count(method);
+		bool reset_time = true;
+		short variant = -1;
+
+		if (param_count == 5)
 		{
-			static auto method = get_add_status_effect_method(false);
-			if (!method)
-			{
-				notification::warning("Buff Manager", "AddStatusEffect method not found.");
-				return nullptr;
-			}
-			auto effect = invoke_add_status_effect(seman, method, &hash, level, skill);
-			if (!effect)
-			{
-				// If status effect was already active, Valheim's AddStatusEffect resets time and returns null.
-				// Query GetStatusEffect to verify if the effect is currently active.
-				static auto get_se_method = mono::get_method("SEMan", "GetStatusEffect", 1, "assembly_valheim");
-				if (get_se_method)
-				{
-					void* get_args[] = {&hash};
-					effect = mono::invoke_method(get_se_method, seman, get_args);
-				}
-			}
-			return effect;
+			void* args[] = {first_arg, &reset_time, &level, &skill, &variant};
+			return mono::invoke_method(method, seman, args);
 		}
-
-		MonoObject* find_shield_in_object_db(int& out_hash)
+		else if (param_count == 4)
 		{
-			auto obj_db = unity::get_object_db();
-			if (!obj_db)
-				return nullptr;
+			void* args[] = {first_arg, &reset_time, &level, &skill};
+			return mono::invoke_method(method, seman, args);
+		}
+		return nullptr;
+	}
 
-			auto db_klass = mono::object_get_class(obj_db);
-			if (!db_klass)
-				return nullptr;
-
-			auto se_list_field = mono::get_field(db_klass, "m_StatusEffects");
-			if (!se_list_field)
-				return nullptr;
-
-			MonoObject* se_list = nullptr;
-			mono::get_field_value(obj_db, se_list_field, &se_list);
-			if (!se_list)
-				return nullptr;
-
-			static auto hash_method = mono::get_method("StatusEffect", "NameHash", 0, "assembly_valheim");
-			auto effects = unity::list_to_vector(se_list);
-			for (auto* se : effects)
-			{
-				if (!se)
-					continue;
-				auto se_klass = mono::object_get_class(se);
-				if (!se_klass)
-					continue;
-				const char* name = mono::class_get_name(se_klass);
-				if (name && std::strcmp(name, "SE_Shield") == 0)
-				{
-					if (hash_method)
-					{
-						auto ret = mono::invoke_method(hash_method, se, nullptr);
-						if (ret)
-						{
-							auto unboxed = mono::object_unbox(ret);
-							if (unboxed)
-								out_hash = *reinterpret_cast<int*>(unboxed);
-						}
-					}
-					return se;
-				}
-			}
+	MonoObject* buff_tools::add_effect_impl(MonoObject* seman, int hash, int level, float skill)
+	{
+		static thread_local MonoMethod* method = nullptr;
+		if (!method)
+			method = get_add_status_effect_method_impl(false);
+		if (!method)
+		{
+			notification::warning("Buff Manager", "AddStatusEffect method not found.");
 			return nullptr;
 		}
-
-		MonoObject* get_active_shield(MonoObject* seman, int known_hash = 0)
+		auto effect = invoke_add_status_effect_impl(seman, method, &hash, level, skill);
+		if (!effect)
 		{
-			if (known_hash != 0)
+			// If status effect was already active, Valheim's AddStatusEffect resets time and returns null.
+			// Query GetStatusEffect to verify if the effect is currently active.
+			static thread_local MonoMethod* get_se_method = nullptr;
+			if (!get_se_method)
+				get_se_method = mono::get_method_exact("SEMan", "GetStatusEffect", {"System.Int32"}, "assembly_valheim");
+			if (get_se_method)
 			{
-				static thread_local MonoMethod* get_se_method = nullptr;
-				if (!get_se_method)
-					get_se_method = mono::get_method_overload("SEMan", "GetStatusEffect", 1, "StatusEffect", "Int32", "assembly_valheim");
-				if (!get_se_method)
-					get_se_method = mono::get_method("SEMan", "GetStatusEffect", 1, "assembly_valheim");
-				if (get_se_method)
-				{
-					void* args[] = {&known_hash};
-					auto res = mono::invoke_method(get_se_method, seman, args);
-					if (res)
-						return res;
-				}
+				void* get_args[] = {&hash};
+				effect = mono::invoke_method(get_se_method, seman, get_args);
 			}
+		}
+		return effect;
+	}
 
-			static thread_local MonoMethod* get_all_method = nullptr;
-			if (!get_all_method)
-				get_all_method = mono::get_method("SEMan", "GetStatusEffects", 0, "assembly_valheim");
-			if (get_all_method)
+	MonoObject* buff_tools::find_shield_in_object_db_impl(int& out_hash)
+	{
+		auto obj_db = unity::get_object_db();
+		if (!obj_db)
+			return nullptr;
+
+		auto db_klass = mono::object_get_class(obj_db);
+		if (!db_klass)
+			return nullptr;
+
+		auto se_list_field = mono::get_field(db_klass, "m_StatusEffects");
+		if (!se_list_field)
+			return nullptr;
+
+		MonoObject* se_list = nullptr;
+		mono::get_field_value(obj_db, se_list_field, &se_list);
+		if (!se_list)
+			return nullptr;
+
+		static auto hash_method = mono::get_method("StatusEffect", "NameHash", 0, "assembly_valheim");
+		auto effects = unity::list_to_vector(se_list);
+		for (auto* se : effects)
+		{
+			if (!se)
+				continue;
+			auto se_klass = mono::object_get_class(se);
+			if (!se_klass)
+				continue;
+			const char* name = mono::class_get_name(se_klass);
+			if (name && std::strcmp(name, "SE_Shield") == 0)
 			{
-				auto list_obj = mono::invoke_method(get_all_method, seman, nullptr);
-				if (list_obj)
+				if (hash_method)
 				{
-					auto active_effects = unity::list_to_vector(list_obj);
-					for (auto* se : active_effects)
+					auto ret = mono::invoke_method(hash_method, se, nullptr);
+					if (ret)
 					{
-						if (!se)
-							continue;
-						auto klass = mono::object_get_class(se);
-						if (!klass)
-							continue;
-						const char* name = mono::class_get_name(klass);
-						if (name && std::strcmp(name, "SE_Shield") == 0)
-							return se;
+						auto unboxed = mono::object_unbox(ret);
+						if (unboxed)
+							out_hash = *reinterpret_cast<int*>(unboxed);
 					}
 				}
+				return se;
 			}
-			return nullptr;
+		}
+		return nullptr;
+	}
+
+	MonoObject* buff_tools::get_active_shield_impl(MonoObject* seman, int known_hash)
+	{
+		if (known_hash != 0)
+		{
+			static thread_local MonoMethod* get_se_method = nullptr;
+			if (!get_se_method)
+				get_se_method = mono::get_method_exact("SEMan", "GetStatusEffect", {"System.Int32"}, "assembly_valheim");
+			if (get_se_method)
+			{
+				void* args[] = {&known_hash};
+				auto res = mono::invoke_method(get_se_method, seman, args);
+				if (res)
+					return res;
+			}
 		}
 
-		MonoMethod* get_remove_effect_method()
+		static thread_local MonoMethod* get_all_method = nullptr;
+		if (!get_all_method)
+			get_all_method = mono::get_method("SEMan", "GetStatusEffects", 0, "assembly_valheim");
+		if (get_all_method)
 		{
-			static thread_local MonoMethod* method = nullptr;
-			if (!method)
-				method = mono::get_method_overload("SEMan", "RemoveStatusEffect", 2, "System.Boolean", "System.Int32", "assembly_valheim");
-			return method;
+			auto list_obj = mono::invoke_method(get_all_method, seman, nullptr);
+			if (list_obj)
+			{
+				auto active_effects = unity::list_to_vector(list_obj);
+				for (auto* se : active_effects)
+				{
+					if (!se)
+						continue;
+					auto klass = mono::object_get_class(se);
+					if (!klass)
+						continue;
+					const char* name = mono::class_get_name(klass);
+					if (name && std::strcmp(name, "SE_Shield") == 0)
+						return se;
+				}
+			}
 		}
+		return nullptr;
+	}
+
+	MonoMethod* buff_tools::get_remove_effect_method_impl()
+	{
+		static thread_local MonoMethod* method = nullptr;
+		if (!method)
+			method = mono::get_method_exact("SEMan", "RemoveStatusEffect", {"System.Int32", "System.Boolean"}, "assembly_valheim");
+		return method;
 	}
 
 	const std::vector<buff_tools::boss_power>& buff_tools::get_boss_powers_impl()
@@ -242,7 +240,7 @@ namespace big
 
 	void buff_tools::apply_rested_impl(int comfort, bool notify)
 	{
-		auto seman = get_seman();
+		auto seman = get_seman_impl();
 		if (!seman)
 		{
 			if (notify)
@@ -250,9 +248,9 @@ namespace big
 			return;
 		}
 
-		int hash = get_stable_hash("Rested");
+		int hash = get_stable_hash_impl("Rested");
 		int item_level = std::clamp(comfort, 1, 50);
-		if (!add_effect(seman, hash, item_level, 0.f))
+		if (!add_effect_impl(seman, hash, item_level, 0.f))
 			return;
 
 		if (notify)
@@ -261,15 +259,15 @@ namespace big
 
 	void buff_tools::activate_guardian_power_impl(const std::string& power_name)
 	{
-		auto seman = get_seman();
+		auto seman = get_seman_impl();
 		if (!seman)
 		{
 			notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
 			return;
 		}
 
-		int hash = get_stable_hash(power_name);
-		if (!add_effect(seman, hash, 0, 0.f))
+		int hash = get_stable_hash_impl(power_name);
+		if (!add_effect_impl(seman, hash, 0, 0.f))
 			return;
 
 		notification::success("Boss Buff", std::format("Activated {}!", power_name));
@@ -277,7 +275,7 @@ namespace big
 
 	void buff_tools::activate_all_guardian_powers_impl()
 	{
-		auto seman = get_seman();
+		auto seman = get_seman_impl();
 		if (!seman)
 		{
 			notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
@@ -286,8 +284,8 @@ namespace big
 
 		for (const auto& bp : s_boss_powers)
 		{
-			int hash = get_stable_hash(bp.internal_name);
-			if (!add_effect(seman, hash, 0, 0.f))
+			int hash = get_stable_hash_impl(bp.internal_name);
+			if (!add_effect_impl(seman, hash, 0, 0.f))
 				return;
 		}
 
@@ -296,7 +294,7 @@ namespace big
 
 	void buff_tools::apply_eitr_shield_impl(float hp)
 	{
-		auto seman = get_seman();
+		auto seman = get_seman_impl();
 		if (!seman)
 		{
 			notification::warning("Eitr Shield", "Player or StatusEffect manager is not ready.");
@@ -304,54 +302,54 @@ namespace big
 		}
 
 		int shield_hash = 0;
-		MonoObject* shield_prefab = find_shield_in_object_db(shield_hash);
+		MonoObject* shield_prefab = find_shield_in_object_db_impl(shield_hash);
 
 		if (shield_hash == 0)
-			shield_hash = get_stable_hash("Staff_shield");
+			shield_hash = get_stable_hash_impl("Staff_shield");
 
-		MonoObject* active_shield = get_active_shield(seman, shield_hash);
+		MonoObject* active_shield = get_active_shield_impl(seman, shield_hash);
 
 		if (!active_shield)
 		{
 			if (shield_prefab)
 			{
-				static auto add_se_method = get_add_status_effect_method(true);
+				static auto add_se_method = get_add_status_effect_method_impl(true);
 				if (add_se_method)
 				{
-					active_shield = invoke_add_status_effect(seman, add_se_method, shield_prefab, 1, 100.f);
+					active_shield = invoke_add_status_effect_impl(seman, add_se_method, shield_prefab, 1, 100.f);
 				}
 			}
 
 			if (!active_shield && shield_hash != 0)
 			{
-				active_shield = add_effect(seman, shield_hash, 1, 100.f);
+				active_shield = add_effect_impl(seman, shield_hash, 1, 100.f);
 			}
 
 			if (!active_shield)
 			{
-				active_shield = get_active_shield(seman, shield_hash);
+				active_shield = get_active_shield_impl(seman, shield_hash);
 			}
 
 			if (!active_shield)
 			{
 				const int candidate_hashes[] = {
 				    shield_hash,
-				    get_stable_hash("Staff_shield"),
-				    get_stable_hash("SE_Shield"),
-				    get_stable_hash("StaffShield"),
-				    get_stable_hash("se_shield")};
+				    get_stable_hash_impl("Staff_shield"),
+				    get_stable_hash_impl("SE_Shield"),
+				    get_stable_hash_impl("StaffShield"),
+				    get_stable_hash_impl("se_shield")};
 
 				for (int h : candidate_hashes)
 				{
 					if (h == 0)
 						continue;
-					active_shield = add_effect(seman, h, 1, 100.f);
+					active_shield = add_effect_impl(seman, h, 1, 100.f);
 					if (active_shield)
 					{
 						shield_hash = h;
 						break;
 					}
-					active_shield = get_active_shield(seman, h);
+					active_shield = get_active_shield_impl(seman, h);
 					if (active_shield)
 					{
 						shield_hash = h;
@@ -362,7 +360,7 @@ namespace big
 		}
 
 		if (!active_shield)
-			active_shield = get_active_shield(seman, shield_hash);
+			active_shield = get_active_shield_impl(seman, shield_hash);
 
 		if (!active_shield)
 		{
@@ -413,15 +411,15 @@ namespace big
 
 	void buff_tools::remove_status_effect_impl(const std::string& name)
 	{
-		auto seman = get_seman();
+		auto seman = get_seman_impl();
 		if (!seman)
 			return;
 
-		auto remove_se_method = get_remove_effect_method();
+		auto remove_se_method = get_remove_effect_method_impl();
 		if (!remove_se_method)
 			return;
 
-		int hash = get_stable_hash(name);
+		int hash = get_stable_hash_impl(name);
 		bool quiet = true;
 		void* args[2] = {&hash, &quiet};
 		mono::invoke_method(remove_se_method, seman, args);
@@ -429,7 +427,7 @@ namespace big
 
 	void buff_tools::clear_all_debuffs_impl(bool notify)
 	{
-		auto seman = get_seman();
+		auto seman = get_seman_impl();
 		if (!seman)
 		{
 			if (notify)
@@ -437,14 +435,14 @@ namespace big
 			return;
 		}
 
-		auto remove_se_method = get_remove_effect_method();
+		auto remove_se_method = get_remove_effect_method_impl();
 		if (!remove_se_method)
 			return;
 
 		bool quiet = true;
 		for (const auto& debuff : s_debuff_names)
 		{
-			int hash = get_stable_hash(debuff);
+			int hash = get_stable_hash_impl(debuff);
 			void* args[2] = {&hash, &quiet};
 			mono::invoke_method(remove_se_method, seman, args);
 		}
@@ -453,4 +451,3 @@ namespace big
 			notification::success("Debuff Purge", "All harmful status effects removed (Wet, Poison, Freeze, Burn, etc.)!");
 	}
 }
-

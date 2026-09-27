@@ -93,7 +93,7 @@ namespace big
 		return {};
 	}
 
-	localization localization::get_instance()
+	localization localization::get_instance_impl()
 	{
 		// 1. Try reading static field m_instance first (pure memory read, zero managed code execution)
 		MonoClass* klass = mono::get_class("Localization", "assembly_guiutils");

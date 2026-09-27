@@ -14,7 +14,10 @@ namespace big
 			float line_length{0.f};
 		};
 
-		static std::vector<MonoObject*> get_floats();
+		static std::vector<MonoObject*> get_floats()
+		{
+			return instance().get_floats_impl();
+		}
 		static fishing_status get_status()
 		{
 			return instance().get_status_impl();
@@ -35,6 +38,7 @@ namespace big
 		}
 
 		fishing_status get_status_impl();
+		std::vector<MonoObject*> get_floats_impl();
 		void instant_catch_impl();
 	};
 }

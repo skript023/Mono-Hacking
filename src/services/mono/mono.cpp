@@ -51,6 +51,12 @@ namespace big
 		mono_object_unbox = require_export("mono_object_unbox").as<mono_object_unbox_t>();
 		mono_object_get_class = require_export("mono_object_get_class").as<mono_object_get_class_t>();
 		mono_object_new = require_export("mono_object_new").as<mono_object_new_t>();
+		m_class_get_element_class = require_export("mono_class_get_element_class").as<decltype(m_class_get_element_class)>();
+		m_array_new = require_export("mono_array_new").as<decltype(m_array_new)>();
+		m_array_setref = require_export("mono_gc_wbarrier_set_arrayref").as<decltype(m_array_setref)>();
+		m_gchandle_new = require_export("mono_gchandle_new_v2").as<decltype(m_gchandle_new)>();
+		m_gchandle_get_target = require_export("mono_gchandle_get_target_v2").as<decltype(m_gchandle_get_target)>();
+		m_gchandle_free = require_export("mono_gchandle_free_v2").as<decltype(m_gchandle_free)>();
 
 		mono_class_get_field_from_name = require_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
 		mono_class_get_parent = require_export("mono_class_get_parent").as<mono_class_get_parent_t>();
@@ -282,6 +288,37 @@ namespace big
 		return sig ? mono_signature_get_param_count(sig) : 0;
 	}
 
+	MonoMethod* mono::get_method_exact_impl(const char* type, const char* name, std::initializer_list<const char*> parameters, const char* assembly, const char* name_space)
+	{
+		auto klass = get_class_impl(type, assembly, name_space);
+		if (!klass)
+			return nullptr;
+		void* iterator = nullptr;
+		while (auto method = mono_class_get_methods(klass, &iterator))
+		{
+			if (std::strcmp(mono_method_get_name(method), name) != 0)
+				continue;
+			auto signature = mono_method_signature(method);
+			if (!signature || mono_signature_get_param_count(signature) != parameters.size())
+				continue;
+			void* parameter_iterator = nullptr;
+			bool matches = true;
+			for (const char* expected : parameters)
+			{
+				auto parameter = mono_signature_get_params(signature, &parameter_iterator);
+				auto actual = parameter ? mono_type_get_name(parameter) : nullptr;
+				matches = actual && std::strcmp(actual, expected) == 0;
+				if (actual)
+					mono_free(actual);
+				if (!matches)
+					break;
+			}
+			if (matches)
+				return method;
+		}
+		return nullptr;
+	}
+
 	MonoClass* mono::get_class_impl(const char* className, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoImage* image = get_image_impl(assemblyName);
@@ -338,10 +375,42 @@ namespace big
 
 	void mono::set_field_value_impl(MonoObject* obj, MonoClassField* field, void* value)
 	{
-		if (!obj || !field || !value)
+		if (!obj || !field)
 			return;
 
 		mono_field_set_value(obj, field, value);
+	}
+
+	MonoArray* mono::new_reference_array_impl(MonoArray* source, int length)
+	{
+		if (!source || length < 0)
+			return nullptr;
+		ensure_thread_attached_impl();
+		auto element = m_class_get_element_class(mono_object_get_class(reinterpret_cast<MonoObject*>(source)));
+		return element ? m_array_new(get_root_domain_impl(), element, length) : nullptr;
+	}
+
+	void mono::set_array_reference_impl(MonoArray* array, int index, MonoObject* value)
+	{
+		if (!array || index < 0 || index >= mono_array_length(array))
+			throw std::out_of_range("Mono array reference index");
+		m_array_setref(array, mono_array_addr_with_size(array, sizeof(MonoObject*), index), value);
+	}
+
+	uintptr_t mono::retain_impl(MonoObject* object)
+	{
+		return object ? m_gchandle_new(object, true) : 0;
+	}
+
+	MonoObject* mono::retained_object_impl(uintptr_t handle)
+	{
+		return handle ? m_gchandle_get_target(handle) : nullptr;
+	}
+
+	void mono::release_impl(uintptr_t handle)
+	{
+		if (handle)
+			m_gchandle_free(handle);
 	}
 
 	MonoVTable* mono::get_vtable_impl(MonoClass* pKlass) const

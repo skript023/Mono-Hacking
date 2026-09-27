@@ -4,6 +4,7 @@
 #include "utility/unity.hpp"
 
 #include "unity/self.hpp"
+#include "unity/hud.hpp"
 #include "unity/online_players.hpp"
 #include "unity/base_tools.hpp"
 #include "unity/animal_tools.hpp"
@@ -15,6 +16,7 @@ namespace big
 	static void update()
 	{
 		self::update();
+		unity::hud_manager::update();
 		base_tools::hotkey_tick();
 		animal_tools::update();
 		animal_tools::hotkey_tick();

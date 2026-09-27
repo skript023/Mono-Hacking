@@ -1,6 +1,7 @@
 #include "hooking.hpp"
 #include "script_mgr.hpp"
 #include "utility/unity.hpp"
+#include "unity/hud.hpp"
 #include <chrono>
 
 namespace big
@@ -9,6 +10,8 @@ namespace big
 	{
 		TRY_CLAUSE
 		{
+			if (!g_running && unity::hud_manager::cleanup_pending())
+				g_script_mgr.tick();
 			if (g_running)
 			{
 				g_script_mgr.tick();
@@ -27,4 +30,3 @@ namespace big
 		EXCEPT_CLAUSE
 	}
 }
-

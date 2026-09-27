@@ -15,6 +15,7 @@
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
 #include "worker/entity_worker.hpp"
+#include "unity/hud.hpp"
 #include "javascript/javascript_manager.hpp"
 
 #include "services/notification/notification_service.hpp"
@@ -113,6 +114,7 @@ DWORD APIENTRY main_thread(LPVOID)
 			std::this_thread::sleep_for(1s);
 		}
 
+		unity::hud_manager::shutdown();
 		render_vulkan::detach();
 		g_hooking->disable();
 		LOG(INFO) << "Hooking disabled.";

@@ -44,6 +44,12 @@ namespace big
 		uint32_t get_field_offset_impl(MonoClassField* field) const;
 		void get_field_value_impl(void* instance, MonoClassField* field, void* out) const;
 		void set_field_value_impl(MonoObject* obj, MonoClassField* field, void* value);
+		MonoArray* new_reference_array_impl(MonoArray* source, int length);
+		void set_array_reference_impl(MonoArray* array, int index, MonoObject* value);
+		uintptr_t retain_impl(MonoObject* object);
+		MonoObject* retained_object_impl(uintptr_t handle);
+		void release_impl(uintptr_t handle);
+		MonoMethod* get_method_exact_impl(const char* type, const char* name, std::initializer_list<const char*> parameters, const char* assembly, const char* name_space);
 		MonoVTable* get_vtable_impl(MonoClass* pKlass) const;
 		void* get_static_field_data_impl(MonoVTable* pVTable) const;
 		void* get_static_field_data_impl(MonoClass* pKlass) const;
@@ -63,6 +69,30 @@ namespace big
 		}
 
 	public:
+		static MonoMethod* get_method_exact(const char* type, const char* name, std::initializer_list<const char*> parameters, const char* assembly, const char* name_space = "")
+		{
+			return get_instance().get_method_exact_impl(type, name, parameters, assembly, name_space);
+		}
+		static MonoArray* new_reference_array(MonoArray* source, int length)
+		{
+			return get_instance().new_reference_array_impl(source, length);
+		}
+		static void set_array_reference(MonoArray* array, int index, MonoObject* value)
+		{
+			get_instance().set_array_reference_impl(array, index, value);
+		}
+		static uintptr_t retain(MonoObject* object)
+		{
+			return get_instance().retain_impl(object);
+		}
+		static MonoObject* retained_object(uintptr_t handle)
+		{
+			return get_instance().retained_object_impl(handle);
+		}
+		static void release(uintptr_t handle)
+		{
+			get_instance().release_impl(handle);
+		}
 		static void init()
 		{
 			get_instance().init_impl();
@@ -226,7 +256,11 @@ namespace big
 
 			auto temp = std::forward<T>(value);
 
-			set_field_value(obj, field, &temp);
+			// Mono takes managed references directly; only value types use an address.
+			if constexpr (std::is_pointer_v<decltype(temp)> || std::is_same_v<decltype(temp), std::nullptr_t>)
+				set_field_value(obj, field, temp);
+			else
+				set_field_value(obj, field, &temp);
 
 			return true;
 		}
@@ -380,6 +414,12 @@ namespace big
 
 	private:
 		// --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
+		MonoClass* (*m_class_get_element_class)(MonoClass*) = nullptr;
+		MonoArray* (*m_array_new)(MonoDomain*, MonoClass*, uintptr_t) = nullptr;
+		void (*m_array_setref)(MonoArray*, void*, MonoObject*) = nullptr;
+		uintptr_t (*m_gchandle_new)(MonoObject*, mono_bool) = nullptr;
+		MonoObject* (*m_gchandle_get_target)(uintptr_t) = nullptr;
+		void (*m_gchandle_free)(uintptr_t) = nullptr;
 		MonoObject* (*m_field_get_value_object)(MonoDomain*, MonoClassField*, MonoObject*) = nullptr;
 		MonoType* (*m_class_get_type)(MonoClass*) = nullptr;
 		MonoObject* (*m_type_get_object)(MonoDomain*, MonoType*) = nullptr;

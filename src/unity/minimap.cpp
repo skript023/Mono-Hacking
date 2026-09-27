@@ -13,7 +13,7 @@ namespace big
 		m_minimap = nullptr;
 	}
 
-	minimap minimap::get_instance()
+	minimap minimap::get_instance_impl()
 	{
 		return minimap(unity::get_minimap());
 	}

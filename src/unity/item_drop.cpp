@@ -19,7 +19,7 @@ namespace big
 	{
 		return mono::get_field_value<"ItemDrop", "m_itemData", MonoObject*>(obj);
 	}
-	mono_array_view<item_drop> item_drop::get_drops()
+	mono_array_view<item_drop> item_drop::get_drops_impl()
 	{
 		auto drop = mono::get_class("ItemDrop", "assembly_valheim");
 		if (drop == nullptr)

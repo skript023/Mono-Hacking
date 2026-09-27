@@ -83,6 +83,7 @@ namespace big
 		static bool bypass_cheat_checks();
 		static bool inventory_any_cheated_item(MonoObject* inventory);
 		static void drop_invalid_items(MonoObject* humanoid);
+		static void hud_update_food(MonoObject* hud, MonoObject* player);
 	};
 
 	struct minhook_keepalive

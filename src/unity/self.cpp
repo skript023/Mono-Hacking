@@ -18,4 +18,3 @@ namespace big
 		m_player = player(unity::get_local_player());
 	}
 }
-

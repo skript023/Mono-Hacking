@@ -13,6 +13,13 @@ namespace big
 		MonoObject* m_character{};
 
 	private:
+		static character& instance()
+		{
+			static character value;
+			return value;
+		}
+		mono_array_view<character> get_all_characters_impl();
+		mono_array_view<character> get_all_scharacters_impl();
 		struct cached_name_entry
 		{
 			std::string name;
@@ -53,8 +60,14 @@ namespace big
 		monster_ai get_monster_ai();
 		procreation get_procreation();
 
-		static mono_array_view<character> get_all_characters();
-		static mono_array_view<character> get_all_scharacters();
+		static mono_array_view<character> get_all_characters()
+		{
+			return instance().get_all_characters_impl();
+		}
+		static mono_array_view<character> get_all_scharacters()
+		{
+			return instance().get_all_scharacters_impl();
+		}
 
 		bool operator==(character const& c) const
 		{

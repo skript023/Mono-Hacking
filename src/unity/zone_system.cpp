@@ -13,7 +13,7 @@ namespace big
 		m_zone_system = nullptr;
 	}
 
-	zone_system zone_system::get_instance()
+	zone_system zone_system::get_instance_impl()
 	{
 		static auto get_inst = mono::get_method("ZoneSystem", "get_instance", 0, "assembly_valheim");
 		if (get_inst)

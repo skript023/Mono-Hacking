@@ -8,6 +8,12 @@ namespace big
 	class minimap
 	{
 	private:
+		static minimap& instance()
+		{
+			static minimap value;
+			return value;
+		}
+		minimap get_instance_impl();
 		MonoObject* m_minimap{};
 
 	public:
@@ -18,7 +24,10 @@ namespace big
 		{
 			return m_minimap;
 		}
-		static minimap get_instance();
+		static minimap get_instance()
+		{
+			return instance().get_instance_impl();
+		}
 
 		void explore_all();
 		void reset();

@@ -4,7 +4,7 @@
 
 namespace big
 {
-	std::vector<MonoObject*> fishing_tools::get_floats()
+	std::vector<MonoObject*> fishing_tools::get_floats_impl()
 	{
 		auto float_class = mono::get_class("FishingFloat", "assembly_valheim");
 		if (!float_class)
