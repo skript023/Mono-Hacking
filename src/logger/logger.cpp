@@ -28,10 +28,10 @@ namespace big
 		Logger::Init();
 		Logger::AddSink([this](LogMessagePtr msg) {
 			(this->*m_console_logger)(std::move(msg));
-			});
+		});
 		Logger::AddSink([this](LogMessagePtr msg) {
 			format_file(std::move(msg));
-			});
+		});
 
 		toggle_external_console(attach_console);
 	}
@@ -91,13 +91,13 @@ namespace big
 			auto local_time = std::localtime(&time_t);
 
 			m_file.move(std::format("./backup/{:0>2}-{:0>2}-{}-{:0>2}-{:0>2}-{:0>2}_{}",
-				local_time->tm_mon + 1,
-				local_time->tm_mday,
-				local_time->tm_year + 1900,
-				local_time->tm_hour,
-				local_time->tm_min,
-				local_time->tm_sec,
-				m_file.get_path().filename().string().c_str()));
+			    local_time->tm_mon + 1,
+			    local_time->tm_mday,
+			    local_time->tm_year + 1900,
+			    local_time->tm_hour,
+			    local_time->tm_min,
+			    local_time->tm_sec,
+			    m_file.get_path().filename().string().c_str()));
 		}
 	}
 
@@ -115,7 +115,7 @@ namespace big
 
 	const char* get_level_string(const eLogLevel level)
 	{
-		constexpr std::array<const char*, 5> levelStrings = { "DEBUG", "INFO", "WARN", "FATAL", "RAW" };
+		constexpr std::array<const char*, 5> levelStrings = {"DEBUG", "INFO", "WARN", "FATAL", "RAW"};
 
 		return levelStrings[level];
 	}
@@ -136,17 +136,18 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		if ((int)level == 5) {
+		if ((int)level == 5)
+		{
 			m_console_out << ADD_COLOR_TO_STREAM(color) << msg->Message() << RESET_STREAM_COLOR << std::flush;
 			return;
 		}
 
 		if (stream)
 			m_console_out << ADD_COLOR_TO_STREAM(color) << "[" << timestamp << "][" << stream->get()->Name() << "]" << "[" << get_level_string(level) << "][" << file << ":"
-				<< location.line() << "] " << msg->Message() << RESET_STREAM_COLOR << std::flush;
+			              << location.line() << "] " << msg->Message() << RESET_STREAM_COLOR << std::flush;
 		else
 			m_console_out << ADD_COLOR_TO_STREAM(color) << "[" << timestamp << "]" << "[" << get_level_string(level) << "][" << file << ":"
-			<< location.line() << "] " << msg->Message() << RESET_STREAM_COLOR << std::flush;
+			              << location.line() << "] " << msg->Message() << RESET_STREAM_COLOR << std::flush;
 	}
 
 	void logger::format_console_simple(const LogMessagePtr msg)
@@ -165,17 +166,20 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		if ((int)level == 5) {
+		if ((int)level == 5)
+		{
 			m_console_out << msg->Message() << std::flush;
 			return;
 		}
 
 		if (stream)
 			m_console_out << "[" << timestamp << "][" << stream->get()->Name() << "]"
-			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			                                                                      "["
+			              << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 		else
 			m_console_out << "[" << timestamp << "]"
-			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			                                     "["
+			              << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 	}
 
 	void logger::format_file(const LogMessagePtr msg)
@@ -190,15 +194,18 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		if ((int)level == 5) {
+		if ((int)level == 5)
+		{
 			return;
 		}
 
 		if (stream)
 			m_file_out << "[" << timestamp << "][" << stream->get()->Name() << "]"
-			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			                                                                   "["
+			           << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 		else
 			m_file_out << "[" << timestamp << "]"
-			"[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
+			                                  "["
+			           << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message() << std::flush;
 	}
 }

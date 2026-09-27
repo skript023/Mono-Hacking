@@ -70,6 +70,12 @@ namespace big
 		m_device.Reset();
 		m_swapchain.Reset();
 	}
+	void render_dx11::release_texture(ImTextureID texture)
+	{
+		std::erase_if(m_textures, [texture](const auto& view) {
+			return reinterpret_cast<ImTextureID>(view.Get()) == texture;
+		});
+	}
 	ImTextureID render_dx11::upload_rgba(const unsigned char* pixels, int width, int height)
 	{
 		if (!m_device || !pixels || width <= 0 || height <= 0)

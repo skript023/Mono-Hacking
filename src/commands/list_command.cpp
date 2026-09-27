@@ -1,4 +1,4 @@
-#include "list_command.hpp" 
+#include "list_command.hpp"
 #include "fiber_pool.hpp" // TODO: game import in core
 
 namespace big
@@ -31,7 +31,9 @@ namespace big
 
 	void list_command::set_state(int state)
 	{
-		g_fiber_pool->queue_job([this] { on_change(); });
+		g_fiber_pool->queue_job([this] {
+			on_change();
+		});
 		m_state = state;
 		mark_dirty();
 	}

@@ -22,4 +22,3 @@ namespace big
 		return detour_base::get_original<is_weapon_loaded>()(player);
 	}
 }
-

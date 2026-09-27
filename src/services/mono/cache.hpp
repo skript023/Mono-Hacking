@@ -3,7 +3,7 @@
 
 namespace big
 {
-	template <size_t N>
+	template<size_t N>
 	struct const_str
 	{
 		char value[N];

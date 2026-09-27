@@ -14,19 +14,34 @@ namespace big
 			offset = ((DWORD64)exp->ExceptionRecord->ExceptionAddress - (DWORD64)mod);
 			GetModuleFileNameA(mod, buffer, MAX_PATH - 1);
 		}
-		LOG(FATAL) << "Exception Code: " << HEX_TO_UPPER(exp->ExceptionRecord->ExceptionCode) << " Exception Offset: " << HEX_TO_UPPER(offset) << " Fault Module Name: " << buffer;
+		std::string extra_info;
+		if (exp->ExceptionRecord->ExceptionCode == 0xE06D7363 && exp->ExceptionRecord->NumberParameters >= 3)
+		{
+			auto* pExc = reinterpret_cast<std::exception*>(exp->ExceptionRecord->ExceptionInformation[1]);
+			if (pExc)
+			{
+				__try
+				{
+					extra_info = std::format(" [std::exception: {}]", pExc->what());
+				}
+				__except (EXCEPTION_EXECUTE_HANDLER)
+				{
+				}
+			}
+		}
+		LOG(FATAL) << "Exception Code: " << HEX_TO_UPPER(exp->ExceptionRecord->ExceptionCode) << " Exception Offset: " << HEX_TO_UPPER(offset) << " Fault Module Name: " << buffer << extra_info;
 	}
 
 	script::script(func_t func, std::optional<std::size_t> stack_size) :
-		m_func(func),
-		m_script_fiber(nullptr),
-		m_main_fiber(nullptr)
+	    m_func(func),
+	    m_script_fiber(nullptr),
+	    m_main_fiber(nullptr)
 	{
-		m_script_fiber = CreateFiber(stack_size.has_value() ? stack_size.value() : 0, [](void* param)
-		{
+		m_script_fiber = CreateFiber(stack_size.has_value() ? stack_size.value() : 0, [](void* param) {
 			auto this_script = static_cast<script*>(param);
 			this_script->fiber_func();
-		}, this);
+		},
+		    this);
 	}
 
 	script::~script()
@@ -60,7 +75,21 @@ namespace big
 
 	script* script::get_current()
 	{
-		return static_cast<script*>(GetFiberData());
+		__try
+		{
+			if (!IsThreadAFiber())
+				return nullptr;
+
+			void* fiber = GetCurrentFiber();
+			if (!fiber || fiber == reinterpret_cast<void*>(0x1e00))
+				return nullptr;
+
+			return static_cast<script*>(GetFiberData());
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return nullptr;
+		}
 	}
 
 	void script::fiber_func()
@@ -69,9 +98,9 @@ namespace big
 		{
 			m_func();
 		}
-			EXCEPT_CLAUSE
+		EXCEPT_CLAUSE
 
-			[]() {
+		[]() {
 			LOG(INFO) << "Script finished!";
 		}();
 

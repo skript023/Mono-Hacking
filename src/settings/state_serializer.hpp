@@ -6,6 +6,7 @@ namespace big
 	{
 		std::string m_ser_component_name;
 		bool m_is_dirty;
+
 	public:
 		state_serializer(const std::string& name);
 		virtual void save_state_impl(nlohmann::json& state) = 0;

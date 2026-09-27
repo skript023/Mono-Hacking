@@ -17,4 +17,3 @@ namespace big
 		detour_base::get_original<humanoid_drain_durability>()(humanoid, item, dt);
 	}
 }
-

@@ -47,8 +47,6 @@ namespace js::command
 		~js_bool_command()
 		{
 			JS_FreeValue(ctx, js_this);
-			
-			
 		}
 
 		void on_enable() override
@@ -174,7 +172,9 @@ namespace js::command
 			if (!native)
 				return JS_ThrowTypeError(ctx, "get_state invalid");
 			return JS_NewBool(ctx, native->get_state());
-		}, "get_state", 0));
+		},
+		                                               "get_state",
+		                                               0));
 
 		JS_SetPropertyStr(ctx, proto, "set_state", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
 			js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, looped_command_class_id);
@@ -186,7 +186,9 @@ namespace js::command
 			bool state = JS_ToBool(ctx, argv[0]);
 			native->set_state(state);
 			return JS_UNDEFINED;
-		}, "set_state", 1));
+		},
+		                                               "set_state",
+		                                               1));
 
 		JSValue ctor = JS_NewCFunction2(ctx, [](JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv) -> JSValue {
 			if (argc < 3)
@@ -205,7 +207,9 @@ namespace js::command
 				if (!native)
 					return JS_ThrowTypeError(ctx, "get_state invalid");
 				return JS_NewBool(ctx, native->get_state());
-			}, "get_state", 0));
+			},
+			                                             "get_state",
+			                                             0));
 
 			JS_SetPropertyStr(ctx, obj, "set_state", JS_NewCFunction(ctx, [](JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) -> JSValue {
 				js_looped_command* native = (js_looped_command*)JS_GetOpaque(this_val, looped_command_class_id);
@@ -217,7 +221,9 @@ namespace js::command
 				bool state = JS_ToBool(ctx, argv[0]);
 				native->set_state(state);
 				return JS_UNDEFINED;
-			}, "set_state", 1));
+			},
+			                                             "set_state",
+			                                             1));
 
 			JS_FreeCString(ctx, name);
 			JS_FreeCString(ctx, label);

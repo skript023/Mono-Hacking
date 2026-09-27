@@ -7,9 +7,9 @@
 namespace big
 {
 	settings::settings() :
-		m_settings_file(),
-		m_state_serializers(),
-		m_initial_load_done(false)
+	    m_settings_file(),
+	    m_state_serializers(),
+	    m_initial_load_done(false)
 	{
 	}
 

@@ -26,7 +26,7 @@ namespace big
 
 	color_command::color_command(std::string name, std::string label, std::string description, ImVec4 color) :
 	    command(name, label, description, 0),
-		m_color_state(color)
+	    m_color_state(color)
 	{
 	}
 
@@ -37,7 +37,9 @@ namespace big
 
 	void color_command::set_color_state(ImVec4 state)
 	{
-		g_fiber_pool->queue_job([this] { on_change(); });
+		g_fiber_pool->queue_job([this] {
+			on_change();
+		});
 
 		m_color_state = state;
 

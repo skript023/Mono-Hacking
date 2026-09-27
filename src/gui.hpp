@@ -47,10 +47,10 @@ namespace big
 
 	public:
 		ImTextureID m_header{};
-		ImageDimensions m_header_size = { 0, 0 };
+		ImageDimensions m_header_size = {0, 0};
 
 		ImTextureID m_toggle{};
-		ImageDimensions m_toggle_size = { 0, 0 };
+		ImageDimensions m_toggle_size = {0, 0};
 	};
 
 	inline gui g_gui;

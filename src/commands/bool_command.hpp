@@ -13,6 +13,7 @@ namespace big
 		virtual void load_state(nlohmann::json& value) override;
 
 		bool m_state = false;
+
 	public:
 		bool_command(std::string name, std::string label, std::string description, bool def_value = false);
 		bool& get_state();

@@ -17,10 +17,31 @@ static void checked(VkResult result)
 {
 	require(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, ("Vulkan result " + std::to_string(result)).c_str());
 }
+static void test_icon_cache_textures(render_backend& backend)
+{
+	const unsigned char pixel[] = {255, 255, 255, 255};
+	for (int pass = 0; pass < 3; ++pass)
+	{
+		std::vector<ImTextureID> icons;
+		for (int i = 0; i < 128; ++i)
+		{
+			auto id = backend.upload_rgba(pixel, 1, 1);
+			require(id != 0, "Icon cache texture allocation failed");
+			icons.push_back(id);
+		}
+		for (auto id : icons)
+		{
+			backend.release_texture(id);
+			backend.release_texture(id);
+		}
+		backend.release_texture(0);
+	}
+}
 void big::renderer::finish_init()
 {
 	const unsigned char green[16] = {0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255};
 	render_vulkan upload;
+	test_icon_cache_textures(upload);
 	texture = upload.upload_rgba(green, 2, 2);
 	require(texture != 0, "Vulkan texture upload failed");
 	m_init = true;
@@ -45,6 +66,7 @@ static void test_dx11(HWND window, renderer& ui)
 	ImGui_ImplWin32_Init(window);
 	render_dx11 backend;
 	require(backend.init(swapchain.Get()), "DX11 backend init failed");
+	test_icon_cache_textures(backend);
 	const unsigned char green[16] = {0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255};
 	ui.texture = backend.upload_rgba(green, 2, 2);
 	require(ui.texture != 0, "DX11 texture upload failed");

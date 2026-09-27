@@ -12,4 +12,3 @@ namespace big
 		return detour_base::get_original<player_no_cost_cheat>()(player);
 	}
 }
-

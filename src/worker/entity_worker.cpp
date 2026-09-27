@@ -13,7 +13,7 @@ namespace big
 {
 	using namespace features;
 
-    void entity_worker::run()
+	void entity_worker::run()
 	{
 		bool had_esp_data = false;
 		while (g_running)
@@ -23,7 +23,8 @@ namespace big
 				if (_esp_enabled.get_state())
 				{
 					had_esp_data = true;
-					auto& back = g_esp_data.back(); back.clear();
+					auto& back = g_esp_data.back();
+					back.clear();
 
 					auto self = self::get_player();
 					auto characters = character::get_all_scharacters();
@@ -38,17 +39,17 @@ namespace big
 						player p(character.get_object());
 
 						auto classname = mono::get_name(character.get_object());
-	#ifdef _DEBUG
+#ifdef _DEBUG
 						MonoClass* elem_class = mono::object_get_class(p.get_object());
 
 						LOG(INFO) << "Element class: "
-							<< mono::class_get_namespace(elem_class)
-							<< "::"
-							<< mono::class_get_name(elem_class) << " at address " << p.get_object()
-							<< " local player is " << self.get_object();
-	#endif
+						          << mono::class_get_namespace(elem_class)
+						          << "::"
+						          << mono::class_get_name(elem_class) << " at address " << p.get_object()
+						          << " local player is " << self.get_object();
+#endif
 						Vector3 pos = character.get_position();
-						
+
 						if (pos.is_zero())
 							continue;
 
@@ -81,21 +82,20 @@ namespace big
 						char buffer[256]{};
 						if (_draw_name.get_state())
 							snprintf(buffer, sizeof(buffer), "%s [%.2f]m", name.c_str(), distance);
-						
+
 						back.emplace_back(esp_data{
-							character == self,//character == self
-							pos,
-							screen,
-							distance,
-							buffer,
-							health,
-							max_health,
-							top,
-							pos,
-							joaat(classname) == "Player"_hash ? EEntityType::Player : EEntityType::Character,
-							top_screen,
-							top_visible
-						});
+						    character == self, //character == self
+						    pos,
+						    screen,
+						    distance,
+						    buffer,
+						    health,
+						    max_health,
+						    top,
+						    pos,
+						    joaat(classname) == "Player"_hash ? EEntityType::Player : EEntityType::Character,
+						    top_screen,
+						    top_visible});
 					}
 
 					g_esp_data.publish();
@@ -105,7 +105,8 @@ namespace big
 					g_esp_data.clear_all();
 					had_esp_data = false;
 				}
-			}  EXCEPT_CLAUSE
+			}
+			EXCEPT_CLAUSE
 
 			script::get_current()->yield(30ms);
 		}
@@ -114,4 +115,3 @@ namespace big
 	}
 
 } // namespace big
-

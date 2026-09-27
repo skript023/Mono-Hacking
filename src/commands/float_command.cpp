@@ -32,7 +32,9 @@ namespace big
 
 	void float_command::set_state(float state)
 	{
-		g_fiber_pool->queue_job([this] { on_change(); });
+		g_fiber_pool->queue_job([this] {
+			on_change();
+		});
 		m_state = state;
 		mark_dirty();
 	}

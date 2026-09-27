@@ -3,8 +3,10 @@
 
 namespace big
 {
-	localization::localization(MonoObject* obj): m_localization(obj)
-	{}
+	localization::localization(MonoObject* obj) :
+	    m_localization(obj)
+	{
+	}
 
 	localization::~localization() noexcept
 	{
@@ -39,7 +41,9 @@ namespace big
 			if (!ms)
 				return text;
 
-			auto ret = mono::invoke(method, m_localization, ms);
+			// Mono reference arguments are passed directly; only value types use their address.
+			void* args[] = {ms};
+			auto ret = mono::invoke_method(method, m_localization, args);
 			if (!ret)
 				return text;
 
@@ -89,7 +93,7 @@ namespace big
 		return {};
 	}
 
-	localization localization::get_instance()
+	localization localization::get_instance_impl()
 	{
 		// 1. Try reading static field m_instance first (pure memory read, zero managed code execution)
 		MonoClass* klass = mono::get_class("Localization", "assembly_guiutils");
@@ -121,4 +125,3 @@ namespace big
 		return localization(nullptr);
 	}
 }
-

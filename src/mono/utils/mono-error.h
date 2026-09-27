@@ -7,7 +7,8 @@
 
 #include <mono/utils/mono-publib.h>
 
-enum {
+enum
+{
 	/*
 	The supplied strings were dup'd by means of calling mono_error_dup_strings.
 	*/
@@ -23,7 +24,8 @@ enum {
 	MONO_ERROR_MEMPOOL_BOXED = 0x0004
 };
 
-enum {
+enum
+{
 	MONO_ERROR_NONE = 0,
 	MONO_ERROR_MISSING_METHOD = 1,
 	MONO_ERROR_MISSING_FIELD = 2,
@@ -51,28 +53,29 @@ enum {
 };
 
 #ifdef _MSC_VER
-__pragma(warning (push))
-__pragma(warning (disable:4201))
+__pragma(warning(push))
+    __pragma(warning(disable : 4201))
 #endif
 
-/*Keep in sync with MonoErrorInternal*/
-typedef union _MonoError {
+    /*Keep in sync with MonoErrorInternal*/
+    typedef union _MonoError {
 	// Merge two uint16 into one uint32 so it can be initialized
 	// with one instruction instead of two.
 	uint32_t init;
-	struct {
+	struct
+	{
 		uint16_t error_code;
 		uint16_t private_flags; /*DON'T TOUCH */
-		void *hidden_1 [12]; /*DON'T TOUCH */
+		void* hidden_1[12];     /*DON'T TOUCH */
 	};
 } MonoErrorExternal;
 
 #ifdef _MSC_VER
-__pragma(warning (pop))
+__pragma(warning(pop))
 #endif
 
 #ifdef MONO_INSIDE_RUNTIME
-typedef union _MonoErrorInternal MonoError;
+    typedef union _MonoErrorInternal MonoError;
 #else
 typedef MonoErrorExternal MonoError;
 #endif
@@ -83,22 +86,22 @@ typedef struct _MonoErrorBoxed MonoErrorBoxed;
 MONO_BEGIN_DECLS
 
 MONO_API MONO_RT_EXTERNAL_ONLY void
-mono_error_init (MonoError *error);
+    mono_error_init(MonoError* error);
 
 MONO_API void
-mono_error_init_flags (MonoError *error, unsigned short flags);
+    mono_error_init_flags(MonoError* error, unsigned short flags);
 
 MONO_API void
-mono_error_cleanup (MonoError *error);
+    mono_error_cleanup(MonoError* error);
 
 MONO_API MONO_RT_EXTERNAL_ONLY mono_bool
-mono_error_ok (MonoError *error);
+    mono_error_ok(MonoError* error);
 
 MONO_API unsigned short
-mono_error_get_error_code (MonoError *error);
+    mono_error_get_error_code(MonoError* error);
 
 MONO_API const char*
-mono_error_get_message (MonoError *error);
+    mono_error_get_message(MonoError* error);
 
 MONO_END_DECLS
 

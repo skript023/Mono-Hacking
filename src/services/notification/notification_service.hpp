@@ -1,7 +1,8 @@
 #pragma once
 namespace big
 {
-	enum class NotificationType {
+	enum class NotificationType
+	{
 		INFO,
 		SUCCESS,
 		PROTECTED,
@@ -35,11 +36,11 @@ namespace big
 		std::vector<notification_data> get_impl();
 
 		std::map<NotificationType, ImVec4> notification_colors = {
-			{NotificationType::INFO, ImVec4(0.80f, 0.80f, 0.83f, 1.00f)},
-			{NotificationType::PROTECTED, ImVec4(0.29f, 0.34f, 0.69f, 1.00f)},
-			{NotificationType::SUCCESS, ImVec4(0.29f, 0.69f, 0.34f, 1.00f)},
-			{NotificationType::WARNING, ImVec4(0.69f ,0.49f, 0.29f, 1.00f) },
-			{NotificationType::DANGER, ImVec4(0.69f, 0.29f , 0.29f, 1.00f)},
+		    {NotificationType::INFO, ImVec4(0.80f, 0.80f, 0.83f, 1.00f)},
+		    {NotificationType::PROTECTED, ImVec4(0.29f, 0.34f, 0.69f, 1.00f)},
+		    {NotificationType::SUCCESS, ImVec4(0.29f, 0.69f, 0.34f, 1.00f)},
+		    {NotificationType::WARNING, ImVec4(0.69f, 0.49f, 0.29f, 1.00f)},
+		    {NotificationType::DANGER, ImVec4(0.69f, 0.29f, 0.29f, 1.00f)},
 		};
 
 		static notification& instance()
@@ -47,6 +48,7 @@ namespace big
 			static notification instance;
 			return instance;
 		}
+
 	public:
 		static void info(std::string, std::string);
 		static void success(std::string, std::string);
@@ -60,6 +62,9 @@ namespace big
 		{
 			return instance().notification_colors[type];
 		}
-		static std::vector<notification_data> get() { return instance().get_impl(); };
+		static std::vector<notification_data> get()
+		{
+			return instance().get_impl();
+		};
 	};
 }

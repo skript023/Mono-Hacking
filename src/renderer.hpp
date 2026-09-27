@@ -16,6 +16,7 @@ namespace big
 		std::unique_ptr<render_dx11> m_dx11;
 		render_backend* m_backend = nullptr;
 		renderer_api m_api = renderer_api::unknown;
+		uint64_t m_texture_generation = 0;
 
 	public:
 		renderer();
@@ -44,8 +45,13 @@ namespace big
 		bool begin_vulkan(render_backend* backend);
 		void finish_init();
 		void release_vulkan();
-		void draw_frame();
+		void draw_frame(ImVec2 framebuffer_size = {});
 		ImTextureID upload_rgba(const unsigned char* pixels, int width, int height);
+		void release_texture(ImTextureID texture);
+		uint64_t texture_generation() const
+		{
+			return m_texture_generation;
+		}
 		void merge_icon_with_latest_font(float font_size, bool owned = false);
 		void wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 		ImFont* m_font = nullptr;

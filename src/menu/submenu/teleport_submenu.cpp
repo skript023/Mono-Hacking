@@ -68,27 +68,26 @@ namespace big
 
 		// 2. Fallback: Known Valheim Bosses & Traders table
 		static const std::unordered_map<std::string, std::string> known_names = {
-			// Bosses
-			{ "$enemy_eikthyr", "Eikthyr" },
-			{ "$enemy_gdking", "The Elder" },
-			{ "$enemy_bonemass", "Bonemass" },
-			{ "$enemy_dragon", "Moder" },
-			{ "$enemy_goblinking", "Yagluth" },
-			{ "$enemy_seekerqueen", "The Queen" },
-			{ "$enemy_fader", "Fader" },
+		    // Bosses
+		    {"$enemy_eikthyr", "Eikthyr"},
+		    {"$enemy_gdking", "The Elder"},
+		    {"$enemy_bonemass", "Bonemass"},
+		    {"$enemy_dragon", "Moder"},
+		    {"$enemy_goblinking", "Yagluth"},
+		    {"$enemy_seekerqueen", "The Queen"},
+		    {"$enemy_fader", "Fader"},
 
-			// Traders & Special Locations
-			{ "$location_forestcrypt", "Haldor (Trader)" },
-			{ "$location_hildir", "Hildir (Trader)" },
-			{ "$location_bogwitch", "The Bog Witch (Trader)" },
-			{ "$item_bed", "Bed / Spawn" },
+		    // Traders & Special Locations
+		    {"$location_forestcrypt", "Haldor (Trader)"},
+		    {"$location_hildir", "Hildir (Trader)"},
+		    {"$location_bogwitch", "The Bog Witch (Trader)"},
+		    {"$item_bed", "Bed / Spawn"},
 
-			// Dungeons & Other Locations
-			{ "$location_crypt", "Sunken Crypt" },
-			{ "$location_cave", "Mountain Cave" },
-			{ "$location_dungeon", "Dungeon" },
-			{ "$location_mountaincave", "Frost Caves" }
-		};
+		    // Dungeons & Other Locations
+		    {"$location_crypt", "Sunken Crypt"},
+		    {"$location_cave", "Mountain Cave"},
+		    {"$location_dungeon", "Dungeon"},
+		    {"$location_mountaincave", "Frost Caves"}};
 
 		if (auto it = known_names.find(raw_name); it != known_names.end())
 			return it->second;
@@ -97,10 +96,14 @@ namespace big
 		if (raw_name.starts_with("$"))
 		{
 			std::string stripped = raw_name.substr(1);
-			if (stripped.starts_with("enemy_")) stripped = stripped.substr(6);
-			else if (stripped.starts_with("location_")) stripped = stripped.substr(9);
-			else if (stripped.starts_with("item_")) stripped = stripped.substr(5);
-			else if (stripped.starts_with("piece_")) stripped = stripped.substr(6);
+			if (stripped.starts_with("enemy_"))
+				stripped = stripped.substr(6);
+			else if (stripped.starts_with("location_"))
+				stripped = stripped.substr(9);
+			else if (stripped.starts_with("item_"))
+				stripped = stripped.substr(5);
+			else if (stripped.starts_with("piece_"))
+				stripped = stripped.substr(6);
 
 			bool capitalize_next = true;
 			for (char& c : stripped)
@@ -128,8 +131,7 @@ namespace big
 
 	void view::teleport_submenu()
 	{
-		canvas::add_tab<regular_submenu>("Teleport", SubmenuTeleport, [](regular_submenu* sub)
-		{
+		canvas::add_tab<regular_submenu>("Teleport", SubmenuTeleport, [](regular_submenu* sub) {
 			sub->add_option<reguler_option>("Teleport to Last Ping", "Teleports to the most recent map ping.", [] {
 				g_fiber_pool->queue_job([] {
 					auto ping = unity::get_last_ping();
@@ -182,8 +184,7 @@ namespace big
 			sub->add_option<bool_option<bool>>("Ctrl + Middle Click Map Teleport", "Hold Ctrl and Middle Click anywhere on the map to teleport there.", &g_settings.self.map_click_teleport);
 		});
 
-		canvas::add_submenu<regular_submenu>("Objectives", SubmenuObjectives, [](regular_submenu* sub)
-		{
+		canvas::add_submenu<regular_submenu>("Objectives", SubmenuObjectives, [](regular_submenu* sub) {
 			auto pins = unity::get_all_map_pins();
 			int count = 0;
 
@@ -194,19 +195,7 @@ namespace big
 				{
 					std::string lower = pin.name;
 					std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-					if (lower.find("haldor") != std::string::npos ||
-						lower.find("hildir") != std::string::npos ||
-						lower.find("witch") != std::string::npos ||
-						lower.find("bog") != std::string::npos ||
-						lower.find("trader") != std::string::npos ||
-						lower.find("boss") != std::string::npos ||
-						lower.find("eikthyr") != std::string::npos ||
-						lower.find("elder") != std::string::npos ||
-						lower.find("bonemass") != std::string::npos ||
-						lower.find("moder") != std::string::npos ||
-						lower.find("yagluth") != std::string::npos ||
-						lower.find("queen") != std::string::npos ||
-						lower.find("fader") != std::string::npos)
+					if (lower.find("haldor") != std::string::npos || lower.find("hildir") != std::string::npos || lower.find("witch") != std::string::npos || lower.find("bog") != std::string::npos || lower.find("trader") != std::string::npos || lower.find("boss") != std::string::npos || lower.find("eikthyr") != std::string::npos || lower.find("elder") != std::string::npos || lower.find("bonemass") != std::string::npos || lower.find("moder") != std::string::npos || lower.find("yagluth") != std::string::npos || lower.find("queen") != std::string::npos || lower.find("fader") != std::string::npos)
 					{
 						is_objective = true;
 					}
@@ -216,9 +205,12 @@ namespace big
 				{
 					count++;
 					std::string default_label = "Objective";
-					if (pin.type == 9) default_label = "Boss";
-					else if (pin.type == 8) default_label = "Trader / Location";
-					else if (pin.type >= 14) default_label = "Hildir Quest";
+					if (pin.type == 9)
+						default_label = "Boss";
+					else if (pin.type == 8)
+						default_label = "Trader / Location";
+					else if (pin.type >= 14)
+						default_label = "Hildir Quest";
 
 					std::string display_name = resolve_pin_display_name(pin.name, default_label, count);
 					sub->add_option<reguler_option>(display_name.c_str(), nullptr, [pos = pin.pos, display_name] {
@@ -232,12 +224,12 @@ namespace big
 
 			if (count == 0)
 			{
-				sub->add_option<reguler_option>("No Objectives Discovered", nullptr, [] {});
+				sub->add_option<reguler_option>("No Objectives Discovered", nullptr, [] {
+				});
 			}
 		});
 
-		canvas::add_submenu<regular_submenu>("Waypoints", SubmenuWaypoints, [](regular_submenu* sub)
-		{
+		canvas::add_submenu<regular_submenu>("Waypoints", SubmenuWaypoints, [](regular_submenu* sub) {
 			auto pins = unity::get_all_map_pins();
 			int count = 0;
 
@@ -258,12 +250,12 @@ namespace big
 
 			if (count == 0)
 			{
-				sub->add_option<reguler_option>("No Waypoints Found", nullptr, [] {});
+				sub->add_option<reguler_option>("No Waypoints Found", nullptr, [] {
+				});
 			}
 		});
 
-		canvas::add_submenu<regular_submenu>("Custom Teleport", SubmenuCustomTeleport, [](regular_submenu* sub)
-		{
+		canvas::add_submenu<regular_submenu>("Custom Teleport", SubmenuCustomTeleport, [](regular_submenu* sub) {
 			g_custom_teleport_service.fetch_saved_locations();
 			sub->add_option<reguler_option>("Add Category", nullptr, [] {
 				g_input_service.show("Input Category Name", [](std::string const& input) {
@@ -343,4 +335,3 @@ namespace big
 		});
 	}
 }
-

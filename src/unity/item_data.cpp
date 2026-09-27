@@ -2,7 +2,8 @@
 
 namespace big
 {
-	item_data::item_data(MonoObject* o): obj(o)
+	item_data::item_data(MonoObject* o) :
+	    obj(o)
 	{
 	}
 	item_data::~item_data() noexcept
@@ -36,7 +37,7 @@ namespace big
 		auto durability_per_level = shared.get_durability_per_level();
 		auto quality = mono::get_field_value<"ItemDrop/ItemData", "m_quality", int>(obj);
 
-		return durability + (float)std::max(0, quality - 1) * durability_per_level; 
+		return durability + (float)std::max(0, quality - 1) * durability_per_level;
 	}
 	void item_data::set_quality(int quality)
 	{
@@ -81,5 +82,46 @@ namespace big
 	iVector2 item_data::get_grid_pos()
 	{
 		return mono::get_field_value<"ItemDrop/ItemData", "m_gridPos", iVector2>(obj);
+	}
+	void item_data::set_cheated(bool cheated)
+	{
+		if (obj)
+		{
+			mono::set_field_value<"ItemDrop/ItemData", "m_cheated">(obj, cheated);
+		}
+	}
+	bool item_data::get_cheated()
+	{
+		if (!obj)
+			return false;
+		return mono::get_field_value<"ItemDrop/ItemData", "m_cheated", bool>(obj);
+	}
+	void item_data::set_crafter_id(int64_t crafter_id)
+	{
+		if (obj)
+		{
+			mono::set_field_value<"ItemDrop/ItemData", "m_crafterID">(obj, crafter_id);
+		}
+	}
+	int64_t item_data::get_crafter_id()
+	{
+		if (!obj)
+			return 0;
+		return mono::get_field_value<"ItemDrop/ItemData", "m_crafterID", int64_t>(obj);
+	}
+	void item_data::set_crafter_name(const std::string& name)
+	{
+		if (obj)
+		{
+			auto ms = mono::to_mono_string(name);
+			mono::set_field_value<"ItemDrop/ItemData", "m_crafterName">(obj, ms);
+		}
+	}
+	std::string item_data::get_crafter_name()
+	{
+		if (!obj)
+			return "";
+		auto ms = mono::get_field_value<"ItemDrop/ItemData", "m_crafterName", MonoString*>(obj);
+		return ms ? mono::from_mono_string(ms) : "";
 	}
 }

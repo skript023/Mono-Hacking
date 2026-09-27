@@ -22,4 +22,3 @@ namespace big
 		return detour_base::get_original<wearntear_have_support>()(this_ptr);
 	}
 }
-

@@ -19,7 +19,7 @@ namespace big
 				if (mouse_obj)
 				{
 					Vector3 mouse_pos = *reinterpret_cast<Vector3*>(mono::object_unbox(mouse_obj));
-					void* args[1] = { &mouse_pos };
+					void* args[1] = {&mouse_pos};
 					MonoObject* world_obj = mono::invoke_method(screen_to_world, minimap, args);
 					if (world_obj)
 					{
@@ -32,4 +32,3 @@ namespace big
 		}
 	}
 }
-

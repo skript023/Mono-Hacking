@@ -6,7 +6,7 @@ namespace big
 {
 	float draw_notification(float start_pos, ImDrawList* dl, std::string title, std::string message, ImVec4 color)
 	{
-		ImColor textCol = ImGui::ColorConvertFloat4ToU32({ 1.f, 1.f, 1.f, 1.f });
+		ImColor textCol = ImGui::ColorConvertFloat4ToU32({1.f, 1.f, 1.f, 1.f});
 		color.w = 0.5f;
 		ImColor fadeBegin = ImGui::ColorConvertFloat4ToU32(color);
 		color.w = 0.f;
@@ -41,14 +41,14 @@ namespace big
 			}
 		}
 
-		dl->AddRectFilled({ (float)g_pointers->m_resolution.x - 360.f, 10.f + start_pos }, { (float)g_pointers->m_resolution.x - 10.f, start_pos + 45.f + total_size }, g_settings.window.color);
-		dl->AddRectFilledMultiColor({ (float)g_pointers->m_resolution.x - 360.f, 10.f + start_pos }, { (float)g_pointers->m_resolution.x - 255.f, start_pos + 45.f + total_size }, fadeBegin, fadeEnd, fadeEnd, fadeBegin);
+		dl->AddRectFilled({(float)g_pointers->m_resolution.x - 360.f, 10.f + start_pos}, {(float)g_pointers->m_resolution.x - 10.f, start_pos + 45.f + total_size}, g_settings.window.color);
+		dl->AddRectFilledMultiColor({(float)g_pointers->m_resolution.x - 360.f, 10.f + start_pos}, {(float)g_pointers->m_resolution.x - 255.f, start_pos + 45.f + total_size}, fadeBegin, fadeEnd, fadeEnd, fadeBegin);
 
-		dl->AddText(g_settings.window.font_sub_title, 22.f, { (float)g_pointers->m_resolution.x - 350.f, 15.f + start_pos }, textCol, title.c_str());
+		dl->AddText(g_settings.window.font_sub_title, 22.f, {(float)g_pointers->m_resolution.x - 350.f, 15.f + start_pos}, textCol, title.c_str());
 		int i = 0;
 		for (std::string txt : split_points)
 		{
-			dl->AddText({ (float)g_pointers->m_resolution.x - 350.f, 40.f + (i * 20.f) + start_pos }, textCol, txt.c_str());
+			dl->AddText({(float)g_pointers->m_resolution.x - 350.f, 40.f + (i * 20.f) + start_pos}, textCol, txt.c_str());
 			i++;
 		}
 

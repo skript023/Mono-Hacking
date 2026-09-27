@@ -80,7 +80,7 @@ namespace big
 						{
 							MonoString* msg = mono::to_mono_string("$msg_nomore");
 							int msg_type = 2; // MessageType.Center
-							void* params[2] = { &msg_type, msg };
+							void* params[2] = {&msg_type, msg};
 							mono::invoke_method(msg_method, player, params);
 						}
 					}
@@ -105,7 +105,7 @@ namespace big
 					{
 						MonoString* msg = mono::to_mono_string("$msg_isfull");
 						int msg_type = 2; // MessageType.Center
-						void* params[2] = { &msg_type, msg };
+						void* params[2] = {&msg_type, msg};
 						mono::invoke_method(msg_method, player, params);
 					}
 				}
@@ -113,7 +113,8 @@ namespace big
 			}
 
 			return true;
-		} EXCEPT_CLAUSE
+		}
+		EXCEPT_CLAUSE
 
 		return detour_base::get_original<player_can_eat>()(player, item, show_messages);
 	}
@@ -244,7 +245,7 @@ namespace big
 			static auto add_method = mono::class_get_method_from_name(list_class, "Add", 1);
 			if (add_method)
 			{
-				void* params[1] = { new_food };
+				void* params[1] = {new_food};
 				mono::invoke_method(add_method, foods_list, params);
 			}
 
@@ -254,29 +255,32 @@ namespace big
 			{
 				float dt = 0.f;
 				bool force = true;
-				void* uf_args[2] = { &dt, &force };
+				void* uf_args[2] = {&dt, &force};
 				mono::invoke_method(update_food, player, uf_args);
 			}
 
 			// Show message
 			std::string text = "";
-			if (hp > 0.f) text += " +" + std::to_string((int)hp) + " $item_food_health ";
-			if (stam > 0.f) text += " +" + std::to_string((int)stam) + " $item_food_stamina ";
-			if (eitr > 0.f) text += " +" + std::to_string((int)eitr) + " $item_food_eitr ";
+			if (hp > 0.f)
+				text += " +" + std::to_string((int)hp) + " $item_food_health ";
+			if (stam > 0.f)
+				text += " +" + std::to_string((int)stam) + " $item_food_stamina ";
+			if (eitr > 0.f)
+				text += " +" + std::to_string((int)eitr) + " $item_food_eitr ";
 
 			static auto msg_method = mono::get_method("Character", "Message", 2, "assembly_valheim");
 			if (msg_method && !text.empty())
 			{
 				int msg_type = 2; // MessageType.Center
 				MonoString* str = mono::to_mono_string(text);
-				void* m_args[2] = { &msg_type, str };
+				void* m_args[2] = {&msg_type, str};
 				mono::invoke_method(msg_method, player, m_args);
 			}
 
 			return true;
-		} EXCEPT_CLAUSE
+		}
+		EXCEPT_CLAUSE
 
 		return detour_base::get_original<player_eat_food>()(player, item);
 	}
 }
-

@@ -85,7 +85,7 @@ namespace big
 					}
 				}
 			}
-		} EXCEPT_CLAUSE
+		}
+		EXCEPT_CLAUSE
 	}
 }
-

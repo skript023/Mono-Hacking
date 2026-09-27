@@ -22,7 +22,6 @@ namespace big::features
 
 		virtual void on_disable() override
 		{
-
 		}
 	};
 

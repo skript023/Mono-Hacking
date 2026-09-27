@@ -37,13 +37,14 @@ include(scripts/json.cmake)
 include(scripts/g3log.cmake)
 
 message("\nFetching custom modules")
-include(scripts/vulkan.cmake)
 include(scripts/imgui.cmake)
+include(scripts/astra.cmake)
 include(scripts/stbi.cmake)
 include(scripts/asio.cmake)
 include(scripts/websocket.cmake)
 include(scripts/discord.cmake)
 include(scripts/quickjs.cmake)
+include(scripts/vulkan.cmake)
 
 # Valheim
 message(STATUS "Valheim")
@@ -63,6 +64,7 @@ else ()
 endif ()
 
 add_library(Valheim MODULE "${SRC_MAIN}")
+target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/canvas.cpp")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET Valheim PROPERTY CXX_STANDARD 23) # 23 Because std::format is not avalible in std:c++20 for some reason. Maybe it's because i use v142 toolset.
@@ -85,7 +87,7 @@ target_include_directories(Valheim PRIVATE
 )
 
 target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(Valheim PRIVATE Vulkan::Headers minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
+target_link_libraries(Valheim PRIVATE astra::ui Vulkan::Headers minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
 
 # Warnings as errors
 #set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)
@@ -117,7 +119,7 @@ if(BUILD_RENDERER_SMOKE_TESTS)
     # Keep test processes away from the trainer version.dll during DLL resolution.
     set_target_properties(renderer_smoke PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/renderer-tests")
     target_compile_features(renderer_smoke PRIVATE cxx_std_23)
-    target_compile_definitions(renderer_smoke PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(renderer_smoke PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN RENDERER_SMOKE_TEST)
     target_link_libraries(renderer_smoke PRIVATE imgui minhook Vulkan::Headers d3d11 dxgi user32 gdi32 dwmapi)
     enable_testing()
     add_test(NAME renderer_dx11 COMMAND renderer_smoke dx11)

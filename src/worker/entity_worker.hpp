@@ -5,22 +5,22 @@
 namespace big
 {
 	struct esp_data
-    {
+	{
 		bool self;
-        Vector3 location;
-        Vector3 screen;
-        float distance;
+		Vector3 location;
+		Vector3 screen;
+		float distance;
 
-        std::string name;
+		std::string name;
 		float health;
 		float max_health;
 		Vector3 top;
 		Vector3 bottom;
 
 		EEntityType type;
-        Vector3 top_screen{};
-        bool top_visible = false;
-    };
+		Vector3 top_screen{};
+		bool top_visible = false;
+	};
 
 	inline TripleBuffer<esp_data> g_esp_data{64};
 

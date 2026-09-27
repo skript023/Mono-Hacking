@@ -7,10 +7,9 @@
 
 namespace big::features
 {
-    static constexpr bool get_entity(std::string const& hash)
-    {
-        
-    }
+	static constexpr bool get_entity(std::string const& hash)
+	{
+	}
 	class tamed_all_deer : public command
 	{
 		using command::command;
@@ -19,18 +18,18 @@ namespace big::features
 		{
 			auto characters = character::get_all_scharacters();
 
-            for (auto character : characters)
-            {
-                if (!character || (uintptr_t)character.get_object() < 0x10000)
-                    continue;
+			for (auto character : characters)
+			{
+				if (!character || (uintptr_t)character.get_object() < 0x10000)
+					continue;
 
-                auto name = character.get_hover_name();
+				auto name = character.get_hover_name();
 
-                if (joaat(name) == "Deer"_hash)
-                {
-                    character.set_tamed(true);
-                }
-            }
+				if (joaat(name) == "Deer"_hash)
+				{
+					character.set_tamed(true);
+				}
+			}
 		}
 	};
 	class tamed_all_boar : public command
@@ -41,21 +40,21 @@ namespace big::features
 		{
 			auto characters = character::get_all_scharacters();
 
-            for (auto character : characters)
-            {
-                if (!character || (uintptr_t)character.get_object() < 0x10000)
-                    continue;
+			for (auto character : characters)
+			{
+				if (!character || (uintptr_t)character.get_object() < 0x10000)
+					continue;
 
-                auto name = character.get_hover_name();
+				auto name = character.get_hover_name();
 
-                if (joaat(name) == "Boar"_hash)
-                {
-                    character.set_tamed(true);
-                }
-            }
+				if (joaat(name) == "Boar"_hash)
+				{
+					character.set_tamed(true);
+				}
+			}
 		}
 	};
-    
+
 	class tamed_all_wolf : public command
 	{
 		using command::command;
@@ -64,18 +63,18 @@ namespace big::features
 		{
 			auto characters = character::get_all_scharacters();
 
-            for (auto character : characters)
-            {
-                if (!character || (uintptr_t)character.get_object() < 0x10000)
-                    continue;
+			for (auto character : characters)
+			{
+				if (!character || (uintptr_t)character.get_object() < 0x10000)
+					continue;
 
-                auto name = character.get_hover_name();
+				auto name = character.get_hover_name();
 
-                if (joaat(name) == "Wolf"_hash)
-                {
-                    character.set_tamed(true);
-                }
-            }
+				if (joaat(name) == "Wolf"_hash)
+				{
+					character.set_tamed(true);
+				}
+			}
 		}
 	};
 

@@ -2,11 +2,10 @@
 
 namespace big
 {
-	swap_pointer_hook::swap_pointer_hook(const std::string_view name, void** target, void* swap):
-		m_target(target),
-		m_swap(swap)
+	swap_pointer_hook::swap_pointer_hook(const std::string_view name, void** target, void* swap) :
+	    m_target(target),
+	    m_swap(swap)
 	{
-
 	}
 	void swap_pointer_hook::enable()
 	{

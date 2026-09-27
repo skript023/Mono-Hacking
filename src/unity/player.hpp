@@ -8,9 +8,18 @@ namespace big
 {
 	class player : public humanoid
 	{
+	private:
+		static player& instance()
+		{
+			static player value(nullptr);
+			return value;
+		}
+		mono_array_view<player> get_all_players_impl();
+		mono_array_view<player> get_all_splayers_impl();
+
 	public:
 		using humanoid::humanoid;
-		
+
 		void set_max_health(float health, bool flash);
 		void set_base_health(float health);
 		void set_max_eitr(float eitr);
@@ -43,9 +52,19 @@ namespace big
 		std::string get_player_name();
 		mono_array_view<food> get_foods();
 		mono_array_view<food> get_sfoods();
-		static mono_array_view<player> get_all_players();
-		static mono_array_view<player> get_all_splayers();
+		static mono_array_view<player> get_all_players()
+		{
+			return instance().get_all_players_impl();
+		}
+		static mono_array_view<player> get_all_splayers()
+		{
+			return instance().get_all_splayers_impl();
+		}
+		character get_hover_creature();
 
-		bool operator==(player const& c) const { return m_character == c.m_character; }
+		bool operator==(player const& c) const
+		{
+			return m_character == c.m_character;
+		}
 	};
 }

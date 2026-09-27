@@ -4,16 +4,17 @@
 
 namespace big
 {
-    class item_data
-    {
-        MonoObject* obj;
-    public:
-        item_data(MonoObject* o);
-        ~item_data() noexcept;
+	class item_data
+	{
+		MonoObject* obj;
+
+	public:
+		item_data(MonoObject* o);
+		~item_data() noexcept;
 		MonoObject* get_object();
 
-        shared_data get_shared_data();
-        void set_durability(float durability);
+		shared_data get_shared_data();
+		void set_durability(float durability);
 		float get_durability();
 		float get_max_durability();
 		void set_quality(int quality);
@@ -24,7 +25,16 @@ namespace big
 		int get_variant();
 		void set_grid_pos(iVector2 pos);
 		iVector2 get_grid_pos();
+		void set_cheated(bool cheated);
+		bool get_cheated();
+		void set_crafter_id(int64_t crafter_id);
+		int64_t get_crafter_id();
+		void set_crafter_name(const std::string& name);
+		std::string get_crafter_name();
 
-		operator bool() const { return obj != nullptr; }
+		operator bool() const
+		{
+			return obj != nullptr;
+		}
 	};
 }

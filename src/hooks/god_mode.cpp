@@ -23,4 +23,3 @@ namespace big
 		return detour_base::get_original<player_in_god_mode>()(player);
 	}
 }
-

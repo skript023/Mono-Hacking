@@ -8,22 +8,22 @@ namespace memory
 		std::uint64_t m_hash;
 
 		constexpr pattern_hash() :
-			m_hash(0xD84A917A64D4D016ULL)
+		    m_hash(0xD84A917A64D4D016ULL)
 		{
 		}
 
 		constexpr pattern_hash(std::uint64_t hash) :
-			m_hash(hash)
+		    m_hash(hash)
 		{
 		}
 
 		constexpr pattern_hash(const pattern_hash& other) :
-			m_hash(other.m_hash)
+		    m_hash(other.m_hash)
 		{
 		}
 
 		constexpr pattern_hash(pattern_hash&& other) :
-			m_hash(other.m_hash)
+		    m_hash(other.m_hash)
 		{
 		}
 

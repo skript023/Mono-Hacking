@@ -22,7 +22,7 @@ namespace big::features
 		virtual void on_disable() override
 		{
 			auto player = self::get_player();
-			
+
 			player.set_base_health(25.f);
 		}
 	};

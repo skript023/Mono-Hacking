@@ -54,7 +54,7 @@ namespace big
 
 	bool custom_teleport_service::save_new_location(const std::string& category, teleport_location t)
 	{
-		const auto& pair = all_saved_locations.insert({ category, {t} });
+		const auto& pair = all_saved_locations.insert({category, {t}});
 		if (!pair.second)
 		{
 			pair.first->second.push_back(t);
@@ -85,7 +85,7 @@ namespace big
 
 		std::erase_if(it->second, [location_name](teleport_location t) {
 			return t.name == location_name;
-			});
+		});
 
 		if (!it->second.size())
 		{

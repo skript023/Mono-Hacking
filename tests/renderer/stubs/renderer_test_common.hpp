@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <unordered_map>
 #define LOG(level) std::cerr
 namespace big
 {

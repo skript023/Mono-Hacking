@@ -17,5 +17,8 @@ namespace big
 	extern LONG vectored_exception_handler(EXCEPTION_POINTERS* exception_info);
 }
 
-#define TRY_CLAUSE  __try
-#define EXCEPT_CLAUSE  __except (big::vectored_exception_handler(GetExceptionInformation()), EXCEPTION_EXECUTE_HANDLER) { }
+#define TRY_CLAUSE __try
+#define EXCEPT_CLAUSE                                                                                \
+	__except (big::vectored_exception_handler(GetExceptionInformation()), EXCEPTION_EXECUTE_HANDLER) \
+	{                                                                                                \
+	}

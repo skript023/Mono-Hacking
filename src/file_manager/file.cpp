@@ -4,7 +4,7 @@
 namespace big
 {
 	file::file(const std::filesystem::path& file_path) :
-		m_file_path(file_path)
+	    m_file_path(file_path)
 	{
 	}
 
@@ -18,7 +18,7 @@ namespace big
 		return m_file_path;
 	}
 
-	file::operator std::filesystem::path& ()
+	file::operator std::filesystem::path&()
 	{
 		return m_file_path;
 	}
@@ -43,6 +43,6 @@ namespace big
 		if (std::filesystem::exists(m_file_path))
 			std::filesystem::rename(m_file_path, new_path);
 
-		return { new_path };
+		return {new_path};
 	}
 }

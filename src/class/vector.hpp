@@ -6,17 +6,29 @@ namespace big
 	struct iVector2
 	{
 		iVector2() = default;
-		iVector2(int x, int y) : x(x), y(y) {}
+		iVector2(int x, int y) :
+		    x(x),
+		    y(y)
+		{
+		}
 		int x{};
 		int y{};
 
-		iVector2 operator/(const iVector2 a) const { return { x / a.x, y / a.y }; }
+		iVector2 operator/(const iVector2 a) const
+		{
+			return {x / a.x, y / a.y};
+		}
 	};
 
 	struct iVector3
 	{
 		iVector3() = default;
-		iVector3(int x, int y, int z) : x(x), y(y), z(z) {}
+		iVector3(int x, int y, int z) :
+		    x(x),
+		    y(y),
+		    z(z)
+		{
+		}
 		int x{};
 		int y{};
 		int z{};
@@ -33,7 +45,11 @@ namespace big
 	struct Vector2
 	{
 		Vector2() = default;
-		Vector2(float x, float y) : x(x), y(y) {}
+		Vector2(float x, float y) :
+		    x(x),
+		    y(y)
+		{
+		}
 		float x;
 		float y;
 
@@ -60,7 +76,12 @@ namespace big
 	struct Vector3
 	{
 		Vector3() = default;
-		Vector3(float x, float y, float z) : x(x), y(y), z(z) {}
+		Vector3(float x, float y, float z) :
+		    x(x),
+		    y(y),
+		    z(z)
+		{
+		}
 		float x{};
 		float y{};
 		float z{};
@@ -78,7 +99,7 @@ namespace big
 		float distance(Vector3 const& other) const
 		{
 			Vector3 diff = other - *this;
-	
+
 			return diff.magnitude();
 		}
 
@@ -102,32 +123,32 @@ namespace big
 			return std::sqrt((x * x) + (y * y) + (z * z));
 		}
 
-		void to_directions( Vector3* forward, Vector3* right, Vector3* up ) const noexcept
+		void to_directions(Vector3* forward, Vector3* right, Vector3* up) const noexcept
 		{
 			constexpr auto deg_to_rad = std::numbers::pi_v<float> / 180.0f;
 
-			const auto sp = std::sinf( x * deg_to_rad );
-			const auto cp = std::cosf( x * deg_to_rad );
-			const auto sy = std::sinf( y * deg_to_rad );
-			const auto cy = std::cosf( y * deg_to_rad );
-			const auto sr = std::sinf( z * deg_to_rad );
-			const auto cr = std::cosf( z * deg_to_rad );
+			const auto sp = std::sinf(x * deg_to_rad);
+			const auto cp = std::cosf(x * deg_to_rad);
+			const auto sy = std::sinf(y * deg_to_rad);
+			const auto cy = std::cosf(y * deg_to_rad);
+			const auto sr = std::sinf(z * deg_to_rad);
+			const auto cr = std::cosf(z * deg_to_rad);
 
-			if ( forward )
+			if (forward)
 			{
 				forward->x = cp * cy;
 				forward->y = cp * sy;
 				forward->z = -sp;
 			}
 
-			if ( right )
+			if (right)
 			{
 				right->x = -1.0f * sr * sp * cy + -1.0f * cr * -sy;
 				right->y = -1.0f * sr * sp * sy + -1.0f * cr * cy;
 				right->z = -1.0f * sr * cp;
 			}
 
-			if ( up )
+			if (up)
 			{
 				up->x = cr * sp * cy + -sr * -sy;
 				up->y = cr * sp * sy + -sr * cy;
@@ -141,33 +162,33 @@ namespace big
 		}
 		Vector3 operator*(float scalar) const
 		{
-			return { x * scalar, y * scalar, z * scalar };
+			return {x * scalar, y * scalar, z * scalar};
 		}
 		Vector3 operator*(const Vector3& other) const
 		{
-			return { x * other.x, y * other.y, z * other.z };
+			return {x * other.x, y * other.y, z * other.z};
 		}
 		Vector3 operator+(const Vector3& other) const
 		{
-			return { x + other.x, y + other.y, z + other.z };
+			return {x + other.x, y + other.y, z + other.z};
 		}
 		Vector3 operator-(const Vector3& other) const
 		{
-			return { x - other.x, y - other.y, z - other.z };
+			return {x - other.x, y - other.y, z - other.z};
 		}
 		Vector3 operator/(float Scalar) const
 		{
 			if (Scalar == 0)
 				return *this;
 
-			return { x / Scalar, y / Scalar, z / Scalar };
+			return {x / Scalar, y / Scalar, z / Scalar};
 		}
 		Vector3 operator/(const Vector3& other) const
 		{
 			if (other.x == 0 || other.y == 0 || other.z == 0)
 				return *this;
 
-			return { x / other.x, y / other.y, z / other.z };
+			return {x / other.x, y / other.y, z / other.z};
 		}
 		bool operator==(const Vector3& other) const
 		{
@@ -185,22 +206,48 @@ namespace big
 	struct Rotator
 	{
 		Rotator() = default;
-		Rotator(float pitch, float yaw, float roll) : pitch(pitch), yaw(yaw), roll(roll) {}
+		Rotator(float pitch, float yaw, float roll) :
+		    pitch(pitch),
+		    yaw(yaw),
+		    roll(roll)
+		{
+		}
 		float pitch{};
 		float yaw{};
 		float roll{};
 
-		Rotator operator-(const Rotator vec3) const { return { vec3.pitch - pitch, vec3.yaw - yaw, vec3.roll - roll }; }
-		Rotator operator*(const Rotator& a) const { return { pitch * a.pitch, yaw * a.yaw, roll * a.roll }; }
-		Rotator operator+(const Rotator& vec3) const { return { pitch + vec3.pitch, yaw * vec3.yaw, roll * vec3.roll }; }
-		Rotator operator/(const Rotator& vec3) const { return { vec3.pitch / pitch, vec3.yaw / yaw, vec3.roll / roll }; }
-		bool operator==(const Rotator a) const { return pitch == a.pitch && yaw == a.yaw && roll == a.roll; }
+		Rotator operator-(const Rotator vec3) const
+		{
+			return {vec3.pitch - pitch, vec3.yaw - yaw, vec3.roll - roll};
+		}
+		Rotator operator*(const Rotator& a) const
+		{
+			return {pitch * a.pitch, yaw * a.yaw, roll * a.roll};
+		}
+		Rotator operator+(const Rotator& vec3) const
+		{
+			return {pitch + vec3.pitch, yaw * vec3.yaw, roll * vec3.roll};
+		}
+		Rotator operator/(const Rotator& vec3) const
+		{
+			return {vec3.pitch / pitch, vec3.yaw / yaw, vec3.roll / roll};
+		}
+		bool operator==(const Rotator a) const
+		{
+			return pitch == a.pitch && yaw == a.yaw && roll == a.roll;
+		}
 	};
 
 	struct Vector4
 	{
 		Vector4() = default;
-		Vector4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
+		Vector4(float x, float y, float z, float w) :
+		    x(x),
+		    y(y),
+		    z(z),
+		    w(w)
+		{
+		}
 		float x{};
 		float y{};
 		float z{};
@@ -216,13 +263,16 @@ namespace big
 			return float((int)x & v);
 		}
 
-		Vector4 operator&(const Vector4& v) { return { float((int)v.x & (int)x), float((int)v.y & (int)y), float((int)v.z & (int)z), float((int)v.w & (int)w) }; };
+		Vector4 operator&(const Vector4& v)
+		{
+			return {float((int)v.x & (int)x), float((int)v.y & (int)y), float((int)v.z & (int)z), float((int)v.w & (int)w)};
+		};
 	};
 
 	struct Bounds
 	{
-		Vector3 center;   // m_Center
-		Vector3 extents;  // m_Extents
+		Vector3 center;  // m_Center
+		Vector3 extents; // m_Extents
 	};
 
 	using FVector = Vector3;
