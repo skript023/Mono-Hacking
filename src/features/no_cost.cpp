@@ -1,29 +1,6 @@
-#include "commands/looped_command.hpp"
-#include "mono/mono.hpp"
-
-#include "unity/self.hpp"
-#include "utility/unity.hpp"
+#include "commands/bool_command.hpp"
 
 namespace big::features
 {
-	class open_all_recepies : public looped_command
-	{
-		using looped_command::looped_command;
-
-		virtual void on_tick() override
-		{
-			auto player = self::get_player();
-
-			player.set_no_placement_cost(TRUE);
-		}
-
-		virtual void on_disable() override
-		{
-			auto player = self::get_player();
-
-			player.set_no_placement_cost(FALSE);
-		}
-	};
-
-	static open_all_recepies _open_all_recepies("open_all_recepies", "Opens all recipes and free crafting", "Opens all recipes and free crafting");
+	static bool_command open_all_recepies("open_all_recepies", "Unlock Recipes & Free Crafting", "Unlock recipes and build pieces, and craft without materials or stations. Learned recipes stay unlocked after disabling.");
 }

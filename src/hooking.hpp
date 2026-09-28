@@ -61,7 +61,12 @@ namespace big
 		static void character_rpc_damage(MonoObject* character, int64_t sender, MonoObject* hit);
 		static bool player_in_god_mode(MonoObject* player);
 		static bool player_in_ghost_mode(MonoObject* player);
-		static bool player_no_cost_cheat(MonoObject* player);
+		static bool player_recipe_requirements(MonoObject* player, MonoObject* recipe, bool discover, int quality, int amount);
+		static bool player_piece_requirements(MonoObject* player, MonoObject* piece, int mode);
+		static bool required_crafting_station(MonoObject* player, MonoObject* recipe, int quality, bool check_level);
+		static void consume_resources(MonoObject* player, MonoArray* requirements, int quality, int item_quality, int multiplier);
+		static MonoObject* recipe_required_station(MonoObject* recipe, int quality);
+		static MonoObject* first_required_item(MonoObject* player, MonoObject* inventory, MonoObject* recipe, int quality, int* amount, int* extra, int multiplier);
 		static double smelter_delta(MonoObject* object);
 		static double fermenter_time(MonoObject* object);
 		static float hive_delta(MonoObject* object);
@@ -81,6 +86,8 @@ namespace big
 		static bool player_can_eat(MonoObject* player, MonoObject* item, bool show_messages);
 		static bool player_eat_food(MonoObject* player, MonoObject* item);
 		static bool bypass_cheat_checks();
+		static bool can_get_achievements(bool cheated);
+		static bool achievements_is_cheated();
 		static bool inventory_any_cheated_item(MonoObject* inventory);
 		static void drop_invalid_items(MonoObject* humanoid);
 		static void hud_update_food(MonoObject* hud, MonoObject* player);

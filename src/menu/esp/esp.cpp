@@ -13,7 +13,7 @@ namespace big
 		float w = h * 0.5f;
 
 		float x = top_s.x - w / 2.f;
-		float y = top_s.y;
+		float y = std::min(top_s.y, bottom_s.y);
 
 		canvas::draw_box(x, y, w, h, 2.f, {255, 255, 255, 255});
 	}
@@ -127,8 +127,10 @@ namespace big
 			return;
 		}
 
-		float width = static_cast<float>(g_pointers->m_resolution.x / 2);
-		float height = static_cast<float>(g_pointers->m_resolution.y / 2);
+		const auto display = ImGui::GetIO().DisplaySize;
+		if (display.x <= 0.f || display.y <= 0.f)
+			return;
+		const float width = display.x * 0.5f;
 
 		static const Color white = {255, 255, 255, 255};
 
@@ -136,22 +138,24 @@ namespace big
 		{
 			if (data.self)
 				continue;
+			const Vector3 bottom{data.screen.x * display.x, data.screen.y * display.y, data.screen.z};
+			const Vector3 top{data.top_screen.x * display.x, data.top_screen.y * display.y, data.top_screen.z};
 
 			if (_draw_health.get_state() && data.top_visible && (data.type == EEntityType::Character || data.type == EEntityType::Player))
 			{
-				draw_health(data.top_screen, data.screen, data.health, data.max_health);
+				draw_health(top, bottom, data.health, data.max_health);
 			}
 			if (_draw_box.get_state() && data.top_visible && (data.type == EEntityType::Character || data.type == EEntityType::Player))
 			{
-				draw_box(data.top_screen, data.screen);
+				draw_box(top, bottom);
 			}
 			if (_draw_line.get_state())
 			{
-				canvas::draw_line(width, 0, data.screen.x, data.screen.y, white, 1.f);
+				canvas::draw_line(width, 0, bottom.x, bottom.y, white, 1.f);
 			}
 			if (_draw_name.get_state())
 			{
-				canvas::draw_stroke_text(data.screen.x, data.screen.y, white, data.name);
+				canvas::draw_stroke_text(bottom.x, bottom.y, white, data.name);
 			}
 		}
 	}

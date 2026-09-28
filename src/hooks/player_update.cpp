@@ -18,13 +18,6 @@ namespace big
 					s_last_pickup_range = g_settings.self.pickup_range;
 					mono::set_field_value<"Player", "m_autoPickupRange">(local_player, g_settings.self.pickup_range);
 				}
-
-				static bool s_last_no_cost = false;
-				if (s_last_no_cost != g_settings.self.free_crafting)
-				{
-					s_last_no_cost = g_settings.self.free_crafting;
-					mono::set_field_value<"Player", "m_noPlacementCost">(local_player, g_settings.self.free_crafting);
-				}
 			}
 
 			return detour_base::get_original<update>()(player);
