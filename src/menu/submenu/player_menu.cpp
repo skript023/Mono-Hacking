@@ -157,7 +157,12 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Building & Crafting", "SubmenuBuilding"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("Free Crafting & Building", "Craft anywhere with 0 cost, no station/roof/fire, free placement.", &g_settings.self.free_crafting);
+			sub->add_option<bool_option<bool>>("Free Crafting & Building", "Craft anywhere with 0 cost, deconstruct/repair pieces with no station requirement.", &g_settings.self.free_crafting);
+			sub->add_option<reguler_option>("Repair All Items (Anywhere)", "Instantly restore all equipped weapons, armor, and inventory items to 100% durability.", [] {
+				queue_job([] {
+					world_tools::repair_all_inventory();
+				});
+			});
 			sub->add_option<bool_option<bool>>("Infinite Durability", "Weapons, tools, shields, and armor never degrade.", &g_settings.self.infinite_durability);
 			sub->add_option<bool_option<bool>>("Infinite Building Stability", "Pieces never collapse from lack of support.", &g_settings.self.infinite_stability);
 			sub->add_option<bool_option<bool>>("Ward / Guard Stone Bypass", "Bypass all player wards and guard stones.", &g_settings.self.ward_bypass);
@@ -176,6 +181,11 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Inventory", "SubmenuInventory"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Repair All Items (Anywhere)", "Instantly restore all equipped weapons, armor, and inventory items to 100% durability.", [] {
+				queue_job([] {
+					world_tools::repair_all_inventory();
+				});
+			});
 			sub->add_option<bool_option<bool>>("Fill Inventory Top First", "Items added to inventory will fill slots from the top down instead of bottom.", &g_settings.self.inventory_top_first);
 			sub->add_option<bool_slider_int_option>("override_drop"_hash, "drop_amount"_hash);
 			sub->add_option<bool_option<bool>>("override_selected"_hash);
@@ -190,6 +200,7 @@ namespace big
 
 
 		canvas::add_submenu<regular_submenu>("World", "SubmenuWorld"_hash, [](regular_submenu* sub) {
+			sub->add_option<sub_option>("World Upgrade & Maintenance", "Upgrade old worlds, generate missing update POIs, and optimize terrain.", "SubmenuUpgradeWorld"_hash);
 			sub->add_option<sub_option>("Exploration & Map", "Reveal map fog, locate all bosses and traders.", "SubmenuExploration"_hash);
 			sub->add_option<sub_option>("Creatures & Taming", "Aimed animal inspection, instant tame hotkey, and area taming.", "SubmenuCreatures"_hash);
 			sub->add_option<sub_option>("Base Raids & Events", "Trigger or stop custom raids, disable base attacks.", "SubmenuRaids"_hash);
@@ -652,10 +663,48 @@ namespace big
 			});
 		});
 
-		canvas::add_submenu<regular_submenu>("Remote Merchant", "SubmenuTrader"_hash, [](regular_submenu* sub) {
-			sub->add_option<reguler_option>("Open Trader Store (Anywhere)", "Open Haldor, Hildir, or Bog Witch store GUI directly from menu.", [] {
+		canvas::add_submenu<regular_submenu>("World Upgrade & Maintenance", "SubmenuUpgradeWorld"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Generate Missing Locations (genloc)", "Distribute all newly added update locations (Bog Witch, Hildir, Ashlands, Mistlands dungeons, Frost Caves, Tar Pits) into unexplored zones.", [] {
 				queue_job([] {
-					world_tools::open_trader_gui();
+					world_tools::generate_missing_locations();
+				});
+			});
+			sub->add_option<reguler_option>("Upgrade WorldGen Version (v2)", "Upgrade old world generation version to v2 (Modern rules & biome distribution).", [] {
+				queue_job([] {
+					world_tools::upgrade_worldgen_version();
+				});
+			});
+			sub->add_option<reguler_option>("Optimize Old Terrain (optterrain)", "Convert pre-Hearth&Home terrain modifications in loaded area to the modern system (fixes FPS drops).", [] {
+				queue_job([] {
+					world_tools::upgrade_terrain();
+				});
+			});
+			sub->add_option<reguler_option>("Spawn Bog Witch Camp Nearby", "Force spawn the Bog Witch merchant camp in front of you (saves permanently to world).", [] {
+				queue_job([] {
+					world_tools::force_spawn_location("BogWitch_Camp");
+				});
+			});
+			sub->add_option<reguler_option>("Spawn Hildir Camp Nearby", "Force spawn Hildir's merchant camp in front of you (saves permanently to world).", [] {
+				queue_job([] {
+					world_tools::force_spawn_location("Hildir_camp");
+				});
+			});
+		});
+
+		canvas::add_submenu<regular_submenu>("Remote Merchant", "SubmenuTrader"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Open Haldor Store (Black Forest)", "Trade for Megingjord, Fishing Rod, Bait, Ymir Flesh, etc.", [] {
+				queue_job([] {
+					world_tools::open_trader_gui("Haldor");
+				});
+			});
+			sub->add_option<reguler_option>("Open Hildir Store (Meadows)", "Trade for clothes, hats, sparklers, fireworks, etc.", [] {
+				queue_job([] {
+					world_tools::open_trader_gui("Hildir");
+				});
+			});
+			sub->add_option<reguler_option>("Open Bog Witch Store (Swamp)", "Trade for potions, alchemy ingredients, feast materials, scythe, etc.", [] {
+				queue_job([] {
+					world_tools::open_trader_gui("BogWitch");
 				});
 			});
 		});

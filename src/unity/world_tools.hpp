@@ -53,9 +53,33 @@ namespace big
 		}
 
 		// Remote Trader
-		static bool open_trader_gui()
+		static bool open_trader_gui(const std::string& trader_name = "Haldor")
 		{
-			return instance().open_trader_gui_impl();
+			return instance().open_trader_gui_impl(trader_name);
+		}
+
+		// Repair Anywhere
+		static bool repair_all_inventory()
+		{
+			return instance().repair_all_inventory_impl();
+		}
+
+		// World Upgrade & Old World Maintenance
+		static bool generate_missing_locations()
+		{
+			return instance().generate_missing_locations_impl();
+		}
+		static bool upgrade_terrain()
+		{
+			return instance().upgrade_terrain_impl();
+		}
+		static bool upgrade_worldgen_version()
+		{
+			return instance().upgrade_worldgen_version_impl();
+		}
+		static bool force_spawn_location(const std::string& location_name)
+		{
+			return instance().force_spawn_location_impl(location_name);
 		}
 
 	private:
@@ -76,6 +100,11 @@ namespace big
 		Vector3 get_death_point_impl();
 		bool teleport_to_tombstone_impl();
 		bool loot_nearby_tombstone_impl(float radius);
-		bool open_trader_gui_impl();
+		bool open_trader_gui_impl(const std::string& trader_name);
+		bool repair_all_inventory_impl();
+		bool generate_missing_locations_impl();
+		bool upgrade_terrain_impl();
+		bool upgrade_worldgen_version_impl();
+		bool force_spawn_location_impl(const std::string& location_name);
 	};
 }

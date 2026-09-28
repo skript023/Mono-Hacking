@@ -63,10 +63,14 @@ namespace big
 		static bool player_in_ghost_mode(MonoObject* player);
 		static bool player_recipe_requirements(MonoObject* player, MonoObject* recipe, bool discover, int quality, int amount);
 		static bool player_piece_requirements(MonoObject* player, MonoObject* piece, int mode);
+		static bool player_check_can_remove_piece(MonoObject* player, MonoObject* piece);
 		static bool required_crafting_station(MonoObject* player, MonoObject* recipe, int quality, bool check_level);
 		static void consume_resources(MonoObject* player, MonoArray* requirements, int quality, int item_quality, int multiplier);
 		static MonoObject* recipe_required_station(MonoObject* recipe, int quality);
 		static MonoObject* first_required_item(MonoObject* player, MonoObject* inventory, MonoObject* recipe, int quality, int* amount, int* extra, int multiplier);
+		static bool inventory_gui_can_repair(MonoObject* gui, MonoObject* item);
+		static bool inventory_gui_have_repairable_items(MonoObject* gui);
+		static void inventory_gui_repair_one_item(MonoObject* gui);
 		static double smelter_delta(MonoObject* object);
 		static double fermenter_time(MonoObject* object);
 		static float hive_delta(MonoObject* object);

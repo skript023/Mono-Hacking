@@ -91,10 +91,14 @@ namespace big
 		add_mono_hook<hooks::player_in_ghost_mode>("Player::InGhostMode", "Player", "InGhostMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_recipe_requirements>("Player::HaveRequirements(Recipe)", "Player", "HaveRequirements", 4, "assembly_valheim");
 		add_mono_hook<hooks::player_piece_requirements>("Player::HaveRequirements(Piece)", "Player", "HaveRequirements", 2, "assembly_valheim");
+		add_mono_hook<hooks::player_check_can_remove_piece>("Player::CheckCanRemovePiece", "Player", "CheckCanRemovePiece", 1, "assembly_valheim");
 		add_mono_hook<hooks::required_crafting_station>("Player::RequiredCraftingStation", "Player", "RequiredCraftingStation", 3, "assembly_valheim");
 		add_mono_hook<hooks::consume_resources>("Player::ConsumeResources", "Player", "ConsumeResources", 4, "assembly_valheim");
 		add_mono_hook<hooks::first_required_item>("Player::GetFirstRequiredItem", "Player", "GetFirstRequiredItem", 6, "assembly_valheim");
 		add_mono_hook<hooks::recipe_required_station>("Recipe::GetRequiredStation", "Recipe", "GetRequiredStation", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_gui_can_repair>("InventoryGui::CanRepair", "InventoryGui", "CanRepair", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_gui_have_repairable_items>("InventoryGui::HaveRepairableItems", "InventoryGui", "HaveRepairableItems", 0, "assembly_valheim");
+		add_mono_hook<hooks::inventory_gui_repair_one_item>("InventoryGui::RepairOneItem", "InventoryGui", "RepairOneItem", 0, "assembly_valheim");
 		add_mono_hook<hooks::smelter_delta>("Smelter::GetDeltaTime", "Smelter", "GetDeltaTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::fermenter_time>("Fermenter::GetFermentationTime", "Fermenter", "GetFermentationTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::hive_delta>("Beehive::GetTimeSinceLastUpdate", "Beehive", "GetTimeSinceLastUpdate", 0, "assembly_valheim");
