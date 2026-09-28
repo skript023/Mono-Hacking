@@ -4,6 +4,18 @@
 
 namespace big
 {
+	bool hooks::can_get_achievements(bool cheated)
+	{
+		if (g_running)
+			return true;
+		return detour_base::get_original<can_get_achievements>()(cheated);
+	}
+	bool hooks::achievements_is_cheated()
+	{
+		if (g_running)
+			return false;
+		return detour_base::get_original<achievements_is_cheated>()();
+	}
 	bool hooks::bypass_cheat_checks()
 	{
 		return true;

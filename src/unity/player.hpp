@@ -31,7 +31,6 @@ namespace big
 		void set_max_carry(float carry);
 		void set_adrenalin(float adrenalin);
 		void set_max_adrenalin(float adrenalin);
-		void set_no_placement_cost(BOOL cost);
 		void set_max_food(int food);
 		void add_eitr(float eitr);
 		void add_stamina(float eitr);

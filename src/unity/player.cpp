@@ -90,13 +90,6 @@ namespace big
 			LOG(FATAL) << "Failed to set max adrenalin value";
 		}
 	}
-	void player::set_no_placement_cost(BOOL cost)
-	{
-		if (!mono::set_field_value<"Player", "m_noPlacementCost">(m_character, cost))
-		{
-			LOG(FATAL) << "Failed to set no placement cost value";
-		}
-	}
 	void player::set_max_food(int food)
 	{
 		if (!mono::set_field_value<"Player", "m_maxFoods">(m_character, food))

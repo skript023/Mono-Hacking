@@ -1,6 +1,11 @@
 #pragma once
 #include "detour_base.hpp"
 
+namespace ellohim
+{
+	class detour_hook;
+}
+
 namespace big
 {
 	class detour_hook : public detour_base
@@ -30,8 +35,6 @@ namespace big
 		void fix_hook_address();
 
 	private:
-		void* m_target;
-		void* m_detour;
-		void* m_original{};
+		std::unique_ptr<ellohim::detour_hook> m_backend;
 	};
 }

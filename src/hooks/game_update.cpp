@@ -2,6 +2,7 @@
 #include "script_mgr.hpp"
 #include "utility/unity.hpp"
 #include "unity/hud.hpp"
+#include "unity/crafting_tools.hpp"
 #include <chrono>
 
 namespace big
@@ -10,7 +11,7 @@ namespace big
 	{
 		TRY_CLAUSE
 		{
-			if (!g_running && unity::hud_manager::cleanup_pending())
+			if (!g_running && (unity::hud_manager::cleanup_pending() || crafting_tools::cleanup_pending()))
 				g_script_mgr.tick();
 			if (g_running)
 			{

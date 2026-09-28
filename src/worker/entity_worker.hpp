@@ -8,7 +8,7 @@ namespace big
 	{
 		bool self;
 		Vector3 location;
-		Vector3 screen;
+		Vector3 screen; // Normalized viewport coordinates, top-left origin.
 		float distance;
 
 		std::string name;

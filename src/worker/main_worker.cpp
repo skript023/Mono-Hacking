@@ -5,6 +5,7 @@
 
 #include "unity/self.hpp"
 #include "unity/hud.hpp"
+#include "unity/crafting_tools.hpp"
 #include "unity/online_players.hpp"
 #include "unity/base_tools.hpp"
 #include "unity/animal_tools.hpp"
@@ -17,6 +18,7 @@ namespace big
 	{
 		self::update();
 		unity::hud_manager::update();
+		crafting_tools::update();
 		base_tools::hotkey_tick();
 		animal_tools::update();
 		animal_tools::hotkey_tick();

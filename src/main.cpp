@@ -16,6 +16,7 @@
 #include "worker/main_worker.hpp"
 #include "worker/entity_worker.hpp"
 #include "unity/hud.hpp"
+#include "unity/crafting_tools.hpp"
 #include "javascript/javascript_manager.hpp"
 
 #include "services/notification/notification_service.hpp"
@@ -114,6 +115,7 @@ DWORD APIENTRY main_thread(LPVOID)
 			std::this_thread::sleep_for(1s);
 		}
 
+		crafting_tools::shutdown();
 		unity::hud_manager::shutdown();
 		render_vulkan::detach();
 		g_hooking->disable();

@@ -9,6 +9,7 @@
 #include "graphic/graphic_manager.hpp"
 
 #include <MinHook.h>
+#include <ellohim/logger.hpp>
 
 namespace big
 {
@@ -34,6 +35,16 @@ namespace big
 	hooking::hooking()
 	try
 	{
+		ellohim::logger::set_callback([](ellohim::log_level level, std::string_view message) {
+			if (level == ellohim::log_level::info)
+			{
+				LOG(INFO) << "[Ellohim] " << message;
+			}
+			else
+			{
+				LOG(WARNING) << "[Ellohim] " << message;
+			}
+		});
 		if (graphic_manager::get_method_table(hooks::swapchain_present_index))
 		{
 			detour_hook::add<hooks::swapchain_present>("SwapChainPresent", graphic_manager::get_method_table(hooks::swapchain_present_index));
@@ -78,7 +89,12 @@ namespace big
 		add_mono_hook<hooks::character_rpc_damage>("Character::RPC_Damage", "Character", "RPC_Damage", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_in_god_mode>("Player::InGodMode", "Player", "InGodMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_in_ghost_mode>("Player::InGhostMode", "Player", "InGhostMode", 0, "assembly_valheim");
-		add_mono_hook<hooks::player_no_cost_cheat>("Player::NoCostCheat", "Player", "NoCostCheat", 0, "assembly_valheim");
+		add_mono_hook<hooks::player_recipe_requirements>("Player::HaveRequirements(Recipe)", "Player", "HaveRequirements", 4, "assembly_valheim");
+		add_mono_hook<hooks::player_piece_requirements>("Player::HaveRequirements(Piece)", "Player", "HaveRequirements", 2, "assembly_valheim");
+		add_mono_hook<hooks::required_crafting_station>("Player::RequiredCraftingStation", "Player", "RequiredCraftingStation", 3, "assembly_valheim");
+		add_mono_hook<hooks::consume_resources>("Player::ConsumeResources", "Player", "ConsumeResources", 4, "assembly_valheim");
+		add_mono_hook<hooks::first_required_item>("Player::GetFirstRequiredItem", "Player", "GetFirstRequiredItem", 6, "assembly_valheim");
+		add_mono_hook<hooks::recipe_required_station>("Recipe::GetRequiredStation", "Recipe", "GetRequiredStation", 1, "assembly_valheim");
 		add_mono_hook<hooks::smelter_delta>("Smelter::GetDeltaTime", "Smelter", "GetDeltaTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::fermenter_time>("Fermenter::GetFermentationTime", "Fermenter", "GetFermentationTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::hive_delta>("Beehive::GetTimeSinceLastUpdate", "Beehive", "GetTimeSinceLastUpdate", 0, "assembly_valheim");
@@ -101,6 +117,10 @@ namespace big
 		add_mono_hook<hooks::attack_modify_damage>("Attack::ModifyDamage", "Attack", "ModifyDamage", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_can_eat>("Player::CanEat", "Player", "CanEat", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_eat_food>("Player::EatFood", "Player", "EatFood", 1, "assembly_valheim");
+		if (auto method = mono::get_compile_method("Achievements", "CanGetAchievements", 1, "assembly_valheim"))
+			detour_hook::add<hooks::can_get_achievements>("Achievements::CanGetAchievements", method);
+		if (auto method = mono::get_compile_method("Achievements", "IsCheatedAtAll", 0, "assembly_valheim"))
+			detour_hook::add<hooks::achievements_is_cheated>("Achievements::IsCheatedAtAll", method);
 		if (auto bypass = mono::get_compile_method("PlayerProfile", "get_s_bypassCheatChecks", 0, "assembly_valheim"))
 			detour_hook::add<hooks::bypass_cheat_checks>("PlayerProfile::get_s_bypassCheatChecks", bypass);
 		if (auto any_cheated = mono::get_compile_method("Inventory", "AnyCheatedItem", 0, "assembly_valheim"))
@@ -134,11 +154,19 @@ namespace big
 	{
 		m_og_wndproc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&hooks::wndproc)));
 
-		detour_base::enable_all();
-
-		MH_ApplyQueued();
-
-		m_enabled = true;
+		try
+		{
+			if (!detour_base::enable_all())
+				throw std::runtime_error("Could not enable all hooks");
+			MH_ApplyQueued();
+			m_enabled = true;
+		}
+		catch (...)
+		{
+			SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_og_wndproc));
+			detour_base::disable_all();
+			throw;
+		}
 	}
 
 	void hooking::disable()
