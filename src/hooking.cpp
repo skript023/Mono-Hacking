@@ -8,7 +8,6 @@
 
 #include "graphic/graphic_manager.hpp"
 
-#include <MinHook.h>
 #include <ellohim/logger.hpp>
 
 namespace big
@@ -162,7 +161,6 @@ namespace big
 		{
 			if (!detour_base::enable_all())
 				throw std::runtime_error("Could not enable all hooks");
-			MH_ApplyQueued();
 			m_enabled = true;
 		}
 		catch (...)
@@ -180,20 +178,9 @@ namespace big
 		SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_og_wndproc));
 
 		detour_base::disable_all();
-		MH_ApplyQueued();
 
 		while (!detour_base::hooks().empty())
 			delete detour_base::hooks().back();
-	}
-
-	minhook_keepalive::minhook_keepalive()
-	{
-		MH_Initialize();
-	}
-
-	minhook_keepalive::~minhook_keepalive()
-	{
-		MH_Uninitialize();
 	}
 
 	void* hooks::convert_thread_to_fiber(void* param)

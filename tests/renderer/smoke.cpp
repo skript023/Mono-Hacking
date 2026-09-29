@@ -120,8 +120,6 @@ static void test_vulkan(HWND window, renderer& ui, bool late = false, bool acqui
 	auto module = LoadLibraryW(L"vulkan-1.dll");
 	require(module != nullptr, "Vulkan runtime unavailable");
 	auto get = reinterpret_cast<PFN_vkGetInstanceProcAddr>(GetProcAddress(module, "vkGetInstanceProcAddr"));
-	if (!late)
-		render_vulkan::start_capture();
 	auto create = reinterpret_cast<PFN_vkCreateInstance>(get(nullptr, "vkCreateInstance"));
 	const char* extensions[] = {"VK_KHR_surface", "VK_KHR_win32_surface"};
 	VkApplicationInfo application{VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -295,7 +293,7 @@ static void test_vulkan(HWND window, renderer& ui, bool late = false, bool acqui
 				render_vulkan::detach();
 			}
 			if (generation == 2 && frame == 9)
-				render_vulkan::stop_capture();
+				require(render_vulkan::stop_capture(), "Vulkan hook cleanup failed");
 			uint32_t index = 0;
 			if (acquire2)
 			{
@@ -381,7 +379,7 @@ static void test_vulkan(HWND window, renderer& ui, bool late = false, bool acqui
 	DestroyDevice(device, nullptr);
 	DestroySurfaceKHR(instance, surface, nullptr);
 	DestroyInstance(instance, nullptr);
-	render_vulkan::stop_capture();
+	require(render_vulkan::stop_capture(), "Vulkan hook cleanup failed");
 	if (ImGui::GetCurrentContext())
 	{
 		ImGui_ImplWin32_Shutdown();

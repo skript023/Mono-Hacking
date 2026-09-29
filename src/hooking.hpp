@@ -97,12 +97,6 @@ namespace big
 		static void hud_update_food(MonoObject* hud, MonoObject* player);
 	};
 
-	struct minhook_keepalive
-	{
-		minhook_keepalive();
-		~minhook_keepalive();
-	};
-
 	class hooking
 	{
 		friend hooks;
