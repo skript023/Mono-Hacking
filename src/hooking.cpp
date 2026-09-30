@@ -129,6 +129,14 @@ namespace big
 		if (auto any_cheated = mono::get_compile_method("Inventory", "AnyCheatedItem", 0, "assembly_valheim"))
 			detour_hook::add<hooks::inventory_any_cheated_item>("Inventory::AnyCheatedItem", any_cheated);
 		add_mono_hook<hooks::drop_invalid_items>("Humanoid::DropInvalidItems", "Humanoid", "DropInvalidItems", 0, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_equip_item>("Humanoid::EquipItem", "Humanoid", "EquipItem", 2, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_unequip_item>("Humanoid::UnequipItem", "Humanoid", "UnequipItem", 2, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_update_equipment_status_effects>("Humanoid::UpdateEquipmentStatusEffects", "Humanoid", "UpdateEquipmentStatusEffects", 0, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_unequip_all_items>("Humanoid::UnequipAllItems", "Humanoid", "UnequipAllItems", 0, "assembly_valheim");
+		add_mono_hook<hooks::player_use_hotbar_item>("Player::UseHotbarItem", "Player", "UseHotbarItem", 1, "assembly_valheim");
+		add_mono_hook<hooks::player_save>("Player::Save", "Player", "Save", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_contains_item>("Inventory::ContainsItem", "Inventory", "ContainsItem", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_remove_item>("Inventory::RemoveItem(ItemData,int)", "Inventory", "RemoveItem", 2, "assembly_valheim");
 
 		g_hooking = this;
 	}

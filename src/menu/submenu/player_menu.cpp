@@ -15,6 +15,7 @@
 #include "unity/fishing_tools.hpp"
 #include "unity/world_tools.hpp"
 #include "unity/skills.hpp"
+#include "unity/equipment_slots.hpp"
 
 namespace big
 {
@@ -116,6 +117,7 @@ namespace big
 			sub->add_option<sub_option>("Ship & Sailing", "Ashlands immunity, wave protection, speed boost, anchor.", "SubmenuShip"_hash);
 			sub->add_option<sub_option>("Fishing Assistant", "Instant bite, unbreakable line, zero stamina, auto-catch.", "SubmenuFishing"_hash);
 			sub->add_option<sub_option>("Inventory", nullptr, "SubmenuInventory"_hash);
+			sub->add_option<sub_option>("Equipment & Quick Slots", "BetrValheim gear, food, ammo, trinket, and quick slots.", "SubmenuEquipmentSlots"_hash);
 			sub->add_option<sub_option>("World", nullptr, "SubmenuWorld"_hash);
 			sub->add_option<sub_option>("Base Tools", "Storage, production, repair, farming and environment.", "BaseTools"_hash);
 			sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
@@ -548,6 +550,9 @@ namespace big
 					world_tools::repair_all_inventory();
 				});
 			});
+			sub->add_option<bool_option<bool>>("Equipment & Quick Slots (BetrValheim)", "Enable BetrValheim style equipment, food, ammo, and quick slots.", &g_settings.self.equipment_slots_enabled);
+			sub->add_option<bool_option<bool>>("Open Equipment & Slots Window", "Toggle floating ImGui equipment paperdoll and slots overlay.", &g_settings.self.equipment_slots_window);
+			sub->add_option<sub_option>("Equipment & Quick Slots Menu", "Manage gear slots, hotkeys, auto-fill, deposit, and utilities.", "SubmenuEquipmentSlots"_hash);
 			sub->add_option<bool_option<bool>>("Fill Inventory Top First", "Items added to inventory will fill slots from the top down instead of bottom.", &g_settings.self.inventory_top_first);
 			sub->add_option<bool_slider_int_option>("override_drop"_hash, "drop_amount"_hash);
 			sub->add_option<bool_option<bool>>("override_selected"_hash);
@@ -558,6 +563,29 @@ namespace big
 				sub->add_option<number_option<int>>("stack"_hash);
 				sub->add_option<number_option<int>>("variant"_hash);
 			}
+		});
+
+		canvas::add_submenu<regular_submenu>("Equipment & Quick Slots", "SubmenuEquipmentSlots"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("Enabled", "Enable BetrValheim extra inventory and equipment slots.", &g_settings.self.equipment_slots_enabled);
+			sub->add_option<bool_option<bool>>("Open Overlay Window", "Open interactive paperdoll and quick slots UI.", &g_settings.self.equipment_slots_window);
+			sub->add_option<bool_option<bool>>("Slot Hotkeys", "Alt+1..6 (Quick), Shift+1..3 (Food), Alt+R/T/Z (Ammo).", &g_settings.self.equipment_slots_hotkeys);
+			sub->add_option<bool_option<bool>>("Quadruple Utility Stacking", "Allow equipping up to 4 utility belts/items at once.", &g_settings.self.multi_utility_enabled);
+			sub->add_option<reguler_option>("Auto-Fill from Inventory", "Automatically move compatible armor, utilities, food, and ammo from inventory into slots.", [] {
+				queue_job([] {
+					equipment_manager::get().auto_fill_from_inventory();
+				});
+			});
+			sub->add_option<reguler_option>("Deposit All to Inventory", "Move all items from equipment and quick slots back to main inventory.", [] {
+				queue_job([] {
+					equipment_manager::get().deposit_all_to_inventory();
+				});
+			});
+			sub->add_option<reguler_option>("Save Slots to Character", "Force write slots data to player customData for persistence.", [] {
+				queue_job([] {
+					equipment_manager::get().save_to_player();
+					notification::success("Equipment Slots", "Equipment slots saved to character customData!");
+				});
+			});
 		});
 
 

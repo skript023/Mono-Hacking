@@ -1,5 +1,6 @@
 #include "hooking.hpp"
 #include "logger/exception_handler.hpp"
+#include "unity/equipment_slots.hpp"
 #include "utility/unity.hpp"
 
 namespace big
@@ -12,6 +13,8 @@ namespace big
 
 			if (g_running && local_player && player == local_player)
 			{
+				equipment_manager::get().tick(player);
+
 				static float s_last_pickup_range = 2.f;
 				if (s_last_pickup_range != g_settings.self.pickup_range)
 				{

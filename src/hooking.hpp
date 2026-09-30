@@ -95,6 +95,14 @@ namespace big
 		static bool inventory_any_cheated_item(MonoObject* inventory);
 		static void drop_invalid_items(MonoObject* humanoid);
 		static void hud_update_food(MonoObject* hud, MonoObject* player);
+		static bool humanoid_equip_item(MonoObject* humanoid, MonoObject* item, bool trigger_equip_effects);
+		static void humanoid_unequip_item(MonoObject* humanoid, MonoObject* item, bool trigger_equip_effects);
+		static void humanoid_update_equipment_status_effects(MonoObject* humanoid);
+		static void humanoid_unequip_all_items(MonoObject* humanoid);
+		static void player_use_hotbar_item(MonoObject* player, int index);
+		static void player_save(MonoObject* player, MonoObject* pkg);
+		static bool inventory_contains_item(MonoObject* inventory, MonoObject* item);
+		static bool inventory_remove_item(MonoObject* inventory, MonoObject* item, int amount);
 	};
 
 	class hooking
