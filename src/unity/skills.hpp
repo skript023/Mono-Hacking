@@ -51,6 +51,11 @@ namespace big
 
 		float get_skill_level(SkillType type);
 
+		// Direct variable manipulation (accessing Skill.m_level and Skill.m_accumulator directly)
+		void set_skill_level_direct(SkillType type, float level);
+		void raise_skill_direct(SkillType type, float amount);
+		float get_skill_level_direct(SkillType type);
+
 		static std::string_view skill_type_to_csharp_name(SkillType type);
 		static std::string_view skill_type_to_display_name(SkillType type);
 		static skills get_local_skills();
