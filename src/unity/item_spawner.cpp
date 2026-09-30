@@ -832,7 +832,7 @@ namespace big
 			{
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(140.f);
-				ImGui::SliderInt("Quality Level", &s_spawn_quality, 1, 4);
+				ImGui::SliderInt("Quality Level", &s_spawn_quality, 1, 99);
 			}
 
 			ImGui::Spacing();
