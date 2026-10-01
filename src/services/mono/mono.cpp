@@ -293,6 +293,38 @@ namespace big
 		auto klass = get_class_impl(type, assembly, name_space);
 		if (!klass)
 			return nullptr;
+
+		auto type_matches = [](const char* actual, const char* expected) {
+			if (!actual || !expected)
+				return false;
+			if (std::strcmp(actual, expected) == 0)
+				return true;
+			if ((std::strcmp(actual, "int") == 0 && std::strcmp(expected, "System.Int32") == 0) ||
+			    (std::strcmp(actual, "System.Int32") == 0 && std::strcmp(expected, "int") == 0))
+				return true;
+			if ((std::strcmp(actual, "string") == 0 && std::strcmp(expected, "System.String") == 0) ||
+			    (std::strcmp(actual, "System.String") == 0 && std::strcmp(expected, "string") == 0))
+				return true;
+			if ((std::strcmp(actual, "bool") == 0 && std::strcmp(expected, "System.Boolean") == 0) ||
+			    (std::strcmp(actual, "System.Boolean") == 0 && std::strcmp(expected, "bool") == 0))
+				return true;
+			if ((std::strcmp(actual, "float") == 0 && std::strcmp(expected, "System.Single") == 0) ||
+			    (std::strcmp(actual, "System.Single") == 0 && std::strcmp(expected, "float") == 0))
+				return true;
+			if ((std::strcmp(actual, "long") == 0 && std::strcmp(expected, "System.Int64") == 0) ||
+			    (std::strcmp(actual, "System.Int64") == 0 && std::strcmp(expected, "long") == 0))
+				return true;
+			if ((std::strcmp(actual, "short") == 0 && std::strcmp(expected, "System.Int16") == 0) ||
+			    (std::strcmp(actual, "System.Int16") == 0 && std::strcmp(expected, "short") == 0))
+				return true;
+			if ((std::strcmp(actual, "byte") == 0 && std::strcmp(expected, "System.Byte") == 0) ||
+			    (std::strcmp(actual, "System.Byte") == 0 && std::strcmp(expected, "byte") == 0))
+				return true;
+			if (std::strstr(actual, expected) != nullptr || std::strstr(expected, actual) != nullptr)
+				return true;
+			return false;
+		};
+
 		void* iterator = nullptr;
 		while (auto method = mono_class_get_methods(klass, &iterator))
 		{
@@ -307,7 +339,7 @@ namespace big
 			{
 				auto parameter = mono_signature_get_params(signature, &parameter_iterator);
 				auto actual = parameter ? mono_type_get_name(parameter) : nullptr;
-				matches = actual && std::strcmp(actual, expected) == 0;
+				matches = actual && type_matches(actual, expected);
 				if (actual)
 					mono_free(actual);
 				if (!matches)

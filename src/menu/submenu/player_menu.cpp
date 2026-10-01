@@ -135,6 +135,8 @@ namespace big
 		canvas::add_submenu<regular_submenu>("Combat & Survival", "SubmenuCombat"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("God Mode", "Invulnerable to all incoming damage, fall, hazards, and debuffs.", &g_settings.self.god_mode);
 			sub->add_option<bool_option<bool>>("Ghost Mode", "Enemies and bosses cannot detect, target, or hear you.", &g_settings.self.ghost_mode);
+			sub->add_option<bool_option<bool>>("Auto Parry", "Automatically parry incoming melee and ranged attacks (360-degree, infinite parry power, staggers attackers).", &g_settings.self.auto_parry);
+			sub->add_option<bool_option<bool>>("Always Parry", "Guarantees a perfect parry (staggers enemy) whenever you manually block, ignoring the parry timing window.", &g_settings.self.always_parry);
 			sub->add_option<number_option<float>>("Damage Multiplier", "Multiplier for player attacks (set high for 1-hit kill).", &g_settings.self.damage_multiplier, 1.f, 50.f, 1.f, 1);
 			sub->add_option<bool_option<bool>>("Instant Bow & Crossbow", "Instant full bow draw and instant crossbow reload.", &g_settings.self.instant_bow_draw);
 			sub->add_option<number_option<int>>("Max Food Slots", "Allow eating more than 3 foods simultaneously (HP, Stamina, Eitr buffs stack!).", &g_settings.self.max_food_slots, 3, 10, 1, 0);

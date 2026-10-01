@@ -370,6 +370,14 @@ namespace big
 		{
 			return get_instance().mono_class_get_method_from_name(obj, name, param);
 		}
+		static MonoMethod* class_get_methods(MonoClass* klass, void** iter)
+		{
+			return get_instance().mono_class_get_methods(klass, iter);
+		}
+		static const char* method_get_name(MonoMethod* method)
+		{
+			return get_instance().mono_method_get_name(method);
+		}
 		static MonoImage* assembly_get_image(MonoAssembly* assembly)
 		{
 			return get_instance().mono_assembly_get_image(assembly);

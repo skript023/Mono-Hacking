@@ -306,7 +306,24 @@ namespace big
 		if (custom_data)
 		{
 			auto dict_class = mono::object_get_class(custom_data);
-			auto try_get_value = mono::class_get_method_from_name(dict_class, "TryGetValue", 2);
+			static MonoMethod* try_get_value = nullptr;
+			if (!try_get_value && dict_class)
+			{
+				try_get_value = mono::class_get_method_from_name(dict_class, "TryGetValue", 2);
+				if (!try_get_value)
+				{
+					void* iter = nullptr;
+					while (auto m = mono::class_get_methods(dict_class, &iter))
+					{
+						if (std::strcmp(mono::method_get_name(m), "TryGetValue") == 0)
+						{
+							try_get_value = m;
+							break;
+						}
+					}
+				}
+			}
+
 			if (try_get_value)
 			{
 				auto key_str = mono::to_mono_string("ew_extra_inventory");
@@ -321,19 +338,22 @@ namespace big
 					if (zpkg_class)
 					{
 						auto pkg_obj = mono::object_new(zpkg_class);
-						auto pkg_ctor = mono::get_method_exact("ZPackage", ".ctor", {"System.String"}, "assembly_valheim");
+						static auto pkg_ctor = mono::get_method_exact("ZPackage", ".ctor", {"string"}, "assembly_valheim");
+						if (!pkg_ctor)
+							pkg_ctor = mono::get_method_exact("ZPackage", ".ctor", {"System.String"}, "assembly_valheim");
+
 						if (pkg_obj && pkg_ctor)
 						{
 							void* ctor_args[1] = {val_out};
 							mono::invoke_method(pkg_ctor, pkg_obj, ctor_args);
 
-							auto read_int_m = mono::class_get_method_from_name(zpkg_class, "ReadInt", 0);
+							static auto read_int_m = mono::class_get_method_from_name(zpkg_class, "ReadInt", 0);
 							if (read_int_m)
 							{
 								auto count_res = mono::invoke_method(read_int_m, pkg_obj, nullptr);
 								int num_pages = count_res ? *reinterpret_cast<int*>(mono::object_unbox(count_res)) : 0;
 
-								auto load_method = mono::get_method_exact("Inventory", "Load", {"ZPackage"}, "assembly_valheim");
+								static auto load_method = mono::get_method("Inventory", "Load", 1, "assembly_valheim");
 								if (load_method && num_pages >= 1 && num_pages <= page_count)
 								{
 									for (int i = 0; i < num_pages; ++i)
@@ -341,7 +361,7 @@ namespace big
 										void* load_args[1] = {pkg_obj};
 										mono::invoke_method(load_method, m_pages[i], load_args);
 									}
-									LOG(INFO) << "[EquipmentSlots] Loaded " << num_pages << " pages from player customData!";
+									LOG(INFO) << "[EquipmentSlots] Successfully loaded " << num_pages << " pages from player customData!";
 								}
 							}
 						}
@@ -369,11 +389,25 @@ namespace big
 			for (int c = 0; c < grid_width; ++c)
 			{
 				slot_kind kind = s_layout[r][c];
+				auto item = get_item_at(c, r);
+				if (!item)
+					continue;
+
+				// Wearable armor/cape/trinket/utility: ensure equipped
 				if (kind == slot_kind::helmet || kind == slot_kind::cape || kind == slot_kind::chest ||
 				    kind == slot_kind::legs || kind == slot_kind::trinket || kind == slot_kind::utility)
 				{
-					auto item = get_item_at(c, r);
-					if (item && !is_item_equipped(item))
+					if (!is_item_equipped(item))
+					{
+						bool trigger = false;
+						void* args[2] = {item, &trigger};
+						mono::invoke_method(equip_method, humanoid, args);
+					}
+				}
+				else
+				{
+					// Quick slot weapons or ammo that were saved as equipped
+					if (is_item_equipped(item))
 					{
 						bool trigger = false;
 						void* args[2] = {item, &trigger};
@@ -409,9 +443,15 @@ namespace big
 
 		mono::invoke_method(pkg_ctor, pkg_obj, nullptr);
 
-		auto write_int_m = mono::get_method_exact("ZPackage", "Write", {"System.Int32"}, "assembly_valheim");
+		static auto write_int_m = mono::get_method_exact("ZPackage", "Write", {"int"}, "assembly_valheim");
+		if (!write_int_m)
+			write_int_m = mono::get_method_exact("ZPackage", "Write", {"System.Int32"}, "assembly_valheim");
+		if (!write_int_m)
+			write_int_m = mono::get_method_overload("ZPackage", "Write", 1, nullptr, "int", "assembly_valheim");
+
 		if (!write_int_m)
 		{
+			LOG(WARNING) << "[EquipmentSlots] save_to_player: Failed to resolve ZPackage.Write(int)!";
 			m_saving = false;
 			return;
 		}
@@ -420,9 +460,10 @@ namespace big
 		void* num_args[1] = {&num_pages};
 		mono::invoke_method(write_int_m, pkg_obj, num_args);
 
-		auto save_method = mono::get_method_exact("Inventory", "Save", {"ZPackage"}, "assembly_valheim");
+		static auto save_method = mono::get_method("Inventory", "Save", 1, "assembly_valheim");
 		if (!save_method)
 		{
+			LOG(WARNING) << "[EquipmentSlots] save_to_player: Failed to resolve Inventory.Save!";
 			m_saving = false;
 			return;
 		}
@@ -436,9 +477,10 @@ namespace big
 			}
 		}
 
-		auto get_b64_m = mono::class_get_method_from_name(zpkg_class, "GetBase64", 0);
+		static auto get_b64_m = mono::class_get_method_from_name(zpkg_class, "GetBase64", 0);
 		if (!get_b64_m)
 		{
+			LOG(WARNING) << "[EquipmentSlots] save_to_player: Failed to resolve ZPackage.GetBase64!";
 			m_saving = false;
 			return;
 		}
@@ -446,6 +488,7 @@ namespace big
 		auto b64_obj = mono::invoke_method(get_b64_m, pkg_obj, nullptr);
 		if (!b64_obj)
 		{
+			LOG(WARNING) << "[EquipmentSlots] save_to_player: GetBase64 returned null!";
 			m_saving = false;
 			return;
 		}
@@ -453,14 +496,33 @@ namespace big
 		auto custom_data = mono::get_field_value<"Player", "m_customData", MonoObject*>(m_cached_player);
 		if (!custom_data)
 		{
+			LOG(WARNING) << "[EquipmentSlots] save_to_player: Player.m_customData is null!";
 			m_saving = false;
 			return;
 		}
 
 		auto dict_class = mono::object_get_class(custom_data);
-		auto set_item_m = mono::class_get_method_from_name(dict_class, "set_Item", 2);
+		static MonoMethod* set_item_m = nullptr;
+		if (!set_item_m && dict_class)
+		{
+			set_item_m = mono::class_get_method_from_name(dict_class, "set_Item", 2);
+			if (!set_item_m)
+			{
+				void* iter = nullptr;
+				while (auto m = mono::class_get_methods(dict_class, &iter))
+				{
+					if (std::strcmp(mono::method_get_name(m), "set_Item") == 0)
+					{
+						set_item_m = m;
+						break;
+					}
+				}
+			}
+		}
+
 		if (!set_item_m)
 		{
+			LOG(WARNING) << "[EquipmentSlots] save_to_player: Failed to resolve Dictionary.set_Item!";
 			m_saving = false;
 			return;
 		}
@@ -474,6 +536,7 @@ namespace big
 		void* args2[2] = {key2, val2};
 		mono::invoke_method(set_item_m, custom_data, args2);
 
+		LOG(INFO) << "[EquipmentSlots] Successfully saved equipment pages to player customData!";
 		m_saving = false;
 	}
 
@@ -600,12 +663,43 @@ namespace big
 		}
 		else
 		{
+			auto player_inv = mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(m_cached_player);
+			static auto toggle_equipped_m = mono::get_method("Humanoid", "ToggleEquipped", 1, "assembly_valheim");
 			static auto use_m = mono::get_method("Humanoid", "UseItem", 3, "assembly_valheim");
-			if (use_m)
+
+			auto shared = mono::get_field_value<"ItemDrop/ItemData", "m_shared", MonoObject*>(item);
+			int item_type = shared ? mono::get_field_value<"ItemDrop/ItemData/SharedData", "m_itemType", int>(shared) : 0;
+
+			// Food / Consumables (item_type == 2)
+			if (item_type == 2)
 			{
-				bool from_gui = false;
-				void* args[3] = {eq, item, &from_gui};
-				mono::invoke_method(use_m, m_cached_player, args);
+				if (use_m && player_inv)
+				{
+					bool from_gui = true;
+					void* args[3] = {player_inv, item, &from_gui};
+					mono::invoke_method(use_m, m_cached_player, args);
+				}
+			}
+			else
+			{
+				// Weapon, Shield, Tool, Armor, Utility
+				if (toggle_equipped_m)
+				{
+					void* args[1] = {item};
+					mono::invoke_method(toggle_equipped_m, m_cached_player, args);
+				}
+				else if (use_m && player_inv)
+				{
+					bool from_gui = true;
+					void* args[3] = {player_inv, item, &from_gui};
+					mono::invoke_method(use_m, m_cached_player, args);
+				}
+			}
+
+			if (kind == slot_kind::quick)
+			{
+				bool now_equipped = is_item_equipped(item);
+				notification::info("Quick Slot", std::format("{} {}", now_equipped ? "Equipped" : "Unequipped", get_item_display_name(item)));
 			}
 		}
 		save_to_player();

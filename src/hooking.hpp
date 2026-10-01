@@ -59,6 +59,8 @@ namespace big
 		static float get_attack_draw_percentage(MonoObject* humanoid);
 		static bool is_weapon_loaded(MonoObject* player);
 		static void character_rpc_damage(MonoObject* character, int64_t sender, MonoObject* hit);
+		static bool humanoid_is_blocking(MonoObject* humanoid);
+		static bool humanoid_block_attack(MonoObject* humanoid, MonoObject* hit, MonoObject* attacker);
 		static bool player_in_god_mode(MonoObject* player);
 		static bool player_in_ghost_mode(MonoObject* player);
 		static bool player_recipe_requirements(MonoObject* player, MonoObject* recipe, bool discover, int quality, int amount);

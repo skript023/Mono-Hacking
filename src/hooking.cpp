@@ -86,6 +86,8 @@ namespace big
 		add_mono_hook<hooks::get_attack_draw_percentage>("Humanoid::GetAttackDrawPercentage", "Humanoid", "GetAttackDrawPercentage", 0, "assembly_valheim");
 		add_mono_hook<hooks::is_weapon_loaded>("Player::IsWeaponLoaded", "Player", "IsWeaponLoaded", 0, "assembly_valheim");
 		add_mono_hook<hooks::character_rpc_damage>("Character::RPC_Damage", "Character", "RPC_Damage", 2, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_is_blocking>("Humanoid::IsBlocking", "Humanoid", "IsBlocking", 0, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_block_attack>("Humanoid::BlockAttack", "Humanoid", "BlockAttack", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_in_god_mode>("Player::InGodMode", "Player", "InGodMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_in_ghost_mode>("Player::InGhostMode", "Player", "InGhostMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_recipe_requirements>("Player::HaveRequirements(Recipe)", "Player", "HaveRequirements", 4, "assembly_valheim");

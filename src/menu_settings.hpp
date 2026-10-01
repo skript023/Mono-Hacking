@@ -65,7 +65,10 @@ namespace big
 			bool equipment_slots_hotkeys{true};
 			bool multi_utility_enabled{true};
 
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw, god_mode, ghost_mode, infinite_durability, free_crafting, one_hit_resource, damage_multiplier, speed_multiplier, pickup_range, max_food_slots, equipment_slots_enabled, equipment_slots_window, equipment_slots_hotkeys, multi_utility_enabled)
+			bool auto_parry{false};
+			bool always_parry{false};
+
+			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw, god_mode, ghost_mode, infinite_durability, free_crafting, one_hit_resource, damage_multiplier, speed_multiplier, pickup_range, max_food_slots, equipment_slots_enabled, equipment_slots_window, equipment_slots_hotkeys, multi_utility_enabled, auto_parry, always_parry)
 		} self;
 
 		struct window
