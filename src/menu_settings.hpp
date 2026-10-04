@@ -87,6 +87,7 @@ namespace big
 
 			int layout = 0; // 0: List, 1: Window
 			int theme = 4;  // Emerald, Violet, Ocean
+			int banner = 0; // 0: Quantum Green, 1: Astra Standard
 			bool switched_view = true;
 			bool mouse_active = false;
 			bool input = false;
@@ -150,6 +151,7 @@ namespace big
 			NLOHMANN_DEFINE_TYPE_INTRUSIVE(window,
 			    layout,
 			    theme,
+			    banner,
 			    color,
 			    gui_scale,
 			    transparency,

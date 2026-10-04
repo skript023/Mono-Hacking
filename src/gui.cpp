@@ -156,6 +156,7 @@ namespace big
 
 	void gui::dx_on_opened()
 	{
+		update_banner();
 		canvas::tick();
 	}
 
@@ -172,24 +173,90 @@ namespace big
 		}
 	}
 
+	void gui::update_banner()
+	{
+		if (m_banners.empty())
+		{
+			m_header = 0;
+			m_header_size = {0, 0};
+			return;
+		}
+
+		int active_index = g_settings.window.banner;
+		if (active_index < 0 || static_cast<std::size_t>(active_index) >= m_banners.size())
+		{
+			active_index = 0;
+		}
+
+		m_header = m_banners[active_index]->id;
+		m_header_size = m_banners[active_index]->dimensions;
+	}
+
+	bool gui::load_banner(const std::string& name, const unsigned char* bytes, int size)
+	{
+		int width = 0, height = 0;
+		auto pixels = stbi_load_from_memory(bytes, size, &width, &height, nullptr, 4);
+		if (!pixels)
+		{
+			LOG(WARNING) << "Cannot decode menu texture for banner: " << name;
+			return false;
+		}
+
+		auto id = g_renderer->upload_rgba(pixels, width, height);
+		stbi_image_free(pixels);
+
+		if (!id)
+		{
+			LOG(WARNING) << "Cannot upload menu texture for banner: " << name;
+			return false;
+		}
+
+		auto banner = std::make_unique<banner_item>();
+		banner->name = name;
+		banner->id = id;
+		banner->dimensions = {width, height};
+
+		m_banner_names.push_back(banner->name.c_str());
+		m_banners.push_back(std::move(banner));
+
+		update_banner();
+		return true;
+	}
+
 	void gui::load_textures()
 	{
-		auto load = [](const unsigned char* bytes, int size, ImTextureID& id, ImageDimensions& dimensions) {
+		m_banners.clear();
+		m_banner_names.clear();
+
+		auto load = [](const unsigned char* bytes, int size, ImTextureID& id, ImageDimensions& dimensions) -> bool {
 			int width = 0, height = 0;
 			auto pixels = stbi_load_from_memory(bytes, size, &width, &height, nullptr, 4);
 			if (!pixels)
 			{
 				LOG(WARNING) << "Cannot decode menu texture";
-				return;
+				return false;
 			}
 			id = g_renderer->upload_rgba(pixels, width, height);
 			stbi_image_free(pixels);
 			if (id)
+			{
 				dimensions = {width, height};
+				return true;
+			}
 			else
+			{
 				LOG(WARNING) << "Cannot upload menu texture";
+				return false;
+			}
 		};
-		load(quantum_green, sizeof(quantum_green), m_header, m_header_size);
+
+		load_banner("Quantum Green", quantum_green, sizeof(quantum_green));
+		load_banner("Ellohim", ellohim, sizeof(ellohim));
+		load_banner("Ellohim Green", ellohim_green, sizeof(ellohim_green));
+		load_banner("Astra Standard", astra_standard, sizeof(astra_standard));
+
 		load(toggle_texture, sizeof(toggle_texture), m_toggle, m_toggle_size);
+
+		update_banner();
 	}
 }

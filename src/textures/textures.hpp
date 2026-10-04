@@ -13,3 +13,4 @@ extern unsigned char ellohim_cool[425034];
 extern unsigned char ellohim_purple[317172];
 extern unsigned char ellohim_green[416017];
 extern unsigned char quantum_green[409457];
+extern unsigned char astra_standard[7682];

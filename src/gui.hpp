@@ -8,6 +8,13 @@ namespace big
 	using wndproc_callback = std::function<void(HWND, UINT, WPARAM, LPARAM)>;
 
 
+	struct banner_item
+	{
+		std::string name;
+		ImTextureID id{};
+		ImageDimensions dimensions{};
+	};
+
 	class gui
 	{
 		friend class dx12_impl;
@@ -37,6 +44,7 @@ namespace big
 		 */
 		void add_wndproc_callback(wndproc_callback&& callback);
 		void load_textures();
+		bool load_banner(const std::string& name, const unsigned char* bytes, int size);
 
 		void dx_on_opened();
 
@@ -44,8 +52,13 @@ namespace big
 
 		void wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
+		void update_banner();
+
 
 	public:
+		std::vector<std::unique_ptr<banner_item>> m_banners;
+		std::vector<const char*> m_banner_names;
+
 		ImTextureID m_header{};
 		ImageDimensions m_header_size = {0, 0};
 

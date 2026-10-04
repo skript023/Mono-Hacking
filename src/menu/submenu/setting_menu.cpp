@@ -1,6 +1,7 @@
 #include "../view.hpp"
 #include "script.hpp"
 #include "server/server_module.hpp"
+#include "gui.hpp"
 
 namespace big
 {
@@ -11,6 +12,12 @@ namespace big
 			static const std::vector<const char*> themes{"Emerald", "Violet", "Ocean", "Custom", "Studio", "Snow"};
 			sub->add_option<choose_option<const char*, int>>("Menu Layout", "Switch between keyboard list and clickable window.", &layouts, &g_settings.window.layout, true);
 			sub->add_option<choose_option<const char*, int>>("Theme", "Shared palette for both menu layouts.", &themes, &g_settings.window.theme, true);
+			if (!g_gui.m_banner_names.empty())
+			{
+				sub->add_option<choose_option<const char*, int>>("Banner", "Change menu header banner.", &g_gui.m_banner_names, &g_settings.window.banner, true, [] {
+					g_gui.update_banner();
+				});
+			}
 
 			sub->add_option<number_option<float>>("Transparency", "Opacity of the List and Window UI.", &g_settings.window.transparency, 0.15f, 1.f, 0.05f, 2);
 			sub->add_option<number_option<std::uint8_t>>("Accent Red", "Used by the Custom theme.", &g_settings.window.m_tab_selected_color.r, 0, 255);
