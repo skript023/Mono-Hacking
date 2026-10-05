@@ -1,9 +1,11 @@
 #pragma once
+#include "file_manager.hpp"
 #include "logger/logger.hpp"
 #include "imgui.h"
 
 #include "class/vector.hpp"
 #include "utility/utility.hpp"
+#include <filesystem>
 
 namespace big
 {
@@ -19,7 +21,7 @@ namespace big
 		void* m_camera_obj = nullptr;
 
 	private:
-		const char* settings_location = "\\Scarlet Nexus Trainer\\menu_settings.json";
+		std::filesystem::path get_settings_file_path() const;
 
 		bool deep_compare(nlohmann::json& current_settings, const nlohmann::json& default_settings, bool compare_value = false);
 		bool save();
