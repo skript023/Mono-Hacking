@@ -14,6 +14,8 @@
 #include "unity/buff_tools.hpp"
 #include "unity/fishing_tools.hpp"
 #include "unity/world_tools.hpp"
+#include "unity/skills.hpp"
+#include "unity/equipment_slots.hpp"
 
 namespace big
 {
@@ -109,11 +111,13 @@ namespace big
 	{
 		canvas::add_tab<regular_submenu>("Home", SubmenuHome, [](regular_submenu* sub) {
 			sub->add_option<sub_option>("Self", nullptr, "SubmenuSelf"_hash);
+			sub->add_option<sub_option>("Skills", "Raise individual skills, set levels, or max progression.", "SubmenuSkills"_hash);
 			sub->add_option<sub_option>("Item Spawner", "Spawn weapons, armor, foods, materials and items.", "SubmenuItemSpawner"_hash);
 			sub->add_option<sub_option>("Buffs & Effects", "Permanent rested, 7 boss powers, debuff cleanser.", "SubmenuBuffs"_hash);
 			sub->add_option<sub_option>("Ship & Sailing", "Ashlands immunity, wave protection, speed boost, anchor.", "SubmenuShip"_hash);
 			sub->add_option<sub_option>("Fishing Assistant", "Instant bite, unbreakable line, zero stamina, auto-catch.", "SubmenuFishing"_hash);
 			sub->add_option<sub_option>("Inventory", nullptr, "SubmenuInventory"_hash);
+			sub->add_option<sub_option>("Equipment & Quick Slots", "BetrValheim gear, food, ammo, trinket, and quick slots.", "SubmenuEquipmentSlots"_hash);
 			sub->add_option<sub_option>("World", nullptr, "SubmenuWorld"_hash);
 			sub->add_option<sub_option>("Base Tools", "Storage, production, repair, farming and environment.", "BaseTools"_hash);
 			sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
@@ -131,6 +135,8 @@ namespace big
 		canvas::add_submenu<regular_submenu>("Combat & Survival", "SubmenuCombat"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("God Mode", "Invulnerable to all incoming damage, fall, hazards, and debuffs.", &g_settings.self.god_mode);
 			sub->add_option<bool_option<bool>>("Ghost Mode", "Enemies and bosses cannot detect, target, or hear you.", &g_settings.self.ghost_mode);
+			sub->add_option<bool_option<bool>>("Auto Parry", "Automatically parry incoming melee and ranged attacks (360-degree, infinite parry power, staggers attackers).", &g_settings.self.auto_parry);
+			sub->add_option<bool_option<bool>>("Always Parry", "Guarantees a perfect parry (staggers enemy) whenever you manually block, ignoring the parry timing window.", &g_settings.self.always_parry);
 			sub->add_option<number_option<float>>("Damage Multiplier", "Multiplier for player attacks (set high for 1-hit kill).", &g_settings.self.damage_multiplier, 1.f, 50.f, 1.f, 1);
 			sub->add_option<bool_option<bool>>("Instant Bow & Crossbow", "Instant full bow draw and instant crossbow reload.", &g_settings.self.instant_bow_draw);
 			sub->add_option<number_option<int>>("Max Food Slots", "Allow eating more than 3 foods simultaneously (HP, Stamina, Eitr buffs stack!).", &g_settings.self.max_food_slots, 3, 10, 1, 0);
@@ -157,7 +163,12 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Building & Crafting", "SubmenuBuilding"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("Free Crafting & Building", "Craft anywhere with 0 cost, no station/roof/fire, free placement.", &g_settings.self.free_crafting);
+			sub->add_option<bool_option<bool>>("Free Crafting & Building", "Craft anywhere with 0 cost, deconstruct/repair pieces with no station requirement.", &g_settings.self.free_crafting);
+			sub->add_option<reguler_option>("Repair All Items (Anywhere)", "Instantly restore all equipped weapons, armor, and inventory items to 100% durability.", [] {
+				queue_job([] {
+					world_tools::repair_all_inventory();
+				});
+			});
 			sub->add_option<bool_option<bool>>("Infinite Durability", "Weapons, tools, shields, and armor never degrade.", &g_settings.self.infinite_durability);
 			sub->add_option<bool_option<bool>>("Infinite Building Stability", "Pieces never collapse from lack of support.", &g_settings.self.infinite_stability);
 			sub->add_option<bool_option<bool>>("Ward / Guard Stone Bypass", "Bypass all player wards and guard stones.", &g_settings.self.ward_bypass);
@@ -175,7 +186,375 @@ namespace big
 			sub->add_option<bool_slider_int_option>("inventory_size"_hash, "inventory_height"_hash, 1);
 		});
 
+		canvas::add_submenu<regular_submenu>("Skills", "SubmenuSkills"_hash, [](regular_submenu* sub) {
+			static const std::vector<const char*> skill_display_names{
+			    "Swords",
+			    "Knives",
+			    "Clubs",
+			    "Polearms",
+			    "Spears",
+			    "Blocking",
+			    "Axes",
+			    "Bows",
+			    "Crossbows",
+			    "Unarmed",
+			    "Elemental Magic",
+			    "Blood Magic",
+			    "Run",
+			    "Jump",
+			    "Sneak",
+			    "Swim",
+			    "Dodge",
+			    "Ride",
+			    "Fishing",
+			    "Wood Cutting",
+			    "Pickaxes",
+			    "Cooking",
+			    "Farming",
+			    "Crafting",
+			    "All Skills"};
+
+			static const std::vector<const char*> skill_csharp_names{
+			    "Swords",
+			    "Knives",
+			    "Clubs",
+			    "Polearms",
+			    "Spears",
+			    "Blocking",
+			    "Axes",
+			    "Bows",
+			    "Crossbows",
+			    "Unarmed",
+			    "ElementalMagic",
+			    "BloodMagic",
+			    "Run",
+			    "Jump",
+			    "Sneak",
+			    "Swim",
+			    "Dodge",
+			    "Ride",
+			    "Fishing",
+			    "WoodCutting",
+			    "Pickaxes",
+			    "Cooking",
+			    "Farming",
+			    "Crafting",
+			    "All"};
+
+			static int selected_skill_index = 0;
+			static float raise_amount = 10.f;
+
+			sub->add_option<choose_option<const char*, int>>(
+			    "Select Skill",
+			    "Choose a specific skill to raise or adjust.",
+			    &skill_display_names,
+			    &selected_skill_index);
+
+			sub->add_option<number_option<float>>(
+			    "Raise Amount",
+			    "Amount to increase skill level by (press Enter to apply).",
+			    &raise_amount,
+			    1.f,
+			    100.f,
+			    5.f,
+			    0,
+			    false,
+			    "+",
+			    " Lvl",
+			    [] {
+				    queue_job([] {
+					    auto sk = skills::get_local_skills();
+					    if (!sk)
+					    {
+						    notification::warning("Skills", "Player not in world or skills not available.");
+						    return;
+					    }
+					    if (selected_skill_index < 0 || selected_skill_index >= static_cast<int>(skill_csharp_names.size()))
+						    return;
+
+					    const char* cs_name = skill_csharp_names[selected_skill_index];
+					    const char* disp_name = skill_display_names[selected_skill_index];
+					    sk.cheat_raise_skill(cs_name, raise_amount, true);
+					    notification::success("Skills", std::format("Raised {} by +{:.0f}!", disp_name, raise_amount));
+				    });
+			    });
+
+			sub->add_option<reguler_option>(
+			    "Raise Selected Skill",
+			    "Increase the selected skill by the chosen amount.",
+			    [] {
+				    queue_job([] {
+					    auto sk = skills::get_local_skills();
+					    if (!sk)
+					    {
+						    notification::warning("Skills", "Player not in world or skills not available.");
+						    return;
+					    }
+					    if (selected_skill_index < 0 || selected_skill_index >= static_cast<int>(skill_csharp_names.size()))
+						    return;
+
+					    const char* cs_name = skill_csharp_names[selected_skill_index];
+					    const char* disp_name = skill_display_names[selected_skill_index];
+					    sk.cheat_raise_skill(cs_name, raise_amount, true);
+					    notification::success("Skills", std::format("Raised {} by +{:.0f}!", disp_name, raise_amount));
+				    });
+			    });
+
+			sub->add_option<reguler_option>(
+			    "Max Selected Skill (Level 100)",
+			    "Set the selected skill to maximum level (100).",
+			    [] {
+				    queue_job([] {
+					    auto sk = skills::get_local_skills();
+					    if (!sk)
+					    {
+						    notification::warning("Skills", "Player not in world or skills not available.");
+						    return;
+					    }
+					    if (selected_skill_index < 0 || selected_skill_index >= static_cast<int>(skill_csharp_names.size()))
+						    return;
+
+					    const char* cs_name = skill_csharp_names[selected_skill_index];
+					    const char* disp_name = skill_display_names[selected_skill_index];
+					    sk.cheat_raise_skill(cs_name, 100.f, true);
+					    notification::success("Skills", std::format("Set {} to max level (100)!", disp_name));
+				    });
+			    });
+
+			sub->add_option<reguler_option>(
+			    "Reset Selected Skill (Level 0)",
+			    "Reset the selected skill to level 0.",
+			    [] {
+				    queue_job([] {
+					    auto sk = skills::get_local_skills();
+					    if (!sk)
+					    {
+						    notification::warning("Skills", "Player not in world or skills not available.");
+						    return;
+					    }
+					    if (selected_skill_index < 0 || selected_skill_index >= static_cast<int>(skill_csharp_names.size()))
+						    return;
+
+					    const char* cs_name = skill_csharp_names[selected_skill_index];
+					    const char* disp_name = skill_display_names[selected_skill_index];
+					    sk.cheat_reset_skill(cs_name);
+					    notification::info("Skills", std::format("Reset {} to level 0.", disp_name));
+				    });
+			    });
+
+			sub->add_option<sub_option>("Combat Skills", "Swords, bows, axes, polearms, magic, blocking, unarmed...", "SubmenuCombatSkills"_hash);
+			sub->add_option<sub_option>("Physical & Survival Skills", "Run, jump, sneak, swim, dodge, ride, fishing...", "SubmenuPhysicalSkills"_hash);
+			sub->add_option<sub_option>("Gathering & Crafting Skills", "Wood cutting, pickaxes, cooking, farming, crafting...", "SubmenuCraftingSkills"_hash);
+
+			sub->add_option<reguler_option>(
+			    "Max All Skills (Level 100)",
+			    "Set every skill to level 100 immediately.",
+			    [] {
+				    queue_job([] {
+					    auto sk = skills::get_local_skills();
+					    if (!sk)
+					    {
+						    notification::warning("Skills", "Player not in world or skills not available.");
+						    return;
+					    }
+					    sk.cheat_raise_skill("All", 100.f, true);
+					    notification::success("Skills", "All skills maxed to level 100!");
+				    });
+			    });
+
+			sub->add_option<reguler_option>(
+			    "Reset All Skills (Level 0)",
+			    "Reset all skill levels back to 0.",
+			    [] {
+				    queue_job([] {
+					    auto sk = skills::get_local_skills();
+					    if (!sk)
+					    {
+						    notification::warning("Skills", "Player not in world or skills not available.");
+						    return;
+					    }
+					    sk.cheat_reset_skill("All");
+					    notification::info("Skills", "All skills reset to level 0.");
+				    });
+			    });
+
+			sub->add_option<bool_slider_float_option>("enable_raise_skill"_hash, "raise_skill"_hash, 1.f);
+		});
+
+		canvas::add_submenu<regular_submenu>("Combat Skills", "SubmenuCombatSkills"_hash, [](regular_submenu* sub) {
+			struct skill_item
+			{
+				const char* name;
+				const char* cs_name;
+			};
+			static constexpr skill_item list[] = {
+			    {"Swords", "Swords"},
+			    {"Knives", "Knives"},
+			    {"Clubs", "Clubs"},
+			    {"Polearms", "Polearms"},
+			    {"Spears", "Spears"},
+			    {"Blocking", "Blocking"},
+			    {"Axes", "Axes"},
+			    {"Bows", "Bows"},
+			    {"Crossbows", "Crossbows"},
+			    {"Unarmed", "Unarmed"},
+			    {"Elemental Magic", "ElementalMagic"},
+			    {"Blood Magic", "BloodMagic"},
+			};
+			static float amounts[std::size(list)] = {
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f};
+
+			for (std::size_t i = 0; i < std::size(list); ++i)
+			{
+				const auto& item = list[i];
+				sub->add_option<number_option<float>>(
+				    item.name,
+				    "Raise amount (press Enter to apply to this skill).",
+				    &amounts[i],
+				    1.f,
+				    100.f,
+				    5.f,
+				    0,
+				    false,
+				    "+",
+				    " Lvl",
+				    [cs = item.cs_name, disp = item.name, idx = i] {
+					    queue_job([cs, disp, idx] {
+						    auto sk = skills::get_local_skills();
+						    if (!sk)
+						    {
+							    notification::warning("Skills", "Player not in world or skills not available.");
+							    return;
+						    }
+						    sk.cheat_raise_skill(cs, amounts[idx], true);
+						    notification::success("Skills", std::format("Raised {} by +{:.0f}!", disp, amounts[idx]));
+					    });
+				    });
+			}
+		});
+
+		canvas::add_submenu<regular_submenu>("Physical & Survival Skills", "SubmenuPhysicalSkills"_hash, [](regular_submenu* sub) {
+			struct skill_item
+			{
+				const char* name;
+				const char* cs_name;
+			};
+			static constexpr skill_item list[] = {
+			    {"Run", "Run"},
+			    {"Jump", "Jump"},
+			    {"Sneak", "Sneak"},
+			    {"Swim", "Swim"},
+			    {"Dodge", "Dodge"},
+			    {"Ride", "Ride"},
+			    {"Fishing", "Fishing"},
+			};
+			static float amounts[std::size(list)] = {
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f};
+
+			for (std::size_t i = 0; i < std::size(list); ++i)
+			{
+				const auto& item = list[i];
+				sub->add_option<number_option<float>>(
+				    item.name,
+				    "Raise amount (press Enter to apply to this skill).",
+				    &amounts[i],
+				    1.f,
+				    100.f,
+				    5.f,
+				    0,
+				    false,
+				    "+",
+				    " Lvl",
+				    [cs = item.cs_name, disp = item.name, idx = i] {
+					    queue_job([cs, disp, idx] {
+						    auto sk = skills::get_local_skills();
+						    if (!sk)
+						    {
+							    notification::warning("Skills", "Player not in world or skills not available.");
+							    return;
+						    }
+						    sk.cheat_raise_skill(cs, amounts[idx], true);
+						    notification::success("Skills", std::format("Raised {} by +{:.0f}!", disp, amounts[idx]));
+					    });
+				    });
+			}
+		});
+
+		canvas::add_submenu<regular_submenu>("Gathering & Crafting Skills", "SubmenuCraftingSkills"_hash, [](regular_submenu* sub) {
+			struct skill_item
+			{
+				const char* name;
+				const char* cs_name;
+			};
+			static constexpr skill_item list[] = {
+			    {"Wood Cutting", "WoodCutting"},
+			    {"Pickaxes", "Pickaxes"},
+			    {"Cooking", "Cooking"},
+			    {"Farming", "Farming"},
+			    {"Crafting", "Crafting"},
+			};
+			static float amounts[std::size(list)] = {
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f,
+			    10.f};
+
+			for (std::size_t i = 0; i < std::size(list); ++i)
+			{
+				const auto& item = list[i];
+				sub->add_option<number_option<float>>(
+				    item.name,
+				    "Raise amount (press Enter to apply to this skill).",
+				    &amounts[i],
+				    1.f,
+				    100.f,
+				    5.f,
+				    0,
+				    false,
+				    "+",
+				    " Lvl",
+				    [cs = item.cs_name, disp = item.name, idx = i] {
+					    queue_job([cs, disp, idx] {
+						    auto sk = skills::get_local_skills();
+						    if (!sk)
+						    {
+							    notification::warning("Skills", "Player not in world or skills not available.");
+							    return;
+						    }
+						    sk.cheat_raise_skill(cs, amounts[idx], true);
+						    notification::success("Skills", std::format("Raised {} by +{:.0f}!", disp, amounts[idx]));
+					    });
+				    });
+			}
+		});
+
 		canvas::add_submenu<regular_submenu>("Inventory", "SubmenuInventory"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Repair All Items (Anywhere)", "Instantly restore all equipped weapons, armor, and inventory items to 100% durability.", [] {
+				queue_job([] {
+					world_tools::repair_all_inventory();
+				});
+			});
+			sub->add_option<bool_option<bool>>("Equipment & Quick Slots (BetrValheim)", "Enable BetrValheim style equipment, food, ammo, and quick slots.", &g_settings.self.equipment_slots_enabled);
+			sub->add_option<bool_option<bool>>("Open Equipment & Slots Window", "Toggle floating ImGui equipment paperdoll and slots overlay.", &g_settings.self.equipment_slots_window);
+			sub->add_option<sub_option>("Equipment & Quick Slots Menu", "Manage gear slots, hotkeys, auto-fill, deposit, and utilities.", "SubmenuEquipmentSlots"_hash);
 			sub->add_option<bool_option<bool>>("Fill Inventory Top First", "Items added to inventory will fill slots from the top down instead of bottom.", &g_settings.self.inventory_top_first);
 			sub->add_option<bool_slider_int_option>("override_drop"_hash, "drop_amount"_hash);
 			sub->add_option<bool_option<bool>>("override_selected"_hash);
@@ -188,8 +567,32 @@ namespace big
 			}
 		});
 
+		canvas::add_submenu<regular_submenu>("Equipment & Quick Slots", "SubmenuEquipmentSlots"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("Enabled", "Enable BetrValheim extra inventory and equipment slots.", &g_settings.self.equipment_slots_enabled);
+			sub->add_option<bool_option<bool>>("Open Overlay Window", "Open interactive paperdoll and quick slots UI.", &g_settings.self.equipment_slots_window);
+			sub->add_option<bool_option<bool>>("Slot Hotkeys", "Alt+1..6 (Quick), Shift+1..3 (Food), Alt+R/T/Z (Ammo).", &g_settings.self.equipment_slots_hotkeys);
+			sub->add_option<bool_option<bool>>("Quadruple Utility Stacking", "Allow equipping up to 4 utility belts/items at once.", &g_settings.self.multi_utility_enabled);
+			sub->add_option<reguler_option>("Auto-Fill from Inventory", "Automatically move compatible armor, utilities, food, and ammo from inventory into slots.", [] {
+				queue_job([] {
+					equipment_manager::get().auto_fill_from_inventory();
+				});
+			});
+			sub->add_option<reguler_option>("Deposit All to Inventory", "Move all items from equipment and quick slots back to main inventory.", [] {
+				queue_job([] {
+					equipment_manager::get().deposit_all_to_inventory();
+				});
+			});
+			sub->add_option<reguler_option>("Save Slots to Character", "Force write slots data to player customData for persistence.", [] {
+				queue_job([] {
+					equipment_manager::get().save_to_player();
+					notification::success("Equipment Slots", "Equipment slots saved to character customData!");
+				});
+			});
+		});
+
 
 		canvas::add_submenu<regular_submenu>("World", "SubmenuWorld"_hash, [](regular_submenu* sub) {
+			sub->add_option<sub_option>("World Upgrade & Maintenance", "Upgrade old worlds, generate missing update POIs, and optimize terrain.", "SubmenuUpgradeWorld"_hash);
 			sub->add_option<sub_option>("Exploration & Map", "Reveal map fog, locate all bosses and traders.", "SubmenuExploration"_hash);
 			sub->add_option<sub_option>("Creatures & Taming", "Aimed animal inspection, instant tame hotkey, and area taming.", "SubmenuCreatures"_hash);
 			sub->add_option<sub_option>("Base Raids & Events", "Trigger or stop custom raids, disable base attacks.", "SubmenuRaids"_hash);
@@ -652,10 +1055,48 @@ namespace big
 			});
 		});
 
-		canvas::add_submenu<regular_submenu>("Remote Merchant", "SubmenuTrader"_hash, [](regular_submenu* sub) {
-			sub->add_option<reguler_option>("Open Trader Store (Anywhere)", "Open Haldor, Hildir, or Bog Witch store GUI directly from menu.", [] {
+		canvas::add_submenu<regular_submenu>("World Upgrade & Maintenance", "SubmenuUpgradeWorld"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Generate Missing Locations (genloc)", "Distribute all newly added update locations (Bog Witch, Hildir, Ashlands, Mistlands dungeons, Frost Caves, Tar Pits) into unexplored zones.", [] {
 				queue_job([] {
-					world_tools::open_trader_gui();
+					world_tools::generate_missing_locations();
+				});
+			});
+			sub->add_option<reguler_option>("Upgrade WorldGen Version (v2)", "Upgrade old world generation version to v2 (Modern rules & biome distribution).", [] {
+				queue_job([] {
+					world_tools::upgrade_worldgen_version();
+				});
+			});
+			sub->add_option<reguler_option>("Optimize Old Terrain (optterrain)", "Convert pre-Hearth&Home terrain modifications in loaded area to the modern system (fixes FPS drops).", [] {
+				queue_job([] {
+					world_tools::upgrade_terrain();
+				});
+			});
+			sub->add_option<reguler_option>("Spawn Bog Witch Camp Nearby", "Force spawn the Bog Witch merchant camp in front of you (saves permanently to world).", [] {
+				queue_job([] {
+					world_tools::force_spawn_location("BogWitch_Camp");
+				});
+			});
+			sub->add_option<reguler_option>("Spawn Hildir Camp Nearby", "Force spawn Hildir's merchant camp in front of you (saves permanently to world).", [] {
+				queue_job([] {
+					world_tools::force_spawn_location("Hildir_camp");
+				});
+			});
+		});
+
+		canvas::add_submenu<regular_submenu>("Remote Merchant", "SubmenuTrader"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Open Haldor Store (Black Forest)", "Trade for Megingjord, Fishing Rod, Bait, Ymir Flesh, etc.", [] {
+				queue_job([] {
+					world_tools::open_trader_gui("Haldor");
+				});
+			});
+			sub->add_option<reguler_option>("Open Hildir Store (Meadows)", "Trade for clothes, hats, sparklers, fireworks, etc.", [] {
+				queue_job([] {
+					world_tools::open_trader_gui("Hildir");
+				});
+			});
+			sub->add_option<reguler_option>("Open Bog Witch Store (Swamp)", "Trade for potions, alchemy ingredients, feast materials, scythe, etc.", [] {
+				queue_job([] {
+					world_tools::open_trader_gui("BogWitch");
 				});
 			});
 		});

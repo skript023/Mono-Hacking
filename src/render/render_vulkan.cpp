@@ -1,6 +1,6 @@
 #include "render_vulkan.hpp"
 #include "renderer.hpp"
-#include <MinHook.h>
+#include <ellohim/hooking/detour_hook.hpp>
 #define VK_NO_PROTOTYPES
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
@@ -65,6 +65,7 @@ namespace big
 		struct hook_record
 		{
 			void* target;
+			std::shared_ptr<ellohim::detour_hook> detour;
 		};
 		struct queue_info
 		{
@@ -103,8 +104,6 @@ namespace big
 		PFN_vkGetInstanceProcAddr get_instance_proc{};
 		PFN_vkGetDeviceProcAddr get_device_proc{};
 		PFN_vkCreateInstance original_create_instance{};
-		PFN_vkCreateWin32SurfaceKHR original_create_surface{};
-		PFN_vkDestroySurfaceKHR original_destroy_surface{};
 		PFN_vkEnumeratePhysicalDevices original_enumerate{};
 		PFN_vkCreateDevice original_create_device{};
 		PFN_vkCreateSwapchainKHR original_create_swapchain{};
@@ -113,8 +112,6 @@ namespace big
 		PFN_vkDestroyDevice original_destroy_device{};
 		PFN_vkAcquireNextImageKHR original_acquire{};
 		PFN_vkAcquireNextImage2KHR original_acquire2{};
-		std::unordered_map<VkPhysicalDevice, VkInstance> physical_instances;
-		std::unordered_map<VkSurfaceKHR, HWND> surfaces;
 		std::unordered_map<VkQueue, queue_info> queues;
 		std::unordered_map<VkSwapchainKHR, swapchain_info> swapchains;
 		VkInstance instance{};
@@ -123,7 +120,6 @@ namespace big
 		std::vector<VkQueueFamilyProperties> probe_families;
 		uint32_t probe_queue_family = UINT32_MAX;
 		bool late_device = false;
-		thread_local bool probing = false;
 		VkPhysicalDevice physical{};
 		VkDevice device{};
 		VkQueue graphics_queue{};
@@ -134,7 +130,7 @@ namespace big
 		std::vector<frame> frames;
 		std::vector<texture> textures;
 		bool capturing = false, attached = false, initialized = false, failed = false;
-		bool minhook_owned = false, stopping = false;
+		bool stopping = false;
 		HMODULE loader_reference{};
 		std::atomic<unsigned> active_callbacks{0};
 		struct callback_scope
@@ -169,19 +165,34 @@ namespace big
 				return false;
 			for (const auto& hook : hooks)
 				if (hook.target == target)
+				{
+					original = hook.detour->get_original<T>();
 					return true;
-			void* trampoline = nullptr;
-			if (MH_CreateHook(target, reinterpret_cast<void*>(callback), &trampoline) != MH_OK)
-				return false;
-			original = reinterpret_cast<T>(trampoline);
-			if (MH_EnableHook(target) != MH_OK)
+				}
+			try
 			{
-				MH_RemoveHook(target);
+				auto detour = std::make_shared<ellohim::detour_hook>("Vulkan device", target, reinterpret_cast<void*>(callback));
+				original = detour->get_original<T>();
+				hooks.push_back({target, detour});
+				try
+				{
+					detour->enable();
+				}
+				catch (...)
+				{
+					hooks.pop_back();
+					original = nullptr;
+					throw;
+				}
+				return true;
+			}
+			catch (const std::exception& error)
+			{
+				LOG(WARNING) << "Vulkan hook failed: " << error.what();
 				return false;
 			}
-			hooks.push_back({target});
-			return true;
 		}
+
 		void load_device_functions()
 		{
 #define LOAD(name)                                                                 \
@@ -498,7 +509,7 @@ namespace big
 				}
 				if (info->oldSwapchain && info->oldSwapchain == active_swapchain)
 					cleanup();
-				swapchains[*result] = {surfaces.contains(info->surface) ? surfaces.at(info->surface) : (late_device && g_renderer ? g_renderer->m_window : nullptr), info->imageFormat, info->imageExtent, info->imageUsage, info->imageArrayLayers, bool(info->flags & VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR)};
+				swapchains[*result] = {g_renderer ? g_renderer->m_window : nullptr, info->imageFormat, info->imageExtent, info->imageUsage, info->imageArrayLayers, bool(info->flags & VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR)};
 				failed = false;
 			}
 			return status;
@@ -591,118 +602,10 @@ namespace big
 				throw std::runtime_error("Cannot install Vulkan device hooks");
 		}
 
-		VkResult VKAPI_CALL create_device(VkPhysicalDevice gpu, const VkDeviceCreateInfo* info,
-		    const VkAllocationCallbacks* allocator, VkDevice* result)
-		{
-			callback_scope callback;
-			auto status = original_create_device(gpu, info, allocator, result);
-			if (status != VK_SUCCESS)
-				return status;
-			std::lock_guard lock(mutex);
-			bool supports_swapchain = false;
-			for (uint32_t i = 0; i < info->enabledExtensionCount; ++i)
-				supports_swapchain |= std::strcmp(info->ppEnabledExtensionNames[i], "VK_KHR_swapchain") == 0;
-			if (probing || stopping || device || !supports_swapchain || !physical_instances.contains(gpu))
-				return status;
-			instance = physical_instances.at(gpu);
-			physical = gpu;
-			device = *result;
-			try
-			{
-				load_device_functions();
-				auto properties = instance_function<PFN_vkGetPhysicalDeviceQueueFamilyProperties>("vkGetPhysicalDeviceQueueFamilyProperties");
-				uint32_t count = 0;
-				properties(gpu, &count, nullptr);
-				std::vector<VkQueueFamilyProperties> families(count);
-				properties(gpu, &count, families.data());
-				for (uint32_t i = 0; i < info->queueCreateInfoCount; ++i)
-				{
-					const auto& q = info->pQueueCreateInfos[i];
-					if (q.flags || q.queueFamilyIndex >= count)
-						continue;
-					for (uint32_t j = 0; j < q.queueCount; ++j)
-					{
-						VkQueue queue{};
-						vk.GetDeviceQueue(device, q.queueFamilyIndex, j, &queue);
-						queues[queue] = {q.queueFamilyIndex, families[q.queueFamilyIndex].queueFlags};
-					}
-				}
-				late_device = false;
-				install_device_hooks(device);
-			}
-			catch (const std::exception&)
-			{
-				// Capture can run before the logger exists. Report its status on attach.
-				failed = true;
-			}
-			return status;
-		}
-		VkResult VKAPI_CALL enumerate(VkInstance current, uint32_t* count, VkPhysicalDevice* devices)
-		{
-			callback_scope callback;
-			auto status = original_enumerate(current, count, devices);
-			if ((status == VK_SUCCESS || status == VK_INCOMPLETE) && devices)
-			{
-				std::lock_guard lock(mutex);
-				for (uint32_t i = 0; i < *count; ++i)
-					physical_instances[devices[i]] = current;
-			}
-			return status;
-		}
-		VkResult VKAPI_CALL create_surface(VkInstance current, const VkWin32SurfaceCreateInfoKHR* info,
-		    const VkAllocationCallbacks* allocator, VkSurfaceKHR* result)
-		{
-			callback_scope callback;
-			auto status = original_create_surface(current, info, allocator, result);
-			if (status == VK_SUCCESS)
-			{
-				std::lock_guard lock(mutex);
-				surfaces[*result] = info->hwnd;
-			}
-			return status;
-		}
-		void VKAPI_CALL destroy_surface(VkInstance current, VkSurfaceKHR surface, const VkAllocationCallbacks* allocator)
-		{
-			callback_scope callback;
-			std::lock_guard lock(mutex);
-			surfaces.erase(surface);
-			original_destroy_surface(current, surface, allocator);
-		}
-		VkResult VKAPI_CALL create_instance(const VkInstanceCreateInfo* info, const VkAllocationCallbacks* allocator, VkInstance* result)
-		{
-			callback_scope callback;
-			auto status = original_create_instance(info, allocator, result);
-			if (status == VK_SUCCESS)
-			{
-				std::lock_guard lock(mutex);
-				if (!stopping)
-				{
-					auto create = get_instance_proc(*result, "vkCreateWin32SurfaceKHR");
-					auto destroy = get_instance_proc(*result, "vkDestroySurfaceKHR");
-					if (create)
-						install(reinterpret_cast<void*>(create), create_surface, original_create_surface);
-					if (destroy)
-						install(reinterpret_cast<void*>(destroy), destroy_surface, original_destroy_surface);
-				}
-			}
-			return status;
-		}
 		void bootstrap(uint32_t vendor_id, uint32_t device_id)
 		{
 			if (device || probe_instance)
 				return;
-
-			struct probe_scope
-			{
-				probe_scope()
-				{
-					probing = true;
-				}
-				~probe_scope()
-				{
-					probing = false;
-				}
-			} scope;
 
 			VkDevice dummy = VK_NULL_HANDLE;
 			try
@@ -797,7 +700,7 @@ namespace big
 		}
 
 	}
-	void render_vulkan::start_capture()
+	void render_vulkan::initialize_loader()
 	{
 		std::lock_guard lock(mutex);
 		if (capturing || stopping)
@@ -808,14 +711,6 @@ namespace big
 		const auto module = loader_reference;
 		if (!module)
 			return;
-		const auto mh = MH_Initialize();
-		if (mh != MH_OK && mh != MH_ERROR_ALREADY_INITIALIZED)
-		{
-			FreeLibrary(loader_reference);
-			loader_reference = nullptr;
-			return;
-		}
-		minhook_owned = mh == MH_OK;
 		get_instance_proc = reinterpret_cast<PFN_vkGetInstanceProcAddr>(GetProcAddress(module, "vkGetInstanceProcAddr"));
 		get_device_proc = reinterpret_cast<PFN_vkGetDeviceProcAddr>(GetProcAddress(module, "vkGetDeviceProcAddr"));
 		if (!get_instance_proc || !get_device_proc)
@@ -824,15 +719,21 @@ namespace big
 			loader_reference = nullptr;
 			return;
 		}
-		bool ok = install(reinterpret_cast<void*>(GetProcAddress(module, "vkCreateInstance")), create_instance, original_create_instance);
-		ok &= install(reinterpret_cast<void*>(GetProcAddress(module, "vkEnumeratePhysicalDevices")), enumerate, original_enumerate);
-		ok &= install(reinterpret_cast<void*>(GetProcAddress(module, "vkCreateDevice")), create_device, original_create_device);
+		original_create_instance = reinterpret_cast<PFN_vkCreateInstance>(get_instance_proc(nullptr, "vkCreateInstance"));
+		original_enumerate = reinterpret_cast<PFN_vkEnumeratePhysicalDevices>(GetProcAddress(module, "vkEnumeratePhysicalDevices"));
+		original_create_device = reinterpret_cast<PFN_vkCreateDevice>(GetProcAddress(module, "vkCreateDevice"));
+		if (!original_create_instance || !original_enumerate || !original_create_device)
+		{
+			FreeLibrary(loader_reference);
+			loader_reference = nullptr;
+			return;
+		}
 		capturing = true;
-		failed = !ok;
+		failed = false;
 	}
 	void render_vulkan::attach(uint32_t vendor_id, uint32_t device_id)
 	{
-		start_capture();
+		initialize_loader();
 		std::lock_guard lock(mutex);
 		attached = true;
 		if (capturing && !failed && !device && g_renderer)
@@ -854,7 +755,7 @@ namespace big
 		attached = false;
 		cleanup();
 	}
-	void render_vulkan::stop_capture()
+	bool render_vulkan::stop_capture()
 	{
 		detach();
 		std::vector<hook_record> installed;
@@ -864,18 +765,19 @@ namespace big
 			installed = hooks;
 		}
 		for (const auto& hook : installed)
-			MH_DisableHook(hook.target);
+			if (!hook.detour->disable())
+			{
+				LOG(WARNING) << "Cannot disable Vulkan hook safely; retaining capture resources.";
+				return false;
+			}
 		// Do not release a trampoline while a callback is still returning through it.
 		while (active_callbacks.load() != 0)
 			std::this_thread::yield();
 		std::lock_guard lock(mutex);
-		for (const auto& hook : installed)
-			MH_RemoveHook(hook.target);
 		hooks.clear();
+		installed.clear();
 		queues.clear();
 		swapchains.clear();
-		surfaces.clear();
-		physical_instances.clear();
 		if (probe_instance)
 		{
 			if (probe_surface)
@@ -893,13 +795,11 @@ namespace big
 		instance = {};
 		vk = {};
 		capturing = false;
-		if (minhook_owned)
-			MH_Uninitialize();
-		minhook_owned = false;
 		if (loader_reference)
 			FreeLibrary(loader_reference);
 		loader_reference = nullptr;
 		stopping = false;
+		return true;
 	}
 	void render_vulkan::shutdown()
 	{

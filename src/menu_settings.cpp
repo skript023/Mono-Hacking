@@ -1,9 +1,15 @@
 #include "menu_settings.hpp"
+#include "file_manager.hpp"
 #include "nlohmann/json.hpp"
 #include <filesystem>
 
 namespace big
 {
+	std::filesystem::path menu_settings::get_settings_file_path() const
+	{
+		return file_manager::get_project_file("./menu_settings.json").get_path();
+	}
+
 	void menu_settings::attempt_save()
 	{
 		nlohmann::json j = *this;
@@ -15,19 +21,13 @@ namespace big
 	{
 		this->default_options = *this;
 		this->options = this->default_options;
-		const char* appdata = std::getenv("appdata");
-		if (!appdata)
-		{
-			LOG(WARNING) << "APPDATA is unavailable; using menu defaults in memory.";
-			return false;
-		}
-		const std::string settings_file = std::string(appdata) + this->settings_location;
+		const auto settings_file = this->get_settings_file_path();
 		try
 		{
 			std::ifstream file(settings_file);
 			if (!file.is_open())
 			{
-				LOG(WARNING) << "Cannot open menu settings: " << settings_file << "; using defaults.";
+				LOG(WARNING) << "Cannot open menu settings: " << settings_file.string() << "; using defaults.";
 				return this->write_default_config();
 			}
 			file >> this->options;
@@ -41,7 +41,7 @@ namespace big
 		}
 		catch (const std::exception& e)
 		{
-			LOG(WARNING) << "Invalid menu settings at " << settings_file << ": " << e.what() << "; using defaults.";
+			LOG(WARNING) << "Invalid menu settings at " << settings_file.string() << ": " << e.what() << "; using defaults.";
 			from_json(this->default_options, *this);
 			this->options = this->default_options;
 			return this->write_default_config();
@@ -81,15 +81,9 @@ namespace big
 
 	bool menu_settings::save()
 	{
-		const char* appdata = std::getenv("appdata");
-		if (!appdata)
-		{
-			LOG(WARNING) << "Cannot save menu settings: APPDATA is unavailable.";
-			return false;
-		}
-		const std::string settings_file = std::string(appdata) + this->settings_location;
+		const auto settings_file = this->get_settings_file_path();
 		std::error_code error;
-		std::filesystem::create_directories(std::filesystem::path(settings_file).parent_path(), error);
+		std::filesystem::create_directories(settings_file.parent_path(), error);
 		if (error)
 		{
 			LOG(WARNING) << "Cannot create menu settings directory: " << error.message();
@@ -98,7 +92,7 @@ namespace big
 		std::ofstream file(settings_file, std::ios::out | std::ios::trunc);
 		if (!file.is_open())
 		{
-			LOG(WARNING) << "Cannot open menu settings for writing: " << settings_file;
+			LOG(WARNING) << "Cannot open menu settings for writing: " << settings_file.string();
 			return false;
 		}
 		nlohmann::json j = *this;
@@ -106,7 +100,7 @@ namespace big
 		file.close();
 		if (file.fail())
 		{
-			LOG(WARNING) << "Failed to write menu settings: " << settings_file;
+			LOG(WARNING) << "Failed to write menu settings: " << settings_file.string();
 			return false;
 		}
 		return true;

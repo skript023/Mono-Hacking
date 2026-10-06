@@ -8,7 +8,6 @@
 
 #include "graphic/graphic_manager.hpp"
 
-#include <MinHook.h>
 #include <ellohim/logger.hpp>
 
 namespace big
@@ -87,14 +86,20 @@ namespace big
 		add_mono_hook<hooks::get_attack_draw_percentage>("Humanoid::GetAttackDrawPercentage", "Humanoid", "GetAttackDrawPercentage", 0, "assembly_valheim");
 		add_mono_hook<hooks::is_weapon_loaded>("Player::IsWeaponLoaded", "Player", "IsWeaponLoaded", 0, "assembly_valheim");
 		add_mono_hook<hooks::character_rpc_damage>("Character::RPC_Damage", "Character", "RPC_Damage", 2, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_is_blocking>("Humanoid::IsBlocking", "Humanoid", "IsBlocking", 0, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_block_attack>("Humanoid::BlockAttack", "Humanoid", "BlockAttack", 2, "assembly_valheim");
 		add_mono_hook<hooks::player_in_god_mode>("Player::InGodMode", "Player", "InGodMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_in_ghost_mode>("Player::InGhostMode", "Player", "InGhostMode", 0, "assembly_valheim");
 		add_mono_hook<hooks::player_recipe_requirements>("Player::HaveRequirements(Recipe)", "Player", "HaveRequirements", 4, "assembly_valheim");
 		add_mono_hook<hooks::player_piece_requirements>("Player::HaveRequirements(Piece)", "Player", "HaveRequirements", 2, "assembly_valheim");
+		add_mono_hook<hooks::player_check_can_remove_piece>("Player::CheckCanRemovePiece", "Player", "CheckCanRemovePiece", 1, "assembly_valheim");
 		add_mono_hook<hooks::required_crafting_station>("Player::RequiredCraftingStation", "Player", "RequiredCraftingStation", 3, "assembly_valheim");
 		add_mono_hook<hooks::consume_resources>("Player::ConsumeResources", "Player", "ConsumeResources", 4, "assembly_valheim");
 		add_mono_hook<hooks::first_required_item>("Player::GetFirstRequiredItem", "Player", "GetFirstRequiredItem", 6, "assembly_valheim");
 		add_mono_hook<hooks::recipe_required_station>("Recipe::GetRequiredStation", "Recipe", "GetRequiredStation", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_gui_can_repair>("InventoryGui::CanRepair", "InventoryGui", "CanRepair", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_gui_have_repairable_items>("InventoryGui::HaveRepairableItems", "InventoryGui", "HaveRepairableItems", 0, "assembly_valheim");
+		add_mono_hook<hooks::inventory_gui_repair_one_item>("InventoryGui::RepairOneItem", "InventoryGui", "RepairOneItem", 0, "assembly_valheim");
 		add_mono_hook<hooks::smelter_delta>("Smelter::GetDeltaTime", "Smelter", "GetDeltaTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::fermenter_time>("Fermenter::GetFermentationTime", "Fermenter", "GetFermentationTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::hive_delta>("Beehive::GetTimeSinceLastUpdate", "Beehive", "GetTimeSinceLastUpdate", 0, "assembly_valheim");
@@ -126,6 +131,14 @@ namespace big
 		if (auto any_cheated = mono::get_compile_method("Inventory", "AnyCheatedItem", 0, "assembly_valheim"))
 			detour_hook::add<hooks::inventory_any_cheated_item>("Inventory::AnyCheatedItem", any_cheated);
 		add_mono_hook<hooks::drop_invalid_items>("Humanoid::DropInvalidItems", "Humanoid", "DropInvalidItems", 0, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_equip_item>("Humanoid::EquipItem", "Humanoid", "EquipItem", 2, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_unequip_item>("Humanoid::UnequipItem", "Humanoid", "UnequipItem", 2, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_update_equipment_status_effects>("Humanoid::UpdateEquipmentStatusEffects", "Humanoid", "UpdateEquipmentStatusEffects", 0, "assembly_valheim");
+		add_mono_hook<hooks::humanoid_unequip_all_items>("Humanoid::UnequipAllItems", "Humanoid", "UnequipAllItems", 0, "assembly_valheim");
+		add_mono_hook<hooks::player_use_hotbar_item>("Player::UseHotbarItem", "Player", "UseHotbarItem", 1, "assembly_valheim");
+		add_mono_hook<hooks::player_save>("Player::Save", "Player", "Save", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_contains_item>("Inventory::ContainsItem", "Inventory", "ContainsItem", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_remove_item>("Inventory::RemoveItem(ItemData,int)", "Inventory", "RemoveItem", 2, "assembly_valheim");
 
 		g_hooking = this;
 	}
@@ -158,7 +171,6 @@ namespace big
 		{
 			if (!detour_base::enable_all())
 				throw std::runtime_error("Could not enable all hooks");
-			MH_ApplyQueued();
 			m_enabled = true;
 		}
 		catch (...)
@@ -176,20 +188,9 @@ namespace big
 		SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_og_wndproc));
 
 		detour_base::disable_all();
-		MH_ApplyQueued();
 
 		while (!detour_base::hooks().empty())
 			delete detour_base::hooks().back();
-	}
-
-	minhook_keepalive::minhook_keepalive()
-	{
-		MH_Initialize();
-	}
-
-	minhook_keepalive::~minhook_keepalive()
-	{
-		MH_Uninitialize();
 	}
 
 	void* hooks::convert_thread_to_fiber(void* param)

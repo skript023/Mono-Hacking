@@ -92,6 +92,8 @@ namespace big
 		m_init = false;
 		m_backend = nullptr;
 		g_gui.m_header = g_gui.m_toggle = 0;
+		g_gui.m_banners.clear();
+		g_gui.m_banner_names.clear();
 	}
 	void renderer::finish_init()
 	{

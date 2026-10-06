@@ -1,9 +1,11 @@
 #pragma once
+#include "file_manager.hpp"
 #include "logger/logger.hpp"
 #include "imgui.h"
 
 #include "class/vector.hpp"
 #include "utility/utility.hpp"
+#include <filesystem>
 
 namespace big
 {
@@ -19,7 +21,7 @@ namespace big
 		void* m_camera_obj = nullptr;
 
 	private:
-		const char* settings_location = "\\Scarlet Nexus Trainer\\menu_settings.json";
+		std::filesystem::path get_settings_file_path() const;
 
 		bool deep_compare(nlohmann::json& current_settings, const nlohmann::json& default_settings, bool compare_value = false);
 		bool save();
@@ -60,7 +62,15 @@ namespace big
 			float pickup_range{2.f};
 			int max_food_slots{3};
 
-			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw, god_mode, ghost_mode, infinite_durability, free_crafting, one_hit_resource, damage_multiplier, speed_multiplier, pickup_range, max_food_slots)
+			bool equipment_slots_enabled{true};
+			bool equipment_slots_window{false};
+			bool equipment_slots_hotkeys{true};
+			bool multi_utility_enabled{true};
+
+			bool auto_parry{false};
+			bool always_parry{false};
+
+			NLOHMANN_DEFINE_TYPE_INTRUSIVE(self, is_teleportable, open_all_recipe_and_free_craft, no_drop_on_dead, map_click_teleport, inventory_top_first, infinite_stability, ward_bypass, instant_bow_draw, god_mode, ghost_mode, infinite_durability, free_crafting, one_hit_resource, damage_multiplier, speed_multiplier, pickup_range, max_food_slots, equipment_slots_enabled, equipment_slots_window, equipment_slots_hotkeys, multi_utility_enabled, auto_parry, always_parry)
 		} self;
 
 		struct window
@@ -79,6 +89,7 @@ namespace big
 
 			int layout = 0; // 0: List, 1: Window
 			int theme = 4;  // Emerald, Violet, Ocean
+			int banner = 0; // 0: Quantum Green, 1: Astra Standard
 			bool switched_view = true;
 			bool mouse_active = false;
 			bool input = false;
@@ -142,6 +153,7 @@ namespace big
 			NLOHMANN_DEFINE_TYPE_INTRUSIVE(window,
 			    layout,
 			    theme,
+			    banner,
 			    color,
 			    gui_scale,
 			    transparency,

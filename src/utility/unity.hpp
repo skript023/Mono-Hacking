@@ -171,11 +171,21 @@ namespace big::unity
 
 	inline MonoObject* get_znet_scene()
 	{
+		static MonoMethod* get_inst = mono::get_method("ZNetScene", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
+			if (obj)
+				return obj;
+		}
+
 		MonoClass* klass = mono::get_class("ZNetScene", "assembly_valheim");
 		if (klass == nullptr)
 			return nullptr;
 
-		MonoClassField* field = mono::get_field(klass, "m_instance");
+		MonoClassField* field = mono::get_field(klass, "s_instance");
+		if (field == nullptr)
+			field = mono::get_field(klass, "m_instance");
 		if (field == nullptr)
 			return nullptr;
 
@@ -191,11 +201,21 @@ namespace big::unity
 
 	inline MonoObject* get_rand_event_system()
 	{
+		static MonoMethod* get_inst = mono::get_method("RandEventSystem", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
+			if (obj)
+				return obj;
+		}
+
 		MonoClass* klass = mono::get_class("RandEventSystem", "assembly_valheim");
 		if (klass == nullptr)
 			return nullptr;
 
 		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr)
+			field = mono::get_field(klass, "s_instance");
 		if (field == nullptr)
 			return nullptr;
 
@@ -211,11 +231,21 @@ namespace big::unity
 
 	inline MonoObject* get_store_gui()
 	{
+		static MonoMethod* get_inst = mono::get_method("StoreGui", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
+			if (obj)
+				return obj;
+		}
+
 		MonoClass* klass = mono::get_class("StoreGui", "assembly_valheim");
 		if (klass == nullptr)
 			return nullptr;
 
 		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr)
+			field = mono::get_field(klass, "s_instance");
 		if (field == nullptr)
 			return nullptr;
 
@@ -237,6 +267,20 @@ namespace big::unity
 		T out{};
 		mono::get_field_value(obj, field, &out);
 		return out;
+	}
+
+	inline void show_message(const std::string& msg, int type = 2)
+	{
+		auto player = get_local_player();
+		if (!player)
+			return;
+		static auto method = mono::get_method("Player", "Message", 4, "assembly_valheim");
+		if (!method)
+			return;
+		auto ms = mono::to_mono_string(msg);
+		int val = 0;
+		void* args[4] = {&type, ms, &val, nullptr};
+		mono::invoke_method(method, player, args);
 	}
 
 	inline std::vector<MonoObject*> list_to_vector(MonoObject* list)

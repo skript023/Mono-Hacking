@@ -59,14 +59,20 @@ namespace big
 		static float get_attack_draw_percentage(MonoObject* humanoid);
 		static bool is_weapon_loaded(MonoObject* player);
 		static void character_rpc_damage(MonoObject* character, int64_t sender, MonoObject* hit);
+		static bool humanoid_is_blocking(MonoObject* humanoid);
+		static bool humanoid_block_attack(MonoObject* humanoid, MonoObject* hit, MonoObject* attacker);
 		static bool player_in_god_mode(MonoObject* player);
 		static bool player_in_ghost_mode(MonoObject* player);
 		static bool player_recipe_requirements(MonoObject* player, MonoObject* recipe, bool discover, int quality, int amount);
 		static bool player_piece_requirements(MonoObject* player, MonoObject* piece, int mode);
+		static bool player_check_can_remove_piece(MonoObject* player, MonoObject* piece);
 		static bool required_crafting_station(MonoObject* player, MonoObject* recipe, int quality, bool check_level);
 		static void consume_resources(MonoObject* player, MonoArray* requirements, int quality, int item_quality, int multiplier);
 		static MonoObject* recipe_required_station(MonoObject* recipe, int quality);
 		static MonoObject* first_required_item(MonoObject* player, MonoObject* inventory, MonoObject* recipe, int quality, int* amount, int* extra, int multiplier);
+		static bool inventory_gui_can_repair(MonoObject* gui, MonoObject* item);
+		static bool inventory_gui_have_repairable_items(MonoObject* gui);
+		static void inventory_gui_repair_one_item(MonoObject* gui);
 		static double smelter_delta(MonoObject* object);
 		static double fermenter_time(MonoObject* object);
 		static float hive_delta(MonoObject* object);
@@ -91,12 +97,14 @@ namespace big
 		static bool inventory_any_cheated_item(MonoObject* inventory);
 		static void drop_invalid_items(MonoObject* humanoid);
 		static void hud_update_food(MonoObject* hud, MonoObject* player);
-	};
-
-	struct minhook_keepalive
-	{
-		minhook_keepalive();
-		~minhook_keepalive();
+		static bool humanoid_equip_item(MonoObject* humanoid, MonoObject* item, bool trigger_equip_effects);
+		static void humanoid_unequip_item(MonoObject* humanoid, MonoObject* item, bool trigger_equip_effects);
+		static void humanoid_update_equipment_status_effects(MonoObject* humanoid);
+		static void humanoid_unequip_all_items(MonoObject* humanoid);
+		static void player_use_hotbar_item(MonoObject* player, int index);
+		static void player_save(MonoObject* player, MonoObject* pkg);
+		static bool inventory_contains_item(MonoObject* inventory, MonoObject* item);
+		static bool inventory_remove_item(MonoObject* inventory, MonoObject* item, int amount);
 	};
 
 	class hooking

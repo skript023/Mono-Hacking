@@ -25,11 +25,8 @@ DWORD APIENTRY main_thread(LPVOID)
 {
 	using namespace big;
 
-	auto minhook_instance = std::make_unique<minhook_keepalive>();
-	// Capture device creation before waiting for Unity's window and Mono startup.
 	do
 	{
-		render_vulkan::start_capture();
 		if (FindWindow(WINDOW_CLASS, WINDOW_NAME))
 			break;
 		std::this_thread::sleep_for(10ms);
@@ -160,8 +157,11 @@ DWORD APIENTRY main_thread(LPVOID)
 		MessageBoxA(nullptr, ex.what(), nullptr, MB_OK | MB_ICONEXCLAMATION);
 	}
 
-	render_vulkan::stop_capture();
-	minhook_instance.reset();
+	if (!render_vulkan::stop_capture())
+	{
+		LOG(WARNING) << "DLL retained because Vulkan hooks are still active.";
+		return 0;
+	}
 
 	// This DLL owns a static OpenSSL instance; all networking threads are gone.
 	OPENSSL_cleanup();

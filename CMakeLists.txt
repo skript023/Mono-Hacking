@@ -33,7 +33,6 @@ message(STATUS "OpenSSL::Crypto -> ${crypto_loc}")
 
 # Fetch modules
 message("\nFetching modules")
-include(scripts/minhook.cmake)
 include(scripts/ellohim_hook.cmake)
 include(scripts/json.cmake)
 include(scripts/g3log.cmake)
@@ -85,11 +84,11 @@ target_include_directories(Valheim PRIVATE
     "${discord_SOURCE_DIR}/include"
     "${quickjs_SOURCE_DIR}/src"
     "${OPENSSL_INCLUDE_DIR}"
-    "${minhook_SOURCE_DIR}/src/hde"
+    "${ellohim_hook_SOURCE_DIR}/src/hooking/core/hde"
 )
 
 target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(Valheim PRIVATE EllohimHook astra::ui Vulkan::Headers minhook quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
+target_link_libraries(Valheim PRIVATE EllohimHook astra::ui Vulkan::Headers quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
 
 # Warnings as errors
 #set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)
@@ -122,7 +121,7 @@ if(BUILD_RENDERER_SMOKE_TESTS)
     set_target_properties(renderer_smoke PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/renderer-tests")
     target_compile_features(renderer_smoke PRIVATE cxx_std_23)
     target_compile_definitions(renderer_smoke PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN RENDERER_SMOKE_TEST)
-    target_link_libraries(renderer_smoke PRIVATE imgui minhook Vulkan::Headers d3d11 dxgi user32 gdi32 dwmapi)
+    target_link_libraries(renderer_smoke PRIVATE imgui EllohimHook Vulkan::Headers d3d11 dxgi user32 gdi32 dwmapi)
     enable_testing()
     add_test(NAME renderer_dx11 COMMAND renderer_smoke dx11)
     add_test(NAME renderer_vulkan COMMAND renderer_smoke vulkan)
