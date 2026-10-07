@@ -14,6 +14,12 @@ namespace big
 		bool m_initial_load_done;
 		nlohmann::json m_json;
 		std::mutex m_mutex;
+		// The file as the mod last read or wrote it, so an outside edit shows up as a diff.
+		nlohmann::json m_disk_json;
+		std::filesystem::file_time_type m_disk_time{};
+		// Outside edits per component (key to new value, null when removed) waiting for the game thread.
+		std::unordered_map<std::string, nlohmann::json> m_external;
+		std::atomic_bool m_has_external{false};
 
 	public:
 		settings();
@@ -26,6 +32,12 @@ namespace big
 		static void tick()
 		{
 			get_instance().tick_impl();
+		}
+
+		// Called from the game thread, where features expect to be switched on and off.
+		static void apply_external()
+		{
+			get_instance().apply_external_impl();
 		}
 
 		static void add_component(state_serializer* serializer)
@@ -63,5 +75,8 @@ namespace big
 		void save_component_impl(state_serializer* serializer);
 		void reset();
 		bool should_save();
+		void read_external_changes();
+		void apply_external_impl();
+		void write_file();
 	};
 }

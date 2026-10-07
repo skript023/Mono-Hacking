@@ -11,6 +11,8 @@
 #include "unity/animal_tools.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
+#include "commands/hotkeys.hpp"
+#include "settings/settings.hpp"
 
 namespace big
 {
@@ -22,6 +24,8 @@ namespace big
 		base_tools::hotkey_tick();
 		animal_tools::update();
 		animal_tools::hotkey_tick();
+		settings::apply_external();
+		hotkeys::tick();
 	}
 
 	void main_worker::run()
