@@ -24,6 +24,18 @@ namespace big
 			m_is_dirty = false;
 		}
 
+		// Keys another program changed in the file while the game runs: `changes` holds each new value,
+		// or null for a removed key, and `state` the whole component.
+		virtual void apply_external_impl(nlohmann::json& state, const nlohmann::json& changes)
+		{
+			load_state_impl(state);
+		}
+
+		inline void apply_external(nlohmann::json& state, const nlohmann::json& changes)
+		{
+			apply_external_impl(state, changes);
+		}
+
 		inline bool is_state_dirty()
 		{
 			return m_is_dirty;
