@@ -61,4 +61,13 @@ namespace big
 			script::get_current()->yield(1s);
 		}
 	}
+	routine main_worker::run_routine()
+	{
+		while (g_running)
+		{
+			LOG(INFO) << "Running main_worker::run_routine()";
+
+			co_await routine_yield(1s); // Jeda 1 frame
+		}
+	}
 }

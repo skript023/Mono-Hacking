@@ -1,9 +1,10 @@
 #include "hooking.hpp"
 #include "script_mgr.hpp"
-#include "utility/unity.hpp"
+#include "routine_mgr.hpp"
+
 #include "unity/hud.hpp"
+#include "utility/unity.hpp"
 #include "unity/crafting_tools.hpp"
-#include <chrono>
 
 namespace big
 {
@@ -12,10 +13,15 @@ namespace big
 		TRY_CLAUSE
 		{
 			if (!g_running && (unity::hud_manager::cleanup_pending() || crafting_tools::cleanup_pending()))
+			{
 				g_script_mgr.tick();
+				g_routine_mgr.tick();
+			}
+
 			if (g_running)
 			{
 				g_script_mgr.tick();
+				g_routine_mgr.tick();
 
 				static auto s_last_sanitize = std::chrono::steady_clock::now();
 				auto now = std::chrono::steady_clock::now();

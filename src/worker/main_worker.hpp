@@ -1,4 +1,5 @@
 #pragma once
+#include "routine.hpp"
 
 namespace big
 {
@@ -7,5 +8,6 @@ namespace big
 	public:
 		static void run();
 		static void slow_run();
+		static routine run_routine();
 	};
 }
