@@ -1,6 +1,6 @@
 #include "hooking.hpp"
+#include "task_mgr.hpp"
 #include "script_mgr.hpp"
-#include "routine_mgr.hpp"
 
 #include "unity/hud.hpp"
 #include "utility/unity.hpp"
@@ -15,13 +15,13 @@ namespace big
 			if (!g_running && (unity::hud_manager::cleanup_pending() || crafting_tools::cleanup_pending()))
 			{
 				g_script_mgr.tick();
-				g_routine_mgr.tick();
+				task_mgr::tick();
 			}
 
 			if (g_running)
 			{
 				g_script_mgr.tick();
-				g_routine_mgr.tick();
+				task_mgr::tick();
 
 				static auto s_last_sanitize = std::chrono::steady_clock::now();
 				auto now = std::chrono::steady_clock::now();

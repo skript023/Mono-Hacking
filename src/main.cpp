@@ -2,12 +2,12 @@
 #include "hooking.hpp"
 #include "pointers.hpp"
 #include "renderer.hpp"
-#include "render/render_vulkan.hpp"
+#include "task_mgr.hpp"
 #include "benchmark.hpp"
 #include "script_mgr.hpp"
 #include "fiber_pool.hpp"
-#include "routine_mgr.hpp"
 #include "file_manager.hpp"
+#include "render/render_vulkan.hpp"
 
 #include "mono/mono.hpp"
 #include "logger/logger.hpp"
@@ -88,7 +88,7 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
 		g_script_mgr.add_script(std::make_unique<script>(&main_worker::slow_run));
-		g_routine_mgr.add(main_worker::run_routine());
+		task_mgr::add(&main_worker::run_routine);
 		g_script_mgr.add_script(std::make_unique<script>(&entity_worker::run));
 		LOG(INFO) << "Scripts registered.";
 
@@ -123,7 +123,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		std::this_thread::sleep_for(1000ms);
 
 		g_script_mgr.remove_all_scripts();
-		g_routine_mgr.clear();
+		task_mgr::clear();
 		LOG(INFO) << "Scripts and routines unregistered.";
 
 #ifdef PRODUCTION
