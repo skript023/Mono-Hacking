@@ -1,7 +1,7 @@
 #include "crafting_tools.hpp"
 #include "commands/bool_command.hpp"
 #include "commands/commands.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "utility/unity.hpp"
 
 namespace big
@@ -162,10 +162,10 @@ namespace big
 	}
 	void crafting_tools::queue_update_impl()
 	{
-		if (m_pending || !g_fiber_pool)
+		if (m_pending)
 			return;
 		m_pending = true;
-		g_fiber_pool->queue_job([this] {
+		async_run([this] {
 			m_pending = false;
 			if (g_running)
 				update_impl();
@@ -175,10 +175,8 @@ namespace big
 	}
 	void crafting_tools::shutdown_impl()
 	{
-		if (!g_fiber_pool)
-			return;
 		m_cleanup_pending.store(true);
-		g_fiber_pool->queue_job([this] {
+		async_run([this] {
 			reset_impl();
 			m_cleanup_pending.store(false);
 		});

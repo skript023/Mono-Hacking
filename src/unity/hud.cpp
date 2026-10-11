@@ -1,5 +1,5 @@
 #include "hud.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "utility/unity.hpp"
 #include <algorithm>
 #include <cmath>
@@ -13,10 +13,8 @@ namespace big::unity
 
 	void hud_manager::shutdown_impl()
 	{
-		if (!g_fiber_pool)
-			return;
 		m_cleanup_pending.store(true, std::memory_order_release);
-		g_fiber_pool->queue_job([this] {
+		async_run([this] {
 			reset_impl();
 			m_cleanup_pending.store(false, std::memory_order_release);
 		});
@@ -29,10 +27,10 @@ namespace big::unity
 
 	void hud_manager::queue_update_impl()
 	{
-		if (m_pending || !g_fiber_pool)
+		if (m_pending)
 			return;
 		m_pending = true;
-		g_fiber_pool->queue_job([this] {
+		async_run([this] {
 			m_pending = false;
 			if (g_running)
 				update_impl();
@@ -42,10 +40,9 @@ namespace big::unity
 	}
 	void hud_manager::queue_reset_impl()
 	{
-		if (g_fiber_pool)
-			g_fiber_pool->queue_job([this] {
-				reset_impl();
-			});
+		async_run([this] {
+			reset_impl();
+		});
 	}
 	MonoMethod* hud_manager::method_impl(const char* type, const char* name, int count)
 	{

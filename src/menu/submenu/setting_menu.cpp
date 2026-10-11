@@ -1,5 +1,4 @@
 #include "../view.hpp"
-#include "script.hpp"
 #include "server/server_module.hpp"
 #include "gui.hpp"
 

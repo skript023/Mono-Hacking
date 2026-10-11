@@ -1,4 +1,5 @@
 #include "task_mgr.hpp"
+#include "logger/exception_handler.hpp"
 
 namespace big
 {
@@ -20,13 +21,6 @@ namespace big
 	void task_mgr::clear_impl()
 	{
 		std::lock_guard lock(m_mutex);
-		for (auto& t : m_tasks)
-		{
-			if (t.m_handle)
-			{
-				t.m_handle.destroy();
-			}
-		}
 		m_tasks.clear();
 	}
 
@@ -41,40 +35,39 @@ namespace big
 			// Bersihkan jika handle kosong atau sudah selesai
 			if (!handle || handle.done())
 			{
-				if (handle)
-				{
-					handle.destroy();
-				}
 				it = m_tasks.erase(it);
 				continue;
 			}
 
-			auto& promise = handle.promise();
+			auto* leaf = handle.promise().get_leaf();
 			bool should_run = true;
 
-			// Periksa status jeda/waktu tunggu di Root Task
-			if (promise.m_wake_time.has_value())
+			// Periksa status jeda/waktu tunggu di leaf Task
+			if (leaf->m_wake_time.has_value())
 			{
-				if (std::chrono::high_resolution_clock::now() < promise.m_wake_time.value())
+				if (std::chrono::high_resolution_clock::now() < leaf->m_wake_time.value())
 				{
 					should_run = false; // Belum waktunya jalan
 				}
 				else
 				{
-					promise.m_wake_time = std::nullopt; // Reset wake time
+					leaf->m_wake_time = std::nullopt; // Reset wake time
 				}
 			}
 
-			// Resume eksekusi coroutine
+			// Resume eksekusi coroutine pada leaf aktif
 			if (should_run)
 			{
-				handle.resume();
+				TRY_CLAUSE
+				{
+					leaf->get_handle().resume();
+				}
+				EXCEPT_CLAUSE
 			}
 
-			// Cek lagi setelah dijalankan, barangkali baru saja menyentuh co_return
+			// Cek lagi setelah dijalankan, barangkali root task baru saja selesai
 			if (handle && handle.done())
 			{
-				handle.destroy();
 				it = m_tasks.erase(it);
 			}
 			else

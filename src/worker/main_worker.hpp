@@ -6,8 +6,7 @@ namespace big
 	class main_worker
 	{
 	public:
-		static void run();
-		static void slow_run();
-		static task<void> run_routine();
+		static task<void> run();
+		static task<void> slow_run();
 	};
 }

@@ -1,5 +1,4 @@
 #include "imgui.h"
-#include "script.hpp"
 #include "../view.hpp"
 
 namespace big

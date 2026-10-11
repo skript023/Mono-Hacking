@@ -1,6 +1,6 @@
 #include "../view.hpp"
 #include "../submenu.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "utility/unity.hpp"
 #include "unity/self.hpp"
 #include "unity/localization.hpp"
@@ -28,7 +28,7 @@ namespace big
 			s_requested_pins.insert(token);
 		}
 
-		g_fiber_pool->queue_job([token] {
+		async_run([token] {
 			auto loc = localization::get_instance().localize(token);
 			if (!loc.empty() && loc != token && !(loc.front() == '[' && loc.back() == ']'))
 			{
@@ -133,7 +133,7 @@ namespace big
 	{
 		canvas::add_tab<regular_submenu>("Teleport", SubmenuTeleport, [](regular_submenu* sub) {
 			sub->add_option<reguler_option>("Teleport to Last Ping", "Teleports to the most recent map ping.", [] {
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					auto ping = unity::get_last_ping();
 					if (ping.has_value())
 					{
@@ -148,7 +148,7 @@ namespace big
 			});
 
 			sub->add_option<reguler_option>("Teleport to Death Marker", "Teleports to your last death/tombstone location.", [] {
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					auto death = unity::get_death_pin();
 					if (death.has_value())
 					{
@@ -163,7 +163,7 @@ namespace big
 			});
 
 			sub->add_option<reguler_option>("Teleport to Bed / Spawn", "Teleports to your bed or spawn point.", [] {
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					auto spawn = unity::get_spawn_pin();
 					if (spawn.has_value())
 					{
@@ -214,7 +214,7 @@ namespace big
 
 					std::string display_name = resolve_pin_display_name(pin.name, default_label, count);
 					sub->add_option<reguler_option>(display_name.c_str(), nullptr, [pos = pin.pos, display_name] {
-						g_fiber_pool->queue_job([pos] {
+						async_run([pos] {
 							unity::teleport_to_world_point(pos);
 						});
 						notification::success("Teleport", "Teleported to " + display_name);
@@ -240,7 +240,7 @@ namespace big
 					count++;
 					std::string display_name = resolve_pin_display_name(pin.name, "Waypoint", count);
 					sub->add_option<reguler_option>(display_name.c_str(), nullptr, [pos = pin.pos, display_name] {
-						g_fiber_pool->queue_job([pos] {
+						async_run([pos] {
 							unity::teleport_to_world_point(pos);
 						});
 						notification::success("Teleport", "Teleported to " + display_name);
@@ -320,7 +320,7 @@ namespace big
 					for (const auto& location : current_list)
 					{
 						sub->add_option<reguler_option>(location.name.c_str(), nullptr, [=] {
-							g_fiber_pool->queue_job([=] {
+							async_run([=] {
 								auto player = self::get_player();
 
 								if (!player)

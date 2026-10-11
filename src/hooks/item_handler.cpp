@@ -1,6 +1,6 @@
 #include "hooking.hpp"
 #include "unity/localization.hpp"
-#include "script.hpp"
+#include "logger/exception_handler.hpp"
 
 namespace big
 {

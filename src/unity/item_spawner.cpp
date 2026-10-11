@@ -7,8 +7,7 @@
 #include "utility/unity.hpp"
 #include "notification/notification_service.hpp"
 #include "astra/host/canvas.hpp"
-#include "fiber_pool.hpp"
-#include "script.hpp"
+#include "task_mgr.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -362,17 +361,9 @@ namespace big
 			return;
 		}
 
-		if (g_fiber_pool)
-		{
-			g_fiber_pool->queue_job([this] {
-				scan_worker_impl();
-			});
-		}
-		else
-		{
-			s_is_refreshing = false;
-			notification::error("Item Spawner", "Fiber pool not available.");
-		}
+		async_run([this] {
+			scan_worker_impl();
+		});
 	}
 
 	std::vector<item_spawner::item_entry> item_spawner::get_items_impl()
@@ -540,20 +531,10 @@ namespace big
 
 	bool item_spawner::spawn_to_inventory_impl(const std::string& prefab_name, int amount, int quality)
 	{
-		if (script::get_current())
-		{
+		async_run([this, prefab_name, amount, quality] {
 			spawn_to_inventory_worker_impl(prefab_name, amount, quality);
-			return true;
-		}
-
-		if (g_fiber_pool)
-		{
-			g_fiber_pool->queue_job([this, prefab_name, amount, quality] {
-				spawn_to_inventory_worker_impl(prefab_name, amount, quality);
-			});
-			return true;
-		}
-		return false;
+		});
+		return true;
 	}
 
 	void item_spawner::spawn_in_world_worker_impl(const std::string& prefab_name, int amount, int level)
@@ -679,20 +660,10 @@ namespace big
 
 	bool item_spawner::spawn_in_world_impl(const std::string& prefab_name, int amount, int level)
 	{
-		if (script::get_current())
-		{
+		async_run([this, prefab_name, amount, level] {
 			spawn_in_world_worker_impl(prefab_name, amount, level);
-			return true;
-		}
-
-		if (g_fiber_pool)
-		{
-			g_fiber_pool->queue_job([this, prefab_name, amount, level] {
-				spawn_in_world_worker_impl(prefab_name, amount, level);
-			});
-			return true;
-		}
-		return false;
+		});
+		return true;
 	}
 
 

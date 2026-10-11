@@ -1,19 +1,18 @@
 #include "main_worker.hpp"
-
-#include "commands/bool_command.hpp"
-#include "commands/commands.hpp"
-#include "commands/hotkeys.hpp"
 #include "pointers.hpp"
-#include "script.hpp"
-#include "settings/settings.hpp"
-#include "unity/animal_tools.hpp"
-#include "unity/base_tools.hpp"
-#include "unity/crafting_tools.hpp"
-#include "unity/hud.hpp"
-#include "unity/online_players.hpp"
-#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
+#include "unity/self.hpp"
+#include "unity/hud.hpp"
+#include "unity/crafting_tools.hpp"
+#include "unity/online_players.hpp"
+#include "unity/base_tools.hpp"
+#include "unity/animal_tools.hpp"
+#include "commands/commands.hpp"
+#include "commands/bool_command.hpp"
+#include "commands/hotkeys.hpp"
+#include "settings/settings.hpp"
+#include "logger/exception_handler.hpp"
 
 namespace big
 {
@@ -29,46 +28,47 @@ namespace big
 		hotkeys::tick();
 	}
 
-	void main_worker::run()
+	static void safe_update()
+	{
+		TRY_CLAUSE
+		{
+			update();
+			commands::run_looped_command();
+			g_pointers->m_resolution.x = unity::get_screen_width();
+			g_pointers->m_resolution.y = unity::get_screen_height();
+		}
+		EXCEPT_CLAUSE
+	}
+
+	task<void> main_worker::run()
 	{
 		commands::enable_bool_commands();
 
 		while (g_running)
 		{
-			TRY_CLAUSE
-			{
-				update();
-				commands::run_looped_command();
-				g_pointers->m_resolution.x = unity::get_screen_width();
-				g_pointers->m_resolution.y = unity::get_screen_height();
-			}
-			EXCEPT_CLAUSE
-
-			script::get_current()->yield();
+			safe_update();
+			co_await this_task::wait();
 		}
+
+		co_return;
 	}
 
-	void main_worker::slow_run()
+	static void safe_slow_update()
+	{
+		TRY_CLAUSE
+		{
+			online_players::update();
+			base_tools::update();
+		}
+		EXCEPT_CLAUSE
+	}
+
+	task<void> main_worker::slow_run()
 	{
 		while (g_running)
 		{
-			TRY_CLAUSE
-			{
-				online_players::update();
-				base_tools::update();
-			}
-			EXCEPT_CLAUSE
-
-			script::get_current()->yield(1s);
-		}
-	}
-	task<void> main_worker::run_routine()
-	{
-		while (g_running)
-		{
-			LOG(INFO) << "Running main_worker::run_routine()";
-
-			co_await this_task::wait(1s); // Jeda 1 frame
+			safe_slow_update();
+			co_await this_task::wait(1s);
 		}
 
 		co_return;

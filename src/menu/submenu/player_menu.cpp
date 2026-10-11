@@ -1,11 +1,10 @@
 #include "../view.hpp"
-#include "script.hpp"
 #include "mono/mono.hpp"
 #include "unity/player.hpp"
 #include "utility/unity.hpp"
 #include "features/features.hpp"
 #include "unity/online_players.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "notification/notification_service.hpp"
 #include "unity/exploration.hpp"
 #include "unity/animal_tools.hpp"
@@ -29,8 +28,7 @@ namespace big
 		template<typename F>
 		void queue_job(F&& func)
 		{
-			if (g_fiber_pool)
-				g_fiber_pool->queue_job(std::forward<F>(func));
+			async_run(std::forward<F>(func));
 		}
 
 		void refresh_players()
@@ -750,7 +748,7 @@ namespace big
 			sub->set_name(p.name.c_str());
 			if (!p.local && p.position)
 				sub->add_option<reguler_option>("Teleport to Player", "Move near the latest available player position.", [id = p.id] {
-					g_fiber_pool->queue_job([id] {
+					queue_job([id] {
 						if (online_players::teleport_to(id))
 							notification::info("Online Players", "Teleport requested.");
 						else

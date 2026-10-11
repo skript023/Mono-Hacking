@@ -1,6 +1,6 @@
 #include "../view.hpp"
 #include "renderer.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "commands/bool_command.hpp"
 #include "javascript/javascript_manager.hpp"
 
@@ -65,7 +65,7 @@ namespace big
 
 			if (ImGui::Button("Execute", {80, 25}))
 			{
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					javascript_manager::eval_script(input_code);
 				});
 			}
@@ -99,7 +99,7 @@ namespace big
 				if (ImGui::Button("Load"))
 				{
 					LOG(VERBOSE) << "Executing JS script: " << path.string();
-					g_fiber_pool->queue_job([path] {
+					async_run([path] {
 						javascript_manager::eval_file(path);
 					});
 				}

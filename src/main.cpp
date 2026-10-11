@@ -3,9 +3,8 @@
 #include "pointers.hpp"
 #include "renderer.hpp"
 #include "task_mgr.hpp"
+#include "thread_pool.hpp"
 #include "benchmark.hpp"
-#include "script_mgr.hpp"
-#include "fiber_pool.hpp"
 #include "file_manager.hpp"
 #include "render/render_vulkan.hpp"
 
@@ -67,9 +66,6 @@ DWORD APIENTRY main_thread(LPVOID)
 		auto renderer_instance = std::make_unique<renderer>();
 		LOG(INFO) << "Renderer initialized.";
 
-		auto fiber_pool_instance = std::make_unique<fiber_pool>(10);
-		LOG(INFO) << "Fiber pool initialized.";
-
 		auto thread_pool_instance = std::make_unique<thread_pool>();
 		LOG(INFO) << "Thread Pool initialized.";
 
@@ -86,11 +82,10 @@ DWORD APIENTRY main_thread(LPVOID)
 		LOG(INFO) << "Server initialized.";
 #endif
 
-		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
-		g_script_mgr.add_script(std::make_unique<script>(&main_worker::slow_run));
-		task_mgr::add(&main_worker::run_routine);
-		g_script_mgr.add_script(std::make_unique<script>(&entity_worker::run));
-		LOG(INFO) << "Scripts registered.";
+		task_mgr::add(&main_worker::run);
+		task_mgr::add(&main_worker::slow_run);
+		task_mgr::add(&entity_worker::run);
+		LOG(INFO) << "Tasks registered.";
 
 		g_hooking->enable();
 		g_renderer->attach();
@@ -122,9 +117,8 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		std::this_thread::sleep_for(1000ms);
 
-		g_script_mgr.remove_all_scripts();
 		task_mgr::clear();
-		LOG(INFO) << "Scripts and routines unregistered.";
+		LOG(INFO) << "Tasks unregistered.";
 
 #ifdef PRODUCTION
 		server_instance.reset();
@@ -136,8 +130,6 @@ DWORD APIENTRY main_thread(LPVOID)
 		hooking_instance.reset();
 		LOG(INFO) << "Hooking uninitialized.";
 
-		fiber_pool_instance.reset();
-		LOG(INFO) << "Fiber pool uninitialized.";
 
 		g_thread_pool->destroy();
 		LOG(INFO) << "Destroyed thread pool.";

@@ -1,5 +1,5 @@
 #include "commands/looped_command.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "unity/buff_tools.hpp"
 
 #include <chrono>
@@ -13,10 +13,10 @@ namespace big::features
 
 		virtual void on_tick() override
 		{
-			if (m_pending || !g_fiber_pool)
+			if (m_pending)
 				return;
 			m_pending = true;
-			g_fiber_pool->queue_job([this] {
+			async_run([this] {
 				m_pending = false;
 				if (g_running && get_state())
 					buff_tools::clear_all_debuffs(false);
@@ -38,10 +38,10 @@ namespace big::features
 		virtual void on_tick() override
 		{
 			auto now = std::chrono::steady_clock::now();
-			if (g_fiber_pool && now - m_last_applied > std::chrono::seconds(10))
+			if (now - m_last_applied > std::chrono::seconds(10))
 			{
 				m_last_applied = now;
-				g_fiber_pool->queue_job([this] {
+				async_run([this] {
 					if (g_running && get_state())
 						buff_tools::apply_rested(25, false);
 				});

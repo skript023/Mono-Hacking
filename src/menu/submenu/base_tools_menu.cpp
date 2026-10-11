@@ -1,6 +1,6 @@
 #include "../view.hpp"
 #include "unity/base_tools.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 
 namespace big
 {
@@ -17,7 +17,7 @@ namespace big
 		}
 		void queue(void (*action)())
 		{
-			g_fiber_pool->queue_job(action);
+			async_run(action);
 		}
 		void refresh(regular_submenu* sub)
 		{
