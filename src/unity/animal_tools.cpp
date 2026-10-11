@@ -287,9 +287,10 @@ namespace big
 		}
 
 		bool down = (GetAsyncKeyState(g_options.hotkey) & 0x8000) != 0;
-		if (down && !was_down && GetForegroundWindow() == g_pointers->m_hwnd)
+		if (down && !was_down && g_pointers && g_pointers->m_hwnd && GetForegroundWindow() == g_pointers->m_hwnd)
 		{
-			if (!ImGui::GetIO().WantTextInput)
+			const bool imgui_text_input = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantTextInput;
+			if (!imgui_text_input)
 			{
 				tame_aimed_creature();
 			}

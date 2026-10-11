@@ -38,9 +38,11 @@ namespace big
 
 	void hotkeys::tick_impl()
 	{
-		// Works with the mod menu open too: Astra refuses menu keys as hotkeys. Typing into a menu text box
-		// is not a hotkey, and Alt+R/T/Z/Y belong to the equipment slot hotkeys.
-		const bool accept = GetForegroundWindow() == g_pointers->m_hwnd && !ImGui::GetIO().WantTextInput
+		if (!g_pointers || !g_pointers->m_hwnd)
+			return;
+
+		const bool imgui_text_input = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantTextInput;
+		const bool accept = GetForegroundWindow() == g_pointers->m_hwnd && !imgui_text_input
 		    && (GetAsyncKeyState(VK_MENU) & 0x8000) == 0;
 
 		for (auto& [name, vk] : m_bindings)

@@ -342,7 +342,7 @@ namespace big
 	{
 		static bool was_down = false;
 		bool down = (GetAsyncKeyState(VK_F7) & 0x8000) != 0;
-		if (down && !was_down && get_options().hotkey && GetForegroundWindow() == g_pointers->m_hwnd)
+		if (down && !was_down && get_options().hotkey && g_pointers && g_pointers->m_hwnd && GetForegroundWindow() == g_pointers->m_hwnd)
 			quick_stack();
 		was_down = down;
 		std::vector<marker> next;
