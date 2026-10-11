@@ -45,7 +45,8 @@ namespace big
 		}
 
 	private:
-		std::recursive_mutex m_mutex;
+		std::mutex m_incoming_mutex;
+		std::vector<task<void>> m_incoming_tasks;
 		std::vector<task<void>> m_tasks;
 	};
 

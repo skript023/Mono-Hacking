@@ -5,39 +5,49 @@ namespace big
 {
 	void task_mgr::add_impl(task<void> t)
 	{
-		std::lock_guard lock(m_mutex);
-		m_tasks.push_back(std::move(t));
+		std::scoped_lock lock(m_incoming_mutex);
+		m_incoming_tasks.push_back(std::move(t));
 	}
 
 	void task_mgr::add_impl(task<void> (*func)())
 	{
 		if (func)
 		{
-			std::lock_guard lock(m_mutex);
-			m_tasks.push_back(func());
+			add_impl(func());
 		}
 	}
 
 	void task_mgr::clear_impl()
 	{
-		std::lock_guard lock(m_mutex);
+		{
+			std::scoped_lock lock(m_incoming_mutex);
+			m_incoming_tasks.clear();
+		}
 		m_tasks.clear();
 	}
 
 	void task_mgr::tick_impl()
 	{
-		std::lock_guard lock(m_mutex);
-
-		for (auto it = m_tasks.begin(); it != m_tasks.end();)
+		// 1. Pindahkan semua task baru dari incoming queue ke active task list secara thread-safe
 		{
-			auto& handle = it->m_handle;
-
-			// Bersihkan jika handle kosong atau sudah selesai
-			if (!handle || handle.done())
+			std::scoped_lock lock(m_incoming_mutex);
+			if (!m_incoming_tasks.empty())
 			{
-				it = m_tasks.erase(it);
-				continue;
+				m_tasks.insert(m_tasks.end(),
+				               std::make_move_iterator(m_incoming_tasks.begin()),
+				               std::make_move_iterator(m_incoming_tasks.end()));
+				m_incoming_tasks.clear();
 			}
+		}
+
+		// 2. Jalankan semua task aktif (iterasi aman berdasarkan index tanpa mutasi buffer)
+		const size_t task_count = m_tasks.size();
+		for (size_t i = 0; i < task_count; ++i)
+		{
+			auto& handle = m_tasks[i].m_handle;
+
+			if (!handle || handle.done())
+				continue;
 
 			auto* leaf = handle.promise().get_leaf();
 			bool should_run = true;
@@ -64,16 +74,11 @@ namespace big
 				}
 				EXCEPT_CLAUSE
 			}
-
-			// Cek lagi setelah dijalankan, barangkali root task baru saja selesai
-			if (handle && handle.done())
-			{
-				it = m_tasks.erase(it);
-			}
-			else
-			{
-				++it;
-			}
 		}
+
+		// 3. Bersihkan task yang sudah selesai setelah SEMUA task frame ini selesai di-tick
+		std::erase_if(m_tasks, [](const task<void>& t) {
+			return !t.m_handle || t.m_handle.done();
+		});
 	}
 }
