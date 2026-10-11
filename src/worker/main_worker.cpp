@@ -1,18 +1,19 @@
 #include "main_worker.hpp"
-#include "script.hpp"
+
+#include "commands/bool_command.hpp"
+#include "commands/commands.hpp"
+#include "commands/hotkeys.hpp"
 #include "pointers.hpp"
+#include "script.hpp"
+#include "settings/settings.hpp"
+#include "unity/animal_tools.hpp"
+#include "unity/base_tools.hpp"
+#include "unity/crafting_tools.hpp"
+#include "unity/hud.hpp"
+#include "unity/online_players.hpp"
+#include "unity/self.hpp"
 #include "utility/unity.hpp"
 
-#include "unity/self.hpp"
-#include "unity/hud.hpp"
-#include "unity/crafting_tools.hpp"
-#include "unity/online_players.hpp"
-#include "unity/base_tools.hpp"
-#include "unity/animal_tools.hpp"
-#include "commands/commands.hpp"
-#include "commands/bool_command.hpp"
-#include "commands/hotkeys.hpp"
-#include "settings/settings.hpp"
 
 namespace big
 {
@@ -69,5 +70,7 @@ namespace big
 
 			co_await this_task::wait(1s); // Jeda 1 frame
 		}
+
+		co_return;
 	}
 }

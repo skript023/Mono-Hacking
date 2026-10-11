@@ -17,12 +17,19 @@ endif()
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 set(OPENSSL_ROOT_DIR "${PROJECT_SOURCE_DIR}/openssl")
-set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")   # opsional
-set(OPENSSL_LIBRARIES "${OPENSSL_ROOT_DIR}/lib")         # opsional
+set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
+set(OPENSSL_LIBRARIES "${OPENSSL_ROOT_DIR}/lib")
 set(ZLIB_LIBRARIES "${OPENSSL_LIBRARIES}/zlib.lib")
 
 # Networking cleanup owns the OpenSSL instance embedded in this DLL.
 set(OPENSSL_USE_STATIC_LIBS TRUE)
+# Fix untuk Clang GNU CLI di Windows: FindOpenSSL hanya mencari file .a jika NOT MSVC
+if(WIN32 AND NOT MSVC)
+    set(LIB_EAY "${OPENSSL_ROOT_DIR}/lib/libcrypto.lib" CACHE FILEPATH "OpenSSL Crypto library" FORCE)
+    set(SSL_EAY "${OPENSSL_ROOT_DIR}/lib/libssl.lib" CACHE FILEPATH "OpenSSL SSL library" FORCE)
+    set(LIB_EAY_RELEASE "${OPENSSL_ROOT_DIR}/lib/libcrypto.lib" CACHE FILEPATH "OpenSSL Crypto library" FORCE)
+    set(SSL_EAY_RELEASE "${OPENSSL_ROOT_DIR}/lib/libssl.lib" CACHE FILEPATH "OpenSSL SSL library" FORCE)
+endif()
 find_package(OpenSSL REQUIRED)
 
 get_target_property(ssl_loc OpenSSL::SSL LOCATION)
