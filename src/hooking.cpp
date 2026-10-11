@@ -52,6 +52,7 @@ namespace big
 
 
 		detour_hook::add<hooks::set_cursor_pos>("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>());
+		detour_hook::add<hooks::clip_cursor>("ClipCursor", memory::module("user32.dll").get_export("ClipCursor").as<void*>());
 		detour_hook::add<hooks::convert_thread_to_fiber>("ConvertThreadToFiber", memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>());
 
 		add_mono_hook<hooks::is_teleportable>("Inventory::IsTeleportable", "Inventory", "IsTeleportable", 1, "assembly_valheim");
@@ -184,6 +185,7 @@ namespace big
 	void hooking::disable()
 	{
 		m_enabled = false;
+		hooks::sync_cursor_clip(false);
 
 		SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_og_wndproc));
 
@@ -226,5 +228,32 @@ namespace big
 			return true;
 
 		return detour_base::get_original<hooks::set_cursor_pos>()(x, y);
+	}
+
+	// Unity locks the cursor by confining it to the screen centre with ClipCursor, so blocking
+	// SetCursorPos alone leaves it stuck there.
+	static std::mutex g_cursor_clip_mutex;
+	static std::optional<RECT> g_game_cursor_clip;
+	static bool g_cursor_clip_released = false;
+
+	BOOL hooks::clip_cursor(const RECT* rect)
+	{
+		std::lock_guard lock(g_cursor_clip_mutex);
+		g_game_cursor_clip = rect ? std::optional<RECT>(*rect) : std::nullopt;
+		if (g_cursor_clip_released)
+			return TRUE;
+
+		return detour_base::get_original<hooks::clip_cursor>()(rect);
+	}
+
+	void hooks::sync_cursor_clip(bool menu_uses_mouse)
+	{
+		std::lock_guard lock(g_cursor_clip_mutex);
+		if (menu_uses_mouse == g_cursor_clip_released)
+			return;
+
+		g_cursor_clip_released = menu_uses_mouse;
+		const RECT* clip = !menu_uses_mouse && g_game_cursor_clip ? &*g_game_cursor_clip : nullptr;
+		detour_base::get_original<hooks::clip_cursor>()(clip);
 	}
 }

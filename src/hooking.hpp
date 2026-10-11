@@ -27,6 +27,9 @@ namespace big
 
 		static LRESULT wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 		static BOOL set_cursor_pos(int x, int y);
+		static BOOL clip_cursor(const RECT* rect);
+		// Frees the cursor while the mod menu uses the mouse and gives the game its confinement back after.
+		static void sync_cursor_clip(bool menu_uses_mouse);
 		static bool is_teleportable(void* _this, bool allow_all_items);
 		static void create_tomb_stone(MonoObject* player);
 		static bool is_under_roof(Vector3 startPos);

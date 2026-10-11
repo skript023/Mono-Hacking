@@ -9,6 +9,7 @@
 #include "fonts/icon_list.hpp"
 #include "graphic/graphic_manager.hpp"
 #include "astra/host/canvas.hpp"
+#include "hooking.hpp"
 #include "unity/item_icons.hpp"
 #include <backends/imgui_impl_win32.h>
 #include <imgui_internal.h>
@@ -138,6 +139,7 @@ namespace big
 	{
 		item_icons::begin_frame();
 		auto& io = ImGui::GetIO();
+		hooks::sync_cursor_clip(canvas::uses_mouse());
 		io.MouseDrawCursor = canvas::uses_mouse();
 		if (canvas::uses_mouse())
 			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
