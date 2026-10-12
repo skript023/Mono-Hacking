@@ -199,6 +199,22 @@ namespace big::unity
 		return *(MonoObject**)ptr_addr;
 	}
 
+	// ZNetScene has GetPrefab(int) and GetPrefab(string). get_method() takes the first match by
+	// name + arg count, which is the int overload, so the string overload has to be picked explicitly.
+	inline MonoObject* get_znet_prefab(const std::string& name)
+	{
+		auto znet = get_znet_scene();
+		if (!znet)
+			return nullptr;
+
+		static MonoMethod* get_prefab = mono::get_method_overload("ZNetScene", "GetPrefab", 1, "GameObject", "String", "assembly_valheim");
+		if (!get_prefab)
+			return nullptr;
+
+		void* args[1] = {mono::to_mono_string(name)};
+		return mono::invoke_method(get_prefab, znet, args);
+	}
+
 	inline MonoObject* get_rand_event_system()
 	{
 		static MonoMethod* get_inst = mono::get_method("RandEventSystem", "get_instance", 0, "assembly_valheim");

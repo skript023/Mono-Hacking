@@ -455,17 +455,7 @@ namespace big
 
 			if (!prefab)
 			{
-				auto znet = unity::get_znet_scene();
-				if (znet)
-				{
-					static auto znet_get_prefab = mono::get_method("ZNetScene", "GetPrefab", 1, "assembly_valheim");
-					if (znet_get_prefab)
-					{
-						auto ms = mono::to_mono_string(prefab_name);
-						void* args[1] = {ms};
-						prefab = mono::invoke_method(znet_get_prefab, znet, args);
-					}
-				}
+				prefab = unity::get_znet_prefab(prefab_name);
 			}
 
 			if (!prefab)
@@ -549,20 +539,16 @@ namespace big
 			}
 
 			player p(player_obj);
-			auto znet = unity::get_znet_scene();
-			if (!znet)
+			if (!unity::get_znet_scene())
 			{
+				LOG(WARNING) << std::format("Item Spawner: ZNetScene null (ObjectDB: {}, ZoneSystem: {})",
+				    unity::get_object_db() != nullptr,
+				    unity::get_zone_system() != nullptr);
 				notification::warning("Item Spawner", "ZNetScene not available.");
 				return;
 			}
 
-			static auto znet_get_prefab = mono::get_method("ZNetScene", "GetPrefab", 1, "assembly_valheim");
-			if (!znet_get_prefab)
-				return;
-
-			auto ms = mono::to_mono_string(prefab_name);
-			void* args[1] = {ms};
-			MonoObject* prefab = mono::invoke_method(znet_get_prefab, znet, args);
+			MonoObject* prefab = unity::get_znet_prefab(prefab_name);
 			if (!prefab)
 			{
 				notification::warning("Item Spawner", std::format("Prefab '{}' not found in ZNetScene.", prefab_name));
@@ -660,7 +646,12 @@ namespace big
 
 	bool item_spawner::spawn_in_world_impl(const std::string& prefab_name, int amount, int level)
 	{
-		async_run([this, prefab_name, amount, level] {
+		async_run([this, prefab_name, amount, level]() -> task<void> {
+			// ZNetScene is recreated on every world load and stays null until its Awake runs.
+			for (int i = 0; i < 30 && unity::get_local_player() && !unity::get_znet_scene(); ++i)
+			{
+				co_await this_task::wait(std::chrono::milliseconds(100));
+			}
 			spawn_in_world_worker_impl(prefab_name, amount, level);
 		});
 		return true;

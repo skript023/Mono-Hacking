@@ -1,6 +1,8 @@
 #pragma once
-#include "mono/mono.hpp"
 #include "class/vector.hpp"
+#include "mono/mono.hpp"
+
+#include <array>
 #include <string>
 #include <vector>
 
@@ -17,7 +19,7 @@ namespace big
 		};
 
 		// Raids & Events
-		static const std::vector<raid_info>& get_available_raids()
+		static const std::array<raid_info, 10>& get_available_raids()
 		{
 			return instance().get_available_raids_impl();
 		}
@@ -83,8 +85,8 @@ namespace big
 		}
 
 	private:
-		world_tools() = default;
-		world_tools(const world_tools&) = delete;
+		world_tools()                              = default;
+		world_tools(const world_tools&)            = delete;
 		world_tools& operator=(const world_tools&) = delete;
 		static world_tools& instance()
 		{
@@ -92,7 +94,7 @@ namespace big
 			return value;
 		}
 
-		const std::vector<raid_info>& get_available_raids_impl();
+		const std::array<raid_info, 10>& get_available_raids_impl();
 		std::string get_current_raid_name_impl();
 		void trigger_raid_impl(const std::string& internal_name);
 		void stop_current_raid_impl();
