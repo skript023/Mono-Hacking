@@ -96,7 +96,7 @@ namespace big
 				{
 					ImGui::TextDisabled("QuickJS Interactive REPL  |  Ctrl+Enter to run");
 					ImGui::SameLine();
-					const char* snippets[] = {"Console log", "Vector3", "Command"};
+					const char* snippets[] = {"Console log", "Vector3", "Mono runtime"};
 					ImGui::SetNextItemWidth(150);
 					if (ImGui::BeginCombo("##js_snippet", snippets[snippet]))
 					{
@@ -112,7 +112,7 @@ namespace big
 					ImGui::SameLine();
 					if (ImGui::Button("Insert sample"))
 					{
-						static constexpr const char* samples[] = {"console.log('Hello from QuickJS');", "const position = new Vector3(1, 2, 3);\nconsole.log(position.x, position.y, position.z);", "commands.call('command_name');"};
+						static constexpr const char* samples[] = {"console.log('Hello from QuickJS');", "const position = new Vector3(1, 2, 3);\nconsole.log(position.x, position.y, position.z);", "console.log('Mono domain available:', mono.get_root_domain() !== 0);"};
 						input_code = samples[snippet];
 					}
 					ImGui::SameLine();
@@ -364,8 +364,8 @@ namespace big
 				if (ImGui::BeginTabItem("Quick Snippets"))
 				{
 					ImGui::TextDisabled("Examples for the JavaScript bindings available in this project.");
-					const char* titles[] = {"Console output", "Vector3", "Command binding"};
-					const char* samples[] = {"console.log('Hello from QuickJS');", "const v = new Vector3(12.5, 45.0, -9.8);\nconsole.log(v.x, v.y, v.z);", "commands.call('command_name');"};
+					const char* titles[] = {"Console output", "Vector3", "Mono runtime"};
+					const char* samples[] = {"console.log('Hello from QuickJS');", "const v = new Vector3(12.5, 45.0, -9.8);\nconsole.log(v.x, v.y, v.z);", "console.log('Mono domain available:', mono.get_root_domain() !== 0);"};
 					for (int i = 0; i < IM_ARRAYSIZE(titles); ++i)
 					{
 						if (!ImGui::CollapsingHeader(titles[i], ImGuiTreeNodeFlags_DefaultOpen))
