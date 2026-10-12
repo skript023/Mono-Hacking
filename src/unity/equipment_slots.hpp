@@ -84,7 +84,17 @@ namespace big
 			return m_in_equip;
 		}
 
-		// UI Overlay
+		void sync_equipment_with_humanoid(MonoObject* humanoid);
+
+		// Native Unity UI
+		void update_native_ui(MonoObject* player);
+		void destroy_native_ui();
+		MonoObject* get_native_grid() const
+		{
+			return m_native_grid;
+		}
+
+		// UI Overlay (ImGui toggleable)
 		static void draw_ui();
 
 	private:
@@ -94,8 +104,15 @@ namespace big
 		MonoObject* create_page(int index);
 		void release_handles();
 		void ensure_pages();
-		void sync_equipment_with_humanoid(MonoObject* humanoid);
 		void send_to_slot(MonoObject* item);
+
+		void create_native_grid(MonoObject* gui);
+		void update_native_grid_position(MonoObject* gui);
+		void decorate_native_slots();
+
+		MonoObject* m_native_grid{nullptr};
+		uintptr_t m_native_grid_handle{0};
+		MonoObject* m_cached_inventory_gui{nullptr};
 
 		MonoObject* m_pages[page_count]{};
 		uintptr_t m_page_handles[page_count]{};

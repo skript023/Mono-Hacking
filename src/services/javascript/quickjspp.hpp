@@ -1606,7 +1606,19 @@ namespace qjs
 		{
 			return JS_IsString(v);
 		}
-	};
+		Value call(const std::vector<Value>& args, const Value* this_value = nullptr) const
+		{
+			assert(ctx && "Trying to call a Value with no JSContext");
+			std::vector<JSValueConst> raw_args;
+			raw_args.reserve(args.size());
+			for (const auto& arg : args)
+			{
+				assert(!arg.ctx || arg.ctx == ctx);
+				raw_args.push_back(arg.v);
+			}
+			return Value{ctx,
+			    JS_Call(ctx, v, this_value ? this_value->v : JS_UNDEFINED, static_cast<int>(raw_args.size()), raw_args.data())};
+		}	};
 
 	/** Thin wrapper over JSRuntime * rt
  * Calls JS_FreeRuntime on destruction. noncopyable.

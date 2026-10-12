@@ -72,6 +72,13 @@ else ()
 endif ()
 
 add_library(Valheim MODULE "${SRC_MAIN}")
+if (MSVC)
+    enable_language(ASM_MASM)
+    target_sources(Valheim PRIVATE "${SRC_DIR}/services/javascript/bindings/trampoline_stub.asm")
+else()
+    enable_language(ASM)
+    target_sources(Valheim PRIVATE "${SRC_DIR}/services/javascript/bindings/trampoline_stub.S")
+endif()
 target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/canvas.cpp")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

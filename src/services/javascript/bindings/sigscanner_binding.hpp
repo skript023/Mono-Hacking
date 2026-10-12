@@ -7,7 +7,7 @@ namespace js::sig
 	{
 		std::string name;
 		std::string sig;
-		JSValue fn;
+		std::optional<qjs::Value> fn;
 	};
 
 	struct scan_event
@@ -17,4 +17,5 @@ namespace js::sig
 	};
 
 	void bind(qjs::Context& ctx);
+	void shutdown();
 }

@@ -567,7 +567,10 @@ namespace big
 
 		canvas::add_submenu<regular_submenu>("Equipment & Quick Slots", "SubmenuEquipmentSlots"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Enabled", "Enable BetrValheim extra inventory and equipment slots.", &g_settings.self.equipment_slots_enabled);
-			sub->add_option<bool_option<bool>>("Open Overlay Window", "Open interactive paperdoll and quick slots UI.", &g_settings.self.equipment_slots_window);
+			sub->add_option<bool_option<bool>>("Native Unity Inventory Grid", "Render equipment slots natively in Valheim's inventory screen.", &g_settings.self.equipment_slots_native_ui);
+			sub->add_option<number_option<float>>("Native Grid X Offset", "Horizontal position offset for native inventory grid.", &g_settings.self.equipment_slots_native_x, -1500.f, 1500.f, 10.f, 0);
+			sub->add_option<number_option<float>>("Native Grid Y Offset", "Vertical position offset for native inventory grid.", &g_settings.self.equipment_slots_native_y, -1000.f, 1000.f, 10.f, 0);
+			sub->add_option<bool_option<bool>>("Open ImGui Overlay Window", "Open interactive ImGui window overlay.", &g_settings.self.equipment_slots_window);
 			sub->add_option<bool_option<bool>>("Slot Hotkeys", "Alt+1..6 (Quick), Shift+1..3 (Food), Alt+R/T/Z (Ammo).", &g_settings.self.equipment_slots_hotkeys);
 			sub->add_option<bool_option<bool>>("Quadruple Utility Stacking", "Allow equipping up to 4 utility belts/items at once.", &g_settings.self.multi_utility_enabled);
 			sub->add_option<reguler_option>("Auto-Fill from Inventory", "Automatically move compatible armor, utilities, food, and ammo from inventory into slots.", [] {

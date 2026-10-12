@@ -228,6 +228,7 @@ namespace big
 
 	void equipment_manager::release_handles()
 	{
+		destroy_native_ui();
 		for (int i = 0; i < page_count; ++i)
 		{
 			if (m_page_handles[i])
@@ -831,11 +832,18 @@ namespace big
 	void equipment_manager::tick(MonoObject* player)
 	{
 		if (!g_settings.self.equipment_slots_enabled)
+		{
+			if (m_native_grid)
+				destroy_native_ui();
 			return;
+		}
 
 		init_or_sync();
 		if (!m_initialized || player != m_cached_player)
 			return;
+
+		// Update Native Unity UI
+		update_native_ui(player);
 
 		// Hotkey listener for Ammo switching (Alt + R, Alt + T, Alt + Z)
 		if (g_settings.self.equipment_slots_hotkeys)
@@ -1160,6 +1168,359 @@ namespace big
 	{
 		if (player == m_cached_player)
 			save_to_player();
+	}
+
+	void equipment_manager::destroy_native_ui()
+	{
+		if (m_native_grid_handle)
+		{
+			auto grid = mono::retained_object(m_native_grid_handle);
+			if (grid)
+			{
+				static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+				static auto destroy_m = mono::get_method("Object", "Destroy", 1, "UnityEngine.CoreModule", "UnityEngine");
+				if (get_go && destroy_m)
+				{
+					auto go = mono::invoke_method(get_go, grid, nullptr);
+					if (go)
+					{
+						void* dargs[1] = {go};
+						mono::invoke_method(destroy_m, nullptr, dargs);
+					}
+				}
+			}
+			mono::release(m_native_grid_handle);
+			m_native_grid_handle = 0;
+		}
+		m_native_grid = nullptr;
+		m_cached_inventory_gui = nullptr;
+	}
+
+	void equipment_manager::update_native_grid_position(MonoObject* gui)
+	{
+		if (!m_native_grid)
+			return;
+
+		static auto get_transform = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto set_local_pos = mono::get_method("Transform", "set_localPosition", 1, "UnityEngine.CoreModule", "UnityEngine");
+		if (!get_transform || !set_local_pos)
+			return;
+
+		auto clone_t = mono::invoke_method(get_transform, m_native_grid, nullptr);
+		if (!clone_t)
+			return;
+
+		Vector3 pos{g_settings.self.equipment_slots_native_x, g_settings.self.equipment_slots_native_y, 0.f};
+		void* args[1] = {&pos};
+		mono::invoke_method(set_local_pos, clone_t, args);
+	}
+
+	void equipment_manager::create_native_grid(MonoObject* gui)
+	{
+		destroy_native_ui();
+		m_cached_inventory_gui = gui;
+
+		auto player_rect = mono::get_field_value<"InventoryGui", "m_player", MonoObject*>(gui);
+		auto player_grid = mono::get_field_value<"InventoryGui", "m_playerGrid", MonoObject*>(gui);
+		if (!player_rect || !player_grid)
+			return;
+
+		static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_transform = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
+		if (!get_go || !get_transform)
+			return;
+
+		auto player_grid_go = mono::invoke_method(get_go, player_grid, nullptr);
+		auto player_rect_t = mono::invoke_method(get_transform, player_rect, nullptr);
+		if (!player_grid_go || !player_rect_t)
+			return;
+
+		auto instantiate_m = mono::get_method_exact("Object", "Instantiate", {"UnityEngine.Object", "UnityEngine.Transform", "System.Boolean"}, "UnityEngine.CoreModule", "UnityEngine");
+		if (!instantiate_m)
+			instantiate_m = mono::get_method_overload("Object", "Instantiate", 2, nullptr, "Transform", "UnityEngine.CoreModule", "UnityEngine");
+		if (!instantiate_m)
+			return;
+
+		bool world_pos = false;
+		void* inst_args[3] = {player_grid_go, player_rect_t, &world_pos};
+		auto clone_go = mono::invoke_method(instantiate_m, nullptr, inst_args);
+		if (!clone_go)
+			return;
+
+		static auto get_comp = mono::get_method_overload("GameObject", "GetComponent", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+		auto grid_class = mono::get_class("InventoryGrid", "assembly_valheim");
+		if (!get_comp || !grid_class)
+			return;
+
+		auto grid_type = mono::reflection_type(grid_class);
+		void* targs[1] = {grid_type};
+		auto clone_grid = mono::invoke_method(get_comp, clone_go, targs);
+		if (!clone_grid)
+			return;
+
+		m_native_grid = clone_grid;
+		m_native_grid_handle = mono::retain(m_native_grid);
+
+		static auto set_name = mono::get_method("Object", "set_name", 1, "UnityEngine.CoreModule", "UnityEngine");
+		if (set_name)
+		{
+			auto name_str = mono::to_mono_string("EquipmentGrid");
+			void* sargs[1] = {name_str};
+			mono::invoke_method(set_name, clone_go, sargs);
+		}
+
+		// Copy event delegates from player_grid so clicks/drags route to InventoryGui
+		auto f_selected = mono::get_field(grid_class, "m_onSelected");
+		auto f_right = mono::get_field(grid_class, "m_onRightClick");
+		if (f_selected)
+		{
+			MonoObject* sel_del = nullptr;
+			mono::get_field_value(player_grid, f_selected, &sel_del);
+			if (sel_del)
+				mono::set_field_value(clone_grid, f_selected, &sel_del);
+		}
+		if (f_right)
+		{
+			MonoObject* right_del = nullptr;
+			mono::get_field_value(player_grid, f_right, &right_del);
+			if (right_del)
+				mono::set_field_value(clone_grid, f_right, &right_del);
+		}
+
+		update_native_grid_position(gui);
+	}
+
+	void equipment_manager::decorate_native_slots()
+	{
+		if (!m_native_grid)
+			return;
+
+		auto grid_class = mono::get_class("InventoryGrid", "assembly_valheim");
+		if (!grid_class)
+			return;
+
+		static auto f_elements = mono::get_field(grid_class, "m_elements");
+		if (!f_elements)
+			return;
+
+		MonoObject* list_obj = nullptr;
+		mono::get_field_value(m_native_grid, f_elements, &list_obj);
+		if (!list_obj)
+			return;
+
+		auto elements = unity::list_to_vector(list_obj);
+		if (elements.empty())
+			return;
+
+		auto elem_class = mono::get_class("InventoryGrid/Element", "assembly_valheim");
+		if (!elem_class)
+			return;
+
+		static auto f_pos = mono::get_field(elem_class, "m_pos");
+		static auto f_go = mono::get_field(elem_class, "m_go");
+		static auto f_used = mono::get_field(elem_class, "m_used");
+		static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_transform = mono::get_method("GameObject", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto find_child = mono::get_method("Transform", "Find", 1, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_comp = mono::get_method_overload("Component", "GetComponent", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+
+		auto tmp_class = mono::get_class("TMP_Text", "Unity.TextMeshPro", "TMPro");
+		if (!tmp_class)
+			tmp_class = mono::get_class("TMP_Text", "assembly_valheim", "TMPro");
+
+		static auto set_text_m = tmp_class ? mono::get_method("TMP_Text", "set_text", 1, "Unity.TextMeshPro", "TMPro") : nullptr;
+		static auto set_enabled_m = mono::get_method("Behaviour", "set_enabled", 1, "UnityEngine.CoreModule", "UnityEngine");
+
+		for (auto* el : elements)
+		{
+			if (!el)
+				continue;
+
+			iVector2 pos{-1, -1};
+			if (f_pos)
+				mono::get_field_value(el, f_pos, &pos);
+
+			bool used = false;
+			if (f_used)
+				mono::get_field_value(el, f_used, &used);
+
+			MonoObject* go = nullptr;
+			if (f_go)
+				mono::get_field_value(el, f_go, &go);
+
+			if (!go)
+				continue;
+
+			slot_kind kind = get_slot_kind(pos.x, pos.y);
+
+			if (kind == slot_kind::none)
+			{
+				if (set_active)
+				{
+					bool act = false;
+					void* aargs[1] = {&act};
+					mono::invoke_method(set_active, go, aargs);
+				}
+				continue;
+			}
+
+			if (set_active)
+			{
+				bool act = true;
+				void* aargs[1] = {&act};
+				mono::invoke_method(set_active, go, aargs);
+			}
+
+			if (!used && get_transform && find_child && get_comp && tmp_class)
+			{
+				auto tr = mono::invoke_method(get_transform, go, nullptr);
+				if (tr)
+				{
+					auto ms_bind = mono::to_mono_string("binding");
+					void* bargs[1] = {ms_bind};
+					auto b_t = mono::invoke_method(find_child, tr, bargs);
+					if (b_t)
+					{
+						auto t_type = mono::reflection_type(tmp_class);
+						void* cargs[1] = {t_type};
+						auto tmp_comp = mono::invoke_method(get_comp, b_t, cargs);
+						if (tmp_comp)
+						{
+							const char* tag = "";
+							int num = get_slot_number(kind, pos.x, pos.y);
+							switch (kind)
+							{
+							case slot_kind::helmet: tag = "Helm"; break;
+							case slot_kind::cape: tag = "Cape"; break;
+							case slot_kind::chest: tag = "Chest"; break;
+							case slot_kind::legs: tag = "Legs"; break;
+							case slot_kind::trinket: tag = "Trink"; break;
+							case slot_kind::utility:
+								tag = (num == 1) ? "Util 1" : (num == 2) ? "Util 2" : (num == 3) ? "Util 3" : "Util 4";
+								break;
+							case slot_kind::food:
+								tag = (num == 1) ? "Food 1" : (num == 2) ? "Food 2" : "Food 3";
+								break;
+							case slot_kind::ammo:
+								tag = (num == 1) ? "Ammo 1" : (num == 2) ? "Ammo 2" : "Ammo 3";
+								break;
+							case slot_kind::key:
+								tag = (num == 1) ? "Key 1" : "Key 2";
+								break;
+							case slot_kind::quick:
+								tag = (num == 1) ? "Q1" : (num == 2) ? "Q2" : (num == 3) ? "Q3" : (num == 4) ? "Q4" : (num == 5) ? "Q5" : "Q6";
+								break;
+							default: break;
+							}
+
+							if (set_text_m && tag[0] != '\0')
+							{
+								auto ms = mono::to_mono_string(tag);
+								void* t_args[1] = {ms};
+								mono::invoke_method(set_text_m, tmp_comp, t_args);
+
+								if (set_enabled_m)
+								{
+									bool en = true;
+									void* e_args[1] = {&en};
+									mono::invoke_method(set_enabled_m, tmp_comp, e_args);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void equipment_manager::update_native_ui(MonoObject* player)
+	{
+		if (!g_settings.self.equipment_slots_enabled || !g_settings.self.equipment_slots_native_ui)
+		{
+			if (m_native_grid)
+			{
+				static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+				static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
+				if (get_go && set_active)
+				{
+					auto go = mono::invoke_method(get_go, m_native_grid, nullptr);
+					if (go)
+					{
+						bool act = false;
+						void* aargs[1] = {&act};
+						mono::invoke_method(set_active, go, aargs);
+					}
+				}
+			}
+			return;
+		}
+
+		auto gui = unity::get_inventory_gui();
+		if (!gui)
+		{
+			if (m_native_grid)
+				destroy_native_ui();
+			return;
+		}
+
+		bool is_vis = unity::is_inventory_gui_visible();
+		if (!is_vis)
+		{
+			if (m_native_grid)
+			{
+				static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+				static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
+				if (get_go && set_active)
+				{
+					auto go = mono::invoke_method(get_go, m_native_grid, nullptr);
+					if (go)
+					{
+						bool act = false;
+						void* aargs[1] = {&act};
+						mono::invoke_method(set_active, go, aargs);
+					}
+				}
+			}
+			return;
+		}
+
+		if (!m_native_grid || m_cached_inventory_gui != gui)
+		{
+			create_native_grid(gui);
+		}
+
+		if (!m_native_grid)
+			return;
+
+		static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
+		if (get_go && set_active)
+		{
+			auto go = mono::invoke_method(get_go, m_native_grid, nullptr);
+			if (go)
+			{
+				bool act = true;
+				void* aargs[1] = {&act};
+				mono::invoke_method(set_active, go, aargs);
+			}
+		}
+
+		update_native_grid_position(gui);
+
+		auto eq_inv = get_equipment_inventory();
+		if (!eq_inv)
+			return;
+
+		auto drag_item = mono::get_field_value<"InventoryGui", "m_dragItem", MonoObject*>(gui);
+
+		static auto update_inv_m = mono::get_method("InventoryGrid", "UpdateInventory", 3, "assembly_valheim");
+		if (update_inv_m)
+		{
+			void* uargs[3] = {eq_inv, player, drag_item};
+			mono::invoke_method(update_inv_m, m_native_grid, uargs);
+		}
+
+		decorate_native_slots();
 	}
 
 	void equipment_manager::draw_ui()

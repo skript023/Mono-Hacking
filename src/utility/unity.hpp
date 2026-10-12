@@ -275,6 +275,48 @@ namespace big::unity
 		return *(MonoObject**)ptr_addr;
 	}
 
+	inline MonoObject* get_inventory_gui()
+	{
+		static MonoMethod* get_inst = mono::get_method("InventoryGui", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
+			if (obj)
+				return obj;
+		}
+
+		MonoClass* klass = mono::get_class("InventoryGui", "assembly_valheim");
+		if (klass == nullptr)
+			return nullptr;
+
+		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr)
+			return nullptr;
+
+		void* static_field_data_addr = mono::get_static_field_data(klass);
+		if (static_field_data_addr == nullptr)
+			return nullptr;
+
+		uint32_t offset = mono::get_field_offset(field);
+		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		return *(MonoObject**)ptr_addr;
+	}
+
+	inline bool is_inventory_gui_visible()
+	{
+		auto gui = get_inventory_gui();
+		if (!gui)
+			return false;
+		static MonoMethod* is_vis = mono::get_method("InventoryGui", "IsVisible", 0, "assembly_valheim");
+		if (is_vis)
+		{
+			auto res = mono::invoke_method(is_vis, nullptr, nullptr);
+			return res ? *reinterpret_cast<bool*>(mono::object_unbox(res)) : false;
+		}
+		return false;
+	}
+
 	template<typename T>
 	inline T get_field_value(MonoObject* obj, const char* classname, const char* fieldName)
 	{

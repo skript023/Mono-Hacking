@@ -1,142 +1,129 @@
 #include "javascript_binding.hpp"
-#include "utility/unity.hpp"
-#include "commands/commands.hpp"
+
+#include "../javascript_manager.hpp"
+#include "class/vector.hpp"
 #include "commands/command.hpp"
+#include "commands/commands.hpp"
+#include "utility/unity.hpp"
 
 namespace big
 {
-	static std::vector<uint64_t> convert_sequence(const JSValue& js_val, Context& ctx)
+	static void call_command(const std::string& command_name, qjs::Value)
 	{
-		std::vector<uint64_t> result;
-
-		// Cek apakah array
-		if (!JS_IsArray(ctx.ctx, js_val))
-			return result;
-
-		// Ambil length
-		JSValue js_len = JS_GetPropertyStr(ctx.ctx, js_val, "length");
-		int64_t len = 0;
-		JS_ToInt64(ctx.ctx, &len, js_len);
-		JS_FreeValue(ctx.ctx, js_len);
-
-		for (int64_t i = 0; i < len; i++)
+		if (auto cmd = commands::get_command<command>(joaat(command_name)))
 		{
-			JSValue elem = JS_GetPropertyUint32(ctx.ctx, js_val, i);
-			int64_t val = 0;
-			JS_ToBigInt64(ctx.ctx, &val, elem);
-			JS_FreeValue(ctx.ctx, elem);
-			result.push_back(val);
-		}
-
-		return result;
-	}
-
-
-	static void call_command(const std::string& command_name, JSValue js_args, Context& ctx)
-	{
-		std::optional<JSValue> maybe_args;
-		if (!ctx.isUndefined(js_args) && !ctx.isNull(js_args))
-		{
-			maybe_args = js_args;
-		}
-
-		if (auto cmd = big::commands::get_command<command>(joaat(command_name)))
 			cmd->call();
+		}
 	}
 
-	static void js_log_info(std::string const& args)
+	static void js_log_info(const std::string& message)
 	{
-		LOG(INFO) << args;
+		LOG(INFO) << message;
+		javascript_manager::log_console(js_log_level::info, message);
 	}
 
 	static void js_console_log(const qjs::rest<std::string>& args)
 	{
 		std::stringstream out;
+		bool first = true;
 		for (const auto& message : args)
 		{
-			out << " " << message;
+			if (!first)
+			{
+				out << ' ';
+			}
+			out << message;
+			first = false;
 		}
-
 		LOG(INFO) << std::format("[JS] {}", out.str());
+		javascript_manager::log_console(js_log_level::info, out.str());
 	}
 
 	static void js_console_warn(const qjs::rest<std::string>& args)
 	{
 		std::stringstream out;
+		bool first = true;
 		for (const auto& message : args)
 		{
-			out << " " << message;
+			if (!first)
+			{
+				out << ' ';
+			}
+			out << message;
+			first = false;
 		}
-
 		LOG(WARNING) << std::format("[JS] {}", out.str());
+		javascript_manager::log_console(js_log_level::warn, out.str());
 	}
 
 	static void js_console_error(const qjs::rest<std::string>& args)
 	{
 		std::stringstream out;
+		bool first = true;
 		for (const auto& message : args)
 		{
-			out << " " << message;
+			if (!first)
+			{
+				out << ' ';
+			}
+			out << message;
+			first = false;
 		}
-
-		LOG(FATAL) << std::format("[JS] {}", out.str());
+		LOG(WARNING) << std::format("[JS Error] {}", out.str());
+		javascript_manager::log_console(js_log_level::error, out.str());
 	}
 
 	static double js_get_local_player()
 	{
-		return (double)(uintptr_t)unity::get_local_player();
+		return static_cast<double>(reinterpret_cast<uintptr_t>(unity::get_local_player()));
 	}
 
 	static double js_get_zone_system()
 	{
-		return (double)(uintptr_t)unity::get_zone_system();
+		return static_cast<double>(reinterpret_cast<uintptr_t>(unity::get_zone_system()));
 	}
 
 	static double js_get_env_man()
 	{
-		return (double)(uintptr_t)unity::get_env_man();
+		return static_cast<double>(reinterpret_cast<uintptr_t>(unity::get_env_man()));
 	}
 
-	void javacript_binding::bind(Context& ctx)
+	void javacript_binding::bind(qjs::Context& ctx)
 	{
 		auto global = ctx.global();
 
-		auto& module = ctx.addModule("commands");
-		module.function("call", [&ctx](const std::string& cmd, JSValue js_args) {
-			call_command(cmd, js_args, ctx);
-		});
+		auto& commands_module = ctx.addModule("commands");
+		commands_module.function("call", &call_command);
 
 		auto logger = ctx.newObject();
 		logger.add<&js_log_info>("info");
 
-		auto unity = ctx.newObject();
-		unity.add<&js_get_local_player>("get_local_player");
-		unity.add<&js_get_zone_system>("get_zone_system");
-		unity.add<&js_get_env_man>("get_env_man");
+		auto unity_api = ctx.newObject();
+		unity_api.add<&js_get_local_player>("get_local_player");
+		unity_api.add<&js_get_zone_system>("get_zone_system");
+		unity_api.add<&js_get_env_man>("get_env_man");
 
 		auto console = ctx.newObject();
 		console.add<&js_console_log>("log");
 		console.add<&js_console_warn>("warn");
 		console.add<&js_console_error>("error");
 
-		auto vec = ctx.newObject();
+		auto vector_prototype = ctx.newObject();
+		vector_prototype.add<&Vector3::x>("x");
+		vector_prototype.add<&Vector3::y>("y");
+		vector_prototype.add<&Vector3::z>("z");
 
-		vec.add<&Vector3::x>("x");
-		vec.add<&Vector3::y>("y");
-		vec.add<&Vector3::z>("z");
+		auto default_constructor = ctx.newValue(qjs::ctor_wrapper<Vector3>{});
+		JS_SetConstructor(ctx.ctx, default_constructor.v, vector_prototype.v);
+		global["Vector3"] = default_constructor;
 
-		auto dctor = ctx.newValue(qjs::ctor_wrapper<Vector3>{});
-		JS_SetConstructor(ctx.ctx, dctor.v, vec.v);
-		global["Vector3"] = dctor;
-
-		auto ctor = ctx.newValue(qjs::ctor_wrapper<Vector3, float, float, float>{"Vector3"});
-		JS_SetConstructor(ctx.ctx, ctor.v, vec.v);
-		global["Vector3"] = ctor;
-
-		ctx.registerClass<Vector3>("Vector3", std::move(vec));
+		auto constructor = ctx.newValue(qjs::ctor_wrapper<Vector3, float, float, float>{"Vector3"});
+		JS_SetConstructor(ctx.ctx, constructor.v, vector_prototype.v);
+		global["Vector3"] = constructor;
+		ctx.registerClass<Vector3>("Vector3", std::move(vector_prototype));
 
 		global["console"] = console;
-		global["unity"] = unity;
-		global["logger"] = logger;
+		global["unity"]   = unity_api;
+		global["logger"]  = logger;
 	}
 }
