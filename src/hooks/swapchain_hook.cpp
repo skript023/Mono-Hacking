@@ -16,8 +16,6 @@ namespace big
 		}
 
 		return detour_base::get_original<hooks::swapchain_present>()(this_, sync_interval, flags);
-
-		return NULL;
 	}
 
 	HRESULT APIENTRY hooks::swapchain_resizebuffers(IDXGISwapChain* this_, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT new_format, UINT swapchain_flags)

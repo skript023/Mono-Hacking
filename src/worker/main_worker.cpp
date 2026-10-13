@@ -30,14 +30,10 @@ namespace big
 
 	static void safe_update()
 	{
-		TRY_CLAUSE
-		{
-			update();
-			commands::run_looped_command();
-			g_pointers->m_resolution.x = unity::get_screen_width();
-			g_pointers->m_resolution.y = unity::get_screen_height();
-		}
-		EXCEPT_CLAUSE
+		update();
+		commands::run_looped_command();
+		g_pointers->m_resolution.x = unity::get_screen_width();
+		g_pointers->m_resolution.y = unity::get_screen_height();
 	}
 
 	task<void> main_worker::run()
@@ -55,12 +51,8 @@ namespace big
 
 	static void safe_slow_update()
 	{
-		TRY_CLAUSE
-		{
-			online_players::update();
-			base_tools::update();
-		}
-		EXCEPT_CLAUSE
+		online_players::update();
+		base_tools::update();
 	}
 
 	task<void> main_worker::slow_run()

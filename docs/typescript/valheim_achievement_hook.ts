@@ -1,9 +1,5 @@
 import { Hook } from "detour";
 
-declare const mono: {
-	get_compile_method(className: string, methodName: string, parameterCount: number, assemblyName: string): number;
-};
-
 const hookName = "Achievement.CheckUnlocked";
 const address = mono.get_compile_method("Achievement", "CheckUnlocked", 0, "assembly_valheim");
 

@@ -1,24 +1,6 @@
 // Compile to JavaScript before placing the output in ./scripts.
 // This sample only reads runtime state; it does not write to game objects.
 
-declare const unity: {
-	get_local_player(): number;
-	get_zone_system(): number;
-	get_env_man(): number;
-};
-
-declare const mono: {
-	get_root_domain(): number;
-	get_class(className: string, assemblyName: string): number;
-};
-
-declare class Vector3 {
-	constructor(x: number, y: number, z: number);
-	x: number;
-	y: number;
-	z: number;
-}
-
 const domain = mono.get_root_domain();
 const playerPointer = unity.get_local_player();
 const playerClass = mono.get_class("Player", "Assembly-CSharp");
