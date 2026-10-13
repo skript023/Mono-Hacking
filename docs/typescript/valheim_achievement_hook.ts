@@ -1,17 +1,16 @@
 import { Hook } from "detour";
 
-const hookName = "Achievement.CheckUnlocked";
-const address = mono.get_compile_method("Achievement", "CheckUnlocked", 0, "assembly_valheim");
+const hookName = "Achievements.CanGetAchievements";
+const address = mono.get_compile_method("Achievements", "CanGetAchievements", 1, "assembly_valheim");
 
 if (address === 0) {
-	console.error("Achievement.CheckUnlocked was not found in assembly_valheim.");
+  console.error("Achievements.CanGetAchievements was not found in assembly_valheim.");
 } else {
-	// For an instance method, include the implicit `this` pointer in the native argument count.
+	// This static method has one bool parameter; it has no implicit `this` argument.
 	const nativeArgumentCount = 1;
 	const registered = Hook.add(hookName, address, nativeArgumentCount, (context) => {
-		const result = context.callOriginal();
-		console.log("Achievement.CheckUnlocked returned:", result !== 0);
-		return result;
+		console.log("CanGetAchievements cheated argument:", context.getArg(0).number() !== 0);
+		return context.callOriginal();
 	});
 
 	if (registered) {

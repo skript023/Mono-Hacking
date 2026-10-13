@@ -21,7 +21,7 @@ Dokumentasi API scripting TypeScript untuk Valheim Hacks. Runtime menjalankan Ja
 1. Buat atau edit skrip TypeScript.
 2. Kompilasikan ke JavaScript dengan TypeScript compiler (`tsc`).
 3. Letakkan hasil `.js` di folder `scripts` di direktori kerja aplikasi.
-4. Buka Javascript Console, lalu gunakan Script Manager untuk menjalankan skrip. Skrip `.js` yang dikenali menu juga dapat dijalankan atau dimuat ulang dari sana.
+4. Salin satu file `.js` yang ingin dijalankan ke root folder `scripts` di direktori kerja aplikasi. Buka Javascript Console → Script Manager untuk memuat dan menjalankannya. Daftar di Script Manager hanya memindai file `.js` langsung di root `scripts`; pemuatan modul internal juga memindai subfolder secara rekursif.
 
 QuickJS tidak mengeksekusi TypeScript secara langsung. Tipe dari file deklarasi hanya membantu editor dan compiler; tipe tersebut tidak menambah fungsi runtime.
 
@@ -41,7 +41,7 @@ npx.cmd --yes --package typescript tsc --target ES2020 --module ES2020 --lib ES2
 
 Gunakan `--module ES2020` jika skrip memakai `import`. Setelan `--target ES2020` dipilih agar sintaks hasil kompilasi sesuai dengan runtime QuickJS proyek. Skrip tanpa import juga boleh dikompilasi satu per satu. Hasil contoh pertama adalah `scripts/valheim_mono.js`.
 
-`api.d.ts` dan `detour.d.ts` adalah deklarasi editor/compiler, bukan berkas yang perlu dipasang ke runtime. Simpan hasil `.js` di `scripts`; subfolder `scripts/includes` diperlakukan sebagai pustaka dan tidak dijalankan sebagai skrip biasa.
+`api.d.ts` dan `detour.d.ts` adalah deklarasi editor/compiler, bukan berkas yang perlu dipasang ke runtime. Untuk menjalankan skrip dari Script Manager, letakkan file `.js` langsung di root `scripts`. File di jalur yang mengandung `includes` dilewati loader modul; file `.js` di subfolder lain dapat dimuat saat pemuatan modul, meskipun tidak muncul di daftar Script Manager.
 
 ## Tipe dan pointer Mono
 
@@ -99,7 +99,7 @@ Diimpor sebagai modul: `import { call } from "commands";`
 
 ### `store`
 
-Penyimpanan nilai persisten yang digunakan binding GUI. Semua operasi memakai key string.
+Objek store native yang juga dipakai binding GUI. Semua operasi memakai key string; persistensi mengikuti implementasi store native.
 
 - `get_bool(key: string): boolean`
 - `set_bool(key: string, value: boolean): void`
@@ -120,13 +120,13 @@ Nilai integer/float dikonversi ke tipe native yang sesuai. Gunakan key unik untu
 | `get_class(className: string, assembly: string): number` | Cari class berdasarkan nama class dan assembly. Namespace tidak dapat diberikan lewat binding ini. |
 | `get_method(className: string, methodName: string, parameterCount: number, assembly: string): number` | Cari method berdasarkan class, nama, jumlah parameter, dan assembly. Tidak memilih overload berdasarkan tipe parameter. |
 | `get_field(classPointer: number, fieldName: string): number` | Cari field dari pointer class. |
-| `invoke_method(methodPointer: number, objectPointer: number, ...args: (string \| number \| boolean)[]): number` | Panggil method Mono dan kembalikan pointer `MonoObject` hasil (atau `0` untuk hasil null/void). Untuk method instance, `objectPointer` adalah objek target; untuk method static, gunakan target yang sesuai dengan runtime Mono (umumnya `0`). |
+| `invoke_method(methodPointer: number, objectPointer: number, ...args: (string \| number \| boolean)[]): number` | Panggil method Mono dan kembalikan pointer `MonoObject` hasil (atau `0` untuk hasil null/void). Untuk method instance, `objectPointer` adalah objek target; untuk method static, gunakan target yang sesuai dengan runtime Mono. |
 | `set_field_int(objectPointer: number, fieldPointer: number, value: number): void` | Tulis field integer 32-bit pada objek. |
 | `set_field_float(objectPointer: number, fieldPointer: number, value: number): void` | Tulis field float 32-bit pada objek. |
-| `set_field_string(objectPointer: number, fieldPointer: number, value: string): void` | Tulis field string pada objek. |
-| `get_field_value(objectPointer: number, fieldPointer: number): number` | Ambil representasi mentah nilai field melalui buffer native. Untuk field reference, ini dapat menjadi pointer; untuk field primitif, angka adalah bit/value yang disalin ke buffer, bukan objek JavaScript bertipe. |
+| `set_field_string(objectPointer: number, fieldPointer: number, value: string): void` | Binding tersedia, tetapi saat ini meneruskan pointer C string ke `mono_field_set_value` tanpa membuat `MonoString`. Jangan pakai untuk mengisi field `System.String`. |
+| `get_field_value(objectPointer: number, fieldPointer: number): number` | Salin field ke satu slot pointer native lalu kembalikan slot itu sebagai `number`. Ini bukan pembacaan bertipe: reference dapat tampak sebagai pointer; nilai primitif tampil sebagai bit mentah (misalnya float bukan angka float). Jangan pakai untuk struct yang lebih besar dari slot pointer. |
 | `get_field_offset(fieldPointer: number): number` | Offset byte field dari awal instance. |
-| `get_static_field_value(className: string, fieldName: string): number` | Ambil data/nilai static melalui helper native. Hasil mentah sebagai angka/pointer. |
+| `get_static_field_value(className: string, fieldName: string): number` | Kembalikan alamat slot field static (`static data + field offset`), bukan isi field. Helper mencari class di assembly `Assembly-CSharp` dan namespace kosong; assembly/namespace tidak dapat dipilih dari binding ini. |
 | `get_static_field_data(classPointer: number): number` | Pointer area data static untuk class. |
 | `get_static_field_data_vtable(vtablePointer: number): number` | Pointer area data static untuk vtable. |
 | `get_vtable(classPointer: number): number` | Ambil vtable class. |
@@ -135,12 +135,12 @@ Nilai integer/float dikonversi ke tipe native yang sesuai. Gunakan key unik untu
 | `unbox(objectPointer: number): number` | Kembalikan alamat data unbox dari boxed value. Pointer berlaku selama objek/data backing masih valid. |
 | `unbox_vec3(objectPointer: number): Vector3 \| null` | Salin `Vector3` dari boxed Mono object menjadi objek `Vector3`; null jika objek/data tidak tersedia. |
 
-Argumen `invoke_method` diteruskan melalui converter native: boolean, integer, dan angka pecahan disiapkan sebagai nilai primitif; argumen lain dikonversi menjadi `MonoString`. Karena API tidak menerima metadata tipe parameter, method dengan tipe argumen selain tipe-tipe tersebut memerlukan perhatian ekstra dan dapat salah ditafsirkan. Parameter `ref`/`out`, array, enum, struct, generic, dan overload yang ambigu tidak otomatis ditangani.
+`invoke_method` menerima semua argumen JavaScript sebagai string terlebih dahulu. Binding mengenali teks `true`/`false`, lalu mencoba parse integer, lalu angka pecahan; teks lain dibuat menjadi `MonoString`. Akibatnya, string yang tampak numerik seperti `"123"` diteruskan sebagai integer, bukan string. Tidak ada metadata tipe parameter: method dengan tipe C# lain dapat salah ditafsirkan. Parameter `ref`/`out`, array, enum, struct, generic, dan overload ambigu tidak otomatis ditangani. Untuk method static, verifikasi target object yang sesuai pada runtime Mono sebelum invoke.
 
 Contoh pencarian aman:
 
 ```ts
-const klass = mono.get_class("Player", "Assembly-CSharp");
+const klass = mono.get_class("Player", "assembly_valheim");
 if (klass === 0) {
   console.error("Class Player tidak ditemukan");
 } else {
@@ -149,7 +149,9 @@ if (klass === 0) {
 }
 ```
 
-Binding saat ini tidak menyediakan pembacaan field bertipe (`get_field_int`/`get_field_float` tidak ada); `get_field_value` adalah akses mentah. Hindari menganggap hasilnya otomatis menjadi angka JavaScript dengan tipe managed yang benar.
+Binding saat ini tidak menyediakan pembacaan field bertipe (`get_field_int`/`get_field_float` tidak ada). `get_field_value` hanya aman untuk field yang muat dalam satu slot pointer; hasil float adalah pola bit yang dibaca sebagai integer, bukan konversi ke float. `set_field_string` juga belum mengonversi ke `MonoString`, jadi jangan gunakan untuk field string managed.
+
+Untuk static field, `get_static_field_value` memberi alamat slot. API JavaScript ini tidak menyediakan dereference bertipe terhadap alamat tersebut. Pakai `get_static_field_data`, `get_vtable`, dan offset hanya jika memahami layout memory native.
 
 ## Modul `detour`
 
@@ -157,7 +159,7 @@ Gunakan named import: `import { Hook } from "detour";`. Modul juga mengekspor `N
 
 ### `Hook`
 
-- `Hook.add(name: string, address: number, argumentCount: number, callback: (context: NativeContext) => number | void): boolean` — buat hook pada alamat native. `false` bila alamat/callback tidak valid, nama sudah terdaftar, atau pemasangan gagal. Hook yang baru didaftarkan belum aktif.
+- `Hook.add(name: string, address: number, argumentCount: number, callback: (context: NativeContext) => unknown): boolean` — buat hook pada alamat native. `false` bila alamat/callback tidak valid, nama sudah terdaftar, jumlah argumen lebih dari 256, atau pemasangan gagal. Hook yang baru didaftarkan belum aktif.
 - `Hook.enable(name: string): void` — aktifkan hook terdaftar. Nama tidak dikenal diabaikan.
 - `Hook.disable(name: string): void` — hapus hook dan pulihkan target jika aktif. Hook dengan nama tidak dikenal diabaikan.
 
@@ -165,7 +167,7 @@ Gunakan named import: `import { Hook } from "detour";`. Modul juga mengekspor `N
 
 ### `NativeContext`
 
-- `args(): number[]` — semua argumen sebagai nilai register mentah. Untuk floating point gunakan `getArg(i).float()` atau `.double()`.
+- `args(): number[]` — nilai mentah dari slot integer/pointer untuk setiap indeks. Untuk empat posisi argumen pertama, nilai floating point disimpan di register XMM terpisah dan tidak tercermin di hasil `args()`; gunakan `getArg(i).float()` atau `.double()` sesuai signature.
 - `getArg(index: number): NativeArgument` — akses argumen ABI.
 - `setArg(index: number, value: number): void` — ganti argumen register integer/pointer.
 - `setFloat(index: number, value: number): void` — ganti argumen float.
@@ -177,46 +179,45 @@ Gunakan named import: `import { Hook } from "detour";`. Modul juga mengekspor `N
 - `number(): number` / `valueOf(): number` — nilai integer/pointer mentah.
 - `float(): number` — baca argumen 32-bit floating point.
 - `double(): number` — baca argumen 64-bit floating point.
-- `string(): string` — baca pointer argumen sebagai C string UTF-8/null-terminated; hanya gunakan untuk parameter yang memang C string.
-- `monoString(): string \| null` — konversi pointer `MonoString` UTF-16 ke string UTF-8; null jika pointer/length tidak valid.
+- `string(): string` — baca pointer argumen sebagai narrow C string null-terminated tanpa konversi encoding; hanya gunakan untuk parameter yang memang C string.
+- `monoString(): string \| null` — konversi pointer `MonoString` UTF-16 ke string UTF-8; mengembalikan null untuk pointer null atau panjang string di luar batas binding. Pointer harus tetap valid.
 
-Jika callback mengembalikan angka, nilai itu menjadi nilai return native mentah. Jika callback mengembalikan nilai nonangka atau melempar exception, dispatcher akan memakai hasil `callOriginal()` (memanggil fungsi asli jika belum dipanggil). Pastikan representasi return cocok dengan ABI fungsi target.
+Jika callback mengembalikan angka, angka itu diubah menjadi `uintptr_t` dan menjadi return di register integer. Return floating point di register XMM tidak didukung oleh binding callback ini. Jika callback mengembalikan nilai nonangka atau melempar exception, dispatcher memakai hasil `callOriginal()` (memanggil fungsi asli jika belum dipanggil). `callOriginal()` juga mengembalikan nilai integer/pointer mentah; jangan gunakan pola ini untuk mengubah return float/double.
 
 Contoh pass-through:
 
 ```ts
 import { Hook } from "detour";
 
-const address = mono.get_compile_method("Achievement", "CheckUnlocked", 0, "assembly_valheim");
+const address = mono.get_compile_method("Achievements", "CanGetAchievements", 1, "assembly_valheim");
 if (address !== 0) {
-  const name = "Achievement.CheckUnlocked";
+  const name = "Achievements.CanGetAchievements";
   const ok = Hook.add(name, address, 1, (ctx) => {
-    const result = ctx.callOriginal();
-    console.log("hasil mentah:", result);
-    return result;
+    console.log("cheated arg:", ctx.getArg(0).number());
+    return ctx.callOriginal();
   });
   if (ok) Hook.enable(name);
 }
 ```
 
-Contoh tersebut mengasumsikan fungsi instance tanpa parameter eksplisit, sehingga hitungan ABI adalah satu untuk `this`. Verifikasi class, assembly, overload, static/instance, jenis return, dan konvensi ABI untuk versi game yang sedang berjalan sebelum mengaktifkan hook.
+Contoh memakai method yang juga dicari pada `src/hooking.cpp`; hook native di proyek memakai satu parameter `bool`. Karena itu `argumentCount` adalah satu dan argumen nol adalah `cheated` (tidak ada `this`). Tetap verifikasi alamat dan signature pada versi game yang dijalankan.
 
 ## Modul `canvas`
 
 Gunakan `import * as canvas from "canvas";` atau `import { add_tab, add_submenu } from "canvas";`. Callback pembuatan menerima `MenuBuilder`.
 
 - `add_tab(title: string, id: number, build: (menu: MenuBuilder) => void): void` — daftarkan tab menu dengan ID numerik.
-- `add_submenu(title: string, id: number, build: (menu: MenuBuilder) => void): void` — daftarkan submenu.
+- `add_submenu(title: string, id: number, build: (menu: MenuBuilder) => void): void` — API pendaftaran submenu tersedia. Pada implementasi saat ini versi build submenu baru tidak dinaikkan, sementara renderer melewati menu dengan versi build/render sama; akibatnya submenu baru biasanya tidak muncul.
 
 `MenuBuilder` menyediakan:
 
 - `add_bool(text: string, description?: string): void` — toggle bool; nilai disimpan melalui store dengan key yang sama dengan `text`.
-- `add_slider(text: string, min: number, max: number, step: number): void` — slider integer jika min/max/step semuanya integer, selain itu slider pecahan. Perubahan nilai disimpan sebagai float; callback perubahan tidak diekspos.
+- `add_slider(text: string, min: number, max: number, step: number): void` — slider integer jika min/max/step semuanya integer, selain itu slider pecahan. Builder tidak menerima callback perubahan; implementasi membaca nilai awal dari store tetapi tidak menulis nilai slider kembali ke store.
 - `add_choose(text: string, values: string[], callback: (index: number, value: string) => void): void` — pilihan string. Index callback dimulai dari **1**.
 - `add_option(text: string, callback?: () => void): void` — item yang menjalankan callback saat dipilih.
 - `add_submenu(text: string, submenuId: number, callback?: () => void): void` — tautan ke submenu ID; callback opsional dijalankan saat opsi dipilih.
 
-Contoh:
+Contoh API builder (catatan: pendaftaran submenu eksternal di bawah belum dirender oleh binding saat ini):
 
 ```ts
 import * as canvas from "canvas";
@@ -236,7 +237,7 @@ canvas.add_submenu("Lanjutan", 45002, (menu) => {
 });
 ```
 
-Gunakan ID menu unik. Nama opsi digunakan sebagai tag penyimpanan pada beberapa kontrol; gunakan teks yang stabil dan unik jika ingin nilai tetap melekat.
+Gunakan ID menu unik. Nama opsi dipakai sebagai key store untuk toggle dan nilai awal slider; nama yang sama dapat berbagi state. Toggle menulis state ke store saat diubah.
 
 ## Command dan penyimpanan
 
@@ -303,7 +304,7 @@ Folder [`examples`](./examples/) berisi contoh terpisah per binding:
 Kompilasi satu contoh ke folder output, misalnya:
 
 ```powershell
-npx tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --outDir .\scripts .\docs\typescript\api.d.ts .\docs\typescript\detour.d.ts .\docs\typescript\examples\05_detour.ts
+npx.cmd --yes --package typescript tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --noEmitOnError --outDir .\scripts .\docs\typescript\api.d.ts .\docs\typescript\detour.d.ts .\docs\typescript\examples\05_detour.ts
 ```
 
 Untuk contoh yang tidak memakai `detour`, `detour.d.ts` boleh dihilangkan dari perintah. Contoh yang memodifikasi field atau memasang hook memiliki operasi tersebut dalam helper/pola eksplisit; periksa alamat, tipe field, dan signature target sebelum memanggilnya.

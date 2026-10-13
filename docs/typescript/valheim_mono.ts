@@ -3,7 +3,7 @@
 
 const domain = mono.get_root_domain();
 const playerPointer = unity.get_local_player();
-const playerClass = mono.get_class("Player", "Assembly-CSharp");
+const playerClass = mono.get_class("Player", "assembly_valheim");
 
 console.log("Mono domain available:", domain !== 0);
 console.log("Local player available:", playerPointer !== 0);

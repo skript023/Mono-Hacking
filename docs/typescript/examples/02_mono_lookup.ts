@@ -35,8 +35,8 @@ if (klass === 0) {
 const compiledAddress = mono.get_compile_method("Player", "GetCurrentBiome", 0, "assembly_valheim");
 console.log("Compiled method address:", compiledAddress);
 
-// Static field results are raw native values/pointers. Use a field known to
-// exist in the exact game assembly before interpreting the result.
-const staticField = mono.get_static_field_value("Player", "s_playerInstance");
-console.log("Raw static field result:", staticField);
-
+// This helper searches Assembly-CSharp (the binding's fixed default), not
+// assembly_valheim, and returns the static field slot address rather than value.
+function findStaticFieldAddress(className: string, fieldName: string): number {
+  return mono.get_static_field_value(className, fieldName);
+}

@@ -24,6 +24,8 @@ function writeFloatField(objectPointer: number, classPointer: number, name: stri
 }
 
 function writeStringField(objectPointer: number, classPointer: number, name: string, value: string): void {
+  // The current native binding passes a C string pointer, not a MonoString.
+  // Kept here to show the exposed signature; don't use for managed string fields.
   const field = mono.get_field(classPointer, name);
   if (objectPointer !== 0 && field !== 0) mono.set_field_string(objectPointer, field, value);
 }
@@ -32,4 +34,3 @@ function writeStringField(objectPointer: number, classPointer: number, name: str
 // writeIntField(player, klass, "someIntField", 10);
 // writeFloatField(player, klass, "someFloatField", 10.5);
 // writeStringField(player, klass, "someStringField", "example");
-

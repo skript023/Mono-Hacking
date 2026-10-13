@@ -18,7 +18,7 @@
   }
 
   export class Hook {
-    static add(name: string, address: number, argumentCount: number, callback: (context: NativeContext) => number | void): boolean;
+    static add(name: string, address: number, argumentCount: number, callback: (context: NativeContext) => unknown): boolean;
     static enable(name: string): void;
     static disable(name: string): void;
   }
