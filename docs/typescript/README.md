@@ -30,13 +30,13 @@ QuickJS tidak mengeksekusi TypeScript secara langsung. Tipe dari file deklarasi 
 Pasang TypeScript di lingkungan pengembangan, lalu dari root repositori jalankan:
 
 ```powershell
-npx tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --outDir .\scripts .\docs\typescript\api.d.ts .\docs\typescript\detour.d.ts .\docs\typescript\valheim_mono.ts
+npx.cmd --yes --package typescript tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --noEmitOnError --outDir .\scripts .\docs\typescript\api.d.ts .\docs\typescript\detour.d.ts .\docs\typescript\valheim_mono.ts
 ```
 
 Untuk skrip yang mengimpor modul `detour`, sertakan `detour.d.ts` dan entry TypeScript tersebut:
 
 ```powershell
-npx tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --outDir .\scripts .\docs\typescript\api.d.ts .\docs\typescript\detour.d.ts .\docs\typescript\valheim_achievement_hook.ts
+npx.cmd --yes --package typescript tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --noEmitOnError --outDir .\scripts .\docs\typescript\api.d.ts .\docs\typescript\detour.d.ts .\docs\typescript\valheim_achievement_hook.ts
 ```
 
 Gunakan `--module ES2020` jika skrip memakai `import`. Setelan `--target ES2020` dipilih agar sintaks hasil kompilasi sesuai dengan runtime QuickJS proyek. Skrip tanpa import juga boleh dikompilasi satu per satu. Hasil contoh pertama adalah `scripts/valheim_mono.js`.
@@ -307,6 +307,24 @@ npx tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --outDir .\s
 ```
 
 Untuk contoh yang tidak memakai `detour`, `detour.d.ts` boleh dihilangkan dari perintah. Contoh yang memodifikasi field atau memasang hook memiliki operasi tersebut dalam helper/pola eksplisit; periksa alamat, tipe field, dan signature target sebelum memanggilnya.
+
+### Build semua contoh
+
+Setiap file contoh adalah entry script mandiri. Perintah PowerShell berikut membangun delapan file di `examples` dan dua contoh utama secara terpisah, supaya deklarasi global antarfile tidak bertabrakan. Hasilnya masuk ke `build/typescript`; pilih dan salin hanya file `.js` yang ingin dijalankan ke folder `scripts`.
+
+```powershell
+$outputDir = ".\build\typescript"
+$sourceFiles = @(Get-ChildItem ".\docs\typescript\examples" -Filter *.ts) + @(Get-Item ".\docs\typescript\valheim_mono.ts", ".\docs\typescript\valheim_achievement_hook.ts")
+
+foreach ($sourceFile in $sourceFiles) {
+  npx.cmd --yes --package typescript tsc --target ES2020 --module ES2020 --lib ES2020 --skipLibCheck --noEmitOnError --outDir $outputDir ".\docs\typescript\api.d.ts" ".\docs\typescript\detour.d.ts" $sourceFile.FullName
+  if ($LASTEXITCODE -ne 0) {
+    throw "TypeScript build failed: $($sourceFile.Name)"
+  }
+}
+```
+
+Status build: delapan file di `examples` dan dua contoh utama berhasil dikompilasi menjadi 10 file JavaScript dengan TypeScript 7.0.2. Hasil pemeriksaan ini ditulis ke direktori sementara, bukan ke folder skrip aktif.
 
 ## Batasan runtime
 
