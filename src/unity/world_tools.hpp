@@ -2,7 +2,6 @@
 #include "class/vector.hpp"
 #include "mono/mono.hpp"
 
-#include <array>
 #include <string>
 #include <vector>
 
@@ -19,7 +18,7 @@ namespace big
 		};
 
 		// Raids & Events
-		static const std::array<raid_info, 10>& get_available_raids()
+		static std::vector<raid_info> get_available_raids()
 		{
 			return instance().get_available_raids_impl();
 		}
@@ -65,6 +64,18 @@ namespace big
 		{
 			return instance().repair_all_inventory_impl();
 		}
+		static int pickup_nearby_drops(float radius = 30.f)
+		{
+			return instance().pickup_nearby_drops_impl(radius);
+		}
+		static bool apply_world_preset(const std::string& preset)
+		{
+			return instance().apply_world_preset_impl(preset);
+		}
+		static bool apply_world_modifier(const std::string& modifier, const std::string& option)
+		{
+			return instance().apply_world_modifier_impl(modifier, option);
+		}
 
 		// World Upgrade & Old World Maintenance
 		static bool generate_missing_locations()
@@ -94,7 +105,7 @@ namespace big
 			return value;
 		}
 
-		const std::array<raid_info, 10>& get_available_raids_impl();
+		std::vector<raid_info> get_available_raids_impl();
 		std::string get_current_raid_name_impl();
 		void trigger_raid_impl(const std::string& internal_name);
 		void stop_current_raid_impl();
@@ -104,6 +115,9 @@ namespace big
 		bool loot_nearby_tombstone_impl(float radius);
 		bool open_trader_gui_impl(const std::string& trader_name);
 		bool repair_all_inventory_impl();
+		int pickup_nearby_drops_impl(float radius);
+		bool apply_world_preset_impl(const std::string& preset);
+		bool apply_world_modifier_impl(const std::string& modifier, const std::string& option);
 		bool generate_missing_locations_impl();
 		bool upgrade_terrain_impl();
 		bool upgrade_worldgen_version_impl();

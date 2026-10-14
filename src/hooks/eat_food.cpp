@@ -6,6 +6,32 @@
 
 namespace big
 {
+	static void send_character_message(MonoObject* character, int msg_type, const std::string& text)
+	{
+		static auto msg_method = mono::get_method("Character", "Message", 5, "assembly_valheim");
+		if (!msg_method)
+		{
+			msg_method = mono::get_method("Character", "Message", 2, "assembly_valheim");
+		}
+		if (!msg_method || text.empty())
+		{
+			return;
+		}
+		MonoString* msg = mono::to_mono_string(text);
+		int amount      = 0;
+		bool log_msg    = false;
+		if (mono::get_param_count(msg_method) == 5)
+		{
+			void* params[5] = {&msg_type, msg, &amount, nullptr, &log_msg};
+			mono::invoke_method(msg_method, character, params);
+		}
+		else
+		{
+			void* params[2] = {&msg_type, msg};
+			mono::invoke_method(msg_method, character, params);
+		}
+	}
+
 	bool hooks::player_can_eat(MonoObject* player, MonoObject* item, bool show_messages)
 	{
 		if (!player || !item || player != unity::get_local_player() || g_settings.self.max_food_slots <= 3)
@@ -84,14 +110,7 @@ namespace big
 
 				if (show_messages)
 				{
-					static auto msg_method = mono::get_method("Character", "Message", 2, "assembly_valheim");
-					if (msg_method)
-					{
-						MonoString* msg = mono::to_mono_string("$msg_nomore");
-						int msg_type    = 2; // MessageType.Center
-						void* params[2] = {&msg_type, msg};
-						mono::invoke_method(msg_method, player, params);
-					}
+					send_character_message(player, 2, "$msg_nomore");
 				}
 				return false;
 			}
@@ -111,14 +130,7 @@ namespace big
 		{
 			if (show_messages)
 			{
-				static auto msg_method = mono::get_method("Character", "Message", 2, "assembly_valheim");
-				if (msg_method)
-				{
-					MonoString* msg = mono::to_mono_string("$msg_isfull");
-					int msg_type    = 2; // MessageType.Center
-					void* params[2] = {&msg_type, msg};
-					mono::invoke_method(msg_method, player, params);
-				}
+				send_character_message(player, 2, "$msg_isfull");
 			}
 			return false;
 		}
@@ -293,14 +305,7 @@ namespace big
 			text += " +" + std::to_string((int)eitr) + " $item_food_eitr ";
 		}
 
-		static auto msg_method = mono::get_method("Character", "Message", 2, "assembly_valheim");
-		if (msg_method && !text.empty())
-		{
-			int msg_type    = 2; // MessageType.Center
-			MonoString* str = mono::to_mono_string(text);
-			void* m_args[2] = {&msg_type, str};
-			mono::invoke_method(msg_method, player, m_args);
-		}
+		send_character_message(player, 2, text);
 
 		return true;
 	}

@@ -1,5 +1,6 @@
 #pragma once
 #include "mono/mono.hpp"
+#include <string>
 
 namespace big
 {
@@ -25,6 +26,7 @@ namespace big
 		bool is_hungry();
 		bool is_alerted();
 		bool tame();
+		bool set_text(const std::string& text);
 		void command(character player);
 		void set_tame_time_left(float time);
 		MonoObject* get_nview();

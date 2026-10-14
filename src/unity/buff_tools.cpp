@@ -2,6 +2,7 @@
 #include "notification/notification_service.hpp"
 #include "utility/unity.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <format>
@@ -10,27 +11,9 @@ namespace big
 {
 	namespace
 	{
-		const std::vector<buff_tools::boss_power> s_boss_powers = {
-		    {"GP_Eikthyr", "Eikthyr's Surge", "Eikthyr (Meadows)", "-60% Run and Jump stamina usage"},
-		    {"GP_TheElder", "Elder's Wrath", "The Elder (Black Forest)", "+60% Wood cutting speed and axe damage"},
-		    {"GP_Bonemass", "Bonemass' Resilience", "Bonemass (Swamp)", "Massive physical resistance (Blunt, Slash, Pierce)"},
-		    {"GP_Moder", "Moder's Flight", "Moder (Mountain)", "Tailwind always blows from behind your ship"},
-		    {"GP_Yagluth", "Yagluth's Aegis", "Yagluth (Plains)", "High resistance against Fire, Frost, and Lightning"},
-		    {"GP_Queen", "Queen's Transcendence", "The Queen (Mistlands)", "+100% Eitr regeneration and +60% Mining speed"},
-		    {"GP_Ashlands", "Fader's Dominion", "Fader (Ashlands)", "+Movement speed, carry weight, and ferocious attack buff"},
-		    {"GP_DeepNorth", "Deep North Mastery", "Deep North Boss", "Cold immunity, hyper-stamina and frost empowerment"}};
+		const std::vector<buff_tools::boss_power> s_boss_powers = {{"GP_Eikthyr", "Eikthyr's Surge", "Eikthyr (Meadows)", "-60% Run and Jump stamina usage"}, {"GP_TheElder", "Elder's Wrath", "The Elder (Black Forest)", "+60% Wood cutting speed and axe damage"}, {"GP_Bonemass", "Bonemass' Resilience", "Bonemass (Swamp)", "Massive physical resistance (Blunt, Slash, Pierce)"}, {"GP_Moder", "Moder's Flight", "Moder (Mountain)", "Tailwind always blows from behind your ship"}, {"GP_Yagluth", "Yagluth's Aegis", "Yagluth (Plains)", "High resistance against Fire, Frost, and Lightning"}, {"GP_Queen", "Queen's Transcendence", "The Queen (Mistlands)", "+100% Eitr regeneration and +60% Mining speed"}, {"GP_Ashlands", "Fader's Dominion", "Fader (Ashlands)", "+Movement speed, carry weight, and ferocious attack buff"}, {"GP_DeepNorth", "Deep North Mastery", "Deep North Boss", "Cold immunity, hyper-stamina and frost empowerment"}};
 
-		const std::vector<std::string> s_debuff_names = {
-		    "Wet",
-		    "Poison",
-		    "Freezing",
-		    "Cold",
-		    "Burning",
-		    "Frost",
-		    "Smoked",
-		    "Tared",
-		    "Encumbered",
-		    "SoftDeath"};
+		const std::vector<std::string> s_debuff_names = {"Wet", "Poison", "Freezing", "Cold", "Burning", "Frost", "Smoked", "Tared", "Encumbered", "SoftDeath"};
 
 	}
 
@@ -38,17 +21,21 @@ namespace big
 	{
 		static thread_local MonoMethod* method = nullptr;
 		if (!method)
+		{
 			method = mono::get_method("StringExtensionMethods", "GetStableHashCode", 1, "assembly_utils");
+		}
 		if (method)
 		{
-			auto ms = mono::to_mono_string(name);
+			auto ms       = mono::to_mono_string(name);
 			void* args[1] = {ms};
-			auto ret = mono::invoke_method(method, nullptr, args);
+			auto ret      = mono::invoke_method(method, nullptr, args);
 			if (ret)
 			{
 				auto unboxed = mono::object_unbox(ret);
 				if (unboxed)
+				{
 					return *reinterpret_cast<int*>(unboxed);
+				}
 			}
 		}
 
@@ -58,7 +45,9 @@ namespace big
 		{
 			h1 = ((h1 << 5) + h1) ^ static_cast<int>(name[i]);
 			if (i == name.length() - 1 || name[i + 1] == 0)
+			{
 				break;
+			}
 			h2 = ((h2 << 5) + h2) ^ static_cast<int>(name[i + 1]);
 		}
 		return static_cast<int>(h1 + h2 * 1566083941u);
@@ -68,13 +57,19 @@ namespace big
 	{
 		auto player = unity::get_local_player();
 		if (!player)
+		{
 			return nullptr;
+		}
 
 		static thread_local MonoMethod* method = nullptr;
 		if (!method)
+		{
 			method = mono::get_method("Character", "GetSEMan", 0, "assembly_valheim");
+		}
 		if (!method)
+		{
 			return nullptr;
+		}
 
 		return mono::invoke_method(method, player, nullptr);
 	}
@@ -84,18 +79,22 @@ namespace big
 		const char* first_type = by_prefab ? "StatusEffect" : "System.Int32";
 		auto method = mono::get_method_exact("SEMan", "AddStatusEffect", {first_type, "System.Boolean", "System.Int32", "System.Single", "System.Int16"}, "assembly_valheim");
 		if (!method)
+		{
 			method = mono::get_method_exact("SEMan", "AddStatusEffect", {first_type, "System.Boolean", "System.Int32", "System.Single"}, "assembly_valheim");
+		}
 		return method;
 	}
 
 	MonoObject* buff_tools::invoke_add_status_effect_impl(MonoObject* seman, MonoMethod* method, void* first_arg, int level, float skill)
 	{
 		if (!seman || !method)
+		{
 			return nullptr;
+		}
 
 		uint32_t param_count = mono::get_param_count(method);
-		bool reset_time = true;
-		short variant = -1;
+		bool reset_time      = true;
+		short variant        = -1;
 
 		if (param_count == 5)
 		{
@@ -114,7 +113,9 @@ namespace big
 	{
 		static thread_local MonoMethod* method = nullptr;
 		if (!method)
+		{
 			method = get_add_status_effect_method_impl(false);
+		}
 		if (!method)
 		{
 			notification::warning("Buff Manager", "AddStatusEffect method not found.");
@@ -127,11 +128,13 @@ namespace big
 			// Query GetStatusEffect to verify if the effect is currently active.
 			static thread_local MonoMethod* get_se_method = nullptr;
 			if (!get_se_method)
+			{
 				get_se_method = mono::get_method_exact("SEMan", "GetStatusEffect", {"System.Int32"}, "assembly_valheim");
+			}
 			if (get_se_method)
 			{
 				void* get_args[] = {&hash};
-				effect = mono::invoke_method(get_se_method, seman, get_args);
+				effect           = mono::invoke_method(get_se_method, seman, get_args);
 			}
 		}
 		return effect;
@@ -141,30 +144,42 @@ namespace big
 	{
 		auto obj_db = unity::get_object_db();
 		if (!obj_db)
+		{
 			return nullptr;
+		}
 
 		auto db_klass = mono::object_get_class(obj_db);
 		if (!db_klass)
+		{
 			return nullptr;
+		}
 
 		auto se_list_field = mono::get_field(db_klass, "m_StatusEffects");
 		if (!se_list_field)
+		{
 			return nullptr;
+		}
 
 		MonoObject* se_list = nullptr;
 		mono::get_field_value(obj_db, se_list_field, &se_list);
 		if (!se_list)
+		{
 			return nullptr;
+		}
 
 		static auto hash_method = mono::get_method("StatusEffect", "NameHash", 0, "assembly_valheim");
-		auto effects = unity::list_to_vector(se_list);
+		auto effects            = unity::list_to_vector(se_list);
 		for (auto* se : effects)
 		{
 			if (!se)
+			{
 				continue;
+			}
 			auto se_klass = mono::object_get_class(se);
 			if (!se_klass)
+			{
 				continue;
+			}
 			const char* name = mono::class_get_name(se_klass);
 			if (name && std::strcmp(name, "SE_Shield") == 0)
 			{
@@ -175,7 +190,9 @@ namespace big
 					{
 						auto unboxed = mono::object_unbox(ret);
 						if (unboxed)
+						{
 							out_hash = *reinterpret_cast<int*>(unboxed);
+						}
 					}
 				}
 				return se;
@@ -190,19 +207,25 @@ namespace big
 		{
 			static thread_local MonoMethod* get_se_method = nullptr;
 			if (!get_se_method)
+			{
 				get_se_method = mono::get_method_exact("SEMan", "GetStatusEffect", {"System.Int32"}, "assembly_valheim");
+			}
 			if (get_se_method)
 			{
 				void* args[] = {&known_hash};
-				auto res = mono::invoke_method(get_se_method, seman, args);
+				auto res     = mono::invoke_method(get_se_method, seman, args);
 				if (res)
+				{
 					return res;
+				}
 			}
 		}
 
 		static thread_local MonoMethod* get_all_method = nullptr;
 		if (!get_all_method)
+		{
 			get_all_method = mono::get_method("SEMan", "GetStatusEffects", 0, "assembly_valheim");
+		}
 		if (get_all_method)
 		{
 			auto list_obj = mono::invoke_method(get_all_method, seman, nullptr);
@@ -212,13 +235,19 @@ namespace big
 				for (auto* se : active_effects)
 				{
 					if (!se)
+					{
 						continue;
+					}
 					auto klass = mono::object_get_class(se);
 					if (!klass)
+					{
 						continue;
+					}
 					const char* name = mono::class_get_name(klass);
 					if (name && std::strcmp(name, "SE_Shield") == 0)
+					{
 						return se;
+					}
 				}
 			}
 		}
@@ -229,13 +258,55 @@ namespace big
 	{
 		static thread_local MonoMethod* method = nullptr;
 		if (!method)
+		{
 			method = mono::get_method_exact("SEMan", "RemoveStatusEffect", {"System.Int32", "System.Boolean"}, "assembly_valheim");
+		}
 		return method;
 	}
 
 	const std::vector<buff_tools::boss_power>& buff_tools::get_boss_powers_impl()
 	{
-		return s_boss_powers;
+		static std::vector<boss_power> registered_powers;
+		registered_powers.clear();
+
+		auto database    = unity::get_object_db();
+		auto db_class    = database ? mono::object_get_class(database) : nullptr;
+		auto list_field  = db_class ? mono::get_field(db_class, "m_StatusEffects") : nullptr;
+		MonoObject* list = nullptr;
+		if (database && list_field)
+		{
+			mono::get_field_value(database, list_field, &list);
+		}
+
+		for (auto* effect : unity::list_to_vector(list))
+		{
+			if (!effect)
+			{
+				continue;
+			}
+
+			const std::string name = unity::get_name(effect);
+			if (!name.starts_with("GP_") || std::any_of(registered_powers.begin(), registered_powers.end(), [&name](const boss_power& power) {
+				    return power.internal_name == name;
+			    }))
+			{
+				continue;
+			}
+
+			auto known = std::find_if(s_boss_powers.begin(), s_boss_powers.end(), [&name](const boss_power& power) {
+				return power.internal_name == name;
+			});
+			if (known != s_boss_powers.end())
+			{
+				registered_powers.push_back(*known);
+			}
+			else
+			{
+				registered_powers.push_back({name, name.substr(3), "Runtime registered guardian power", "Registered in the current game's ObjectDB."});
+			}
+		}
+
+		return registered_powers;
 	}
 
 	void buff_tools::apply_rested_impl(int comfort, bool notify)
@@ -244,17 +315,23 @@ namespace big
 		if (!seman)
 		{
 			if (notify)
+			{
 				notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
+			}
 			return;
 		}
 
-		int hash = get_stable_hash_impl("Rested");
+		int hash       = get_stable_hash_impl("Rested");
 		int item_level = std::clamp(comfort, 1, 50);
 		if (!add_effect_impl(seman, hash, item_level, 0.f))
+		{
 			return;
+		}
 
 		if (notify)
+		{
 			notification::success("Buff Manager", std::format("Rested buff applied with Comfort Level {}!", item_level));
+		}
 	}
 
 	void buff_tools::activate_guardian_power_impl(const std::string& power_name)
@@ -268,9 +345,71 @@ namespace big
 
 		int hash = get_stable_hash_impl(power_name);
 		if (!add_effect_impl(seman, hash, 0, 0.f))
+		{
 			return;
+		}
 
 		notification::success("Boss Buff", std::format("Activated {}!", power_name));
+	}
+
+	bool buff_tools::discover_guardian_powers_impl()
+	{
+		auto player       = unity::get_local_player();
+		const auto powers = get_boss_powers_impl();
+		if (!player || powers.empty())
+		{
+			return false;
+		}
+
+		static auto set_power = mono::get_method("Player", "SetGuardianPower", 1, "assembly_valheim");
+		static auto get_power = mono::get_method("Player", "GetGuardianPowerName", 0, "assembly_valheim");
+		if (!set_power || !get_power)
+		{
+			return false;
+		}
+
+		auto current_result = mono::invoke_method(get_power, player, nullptr);
+		const std::string current = current_result ? mono::from_mono_string(reinterpret_cast<MonoString*>(current_result)) : std::string{};
+		for (const auto& power : powers)
+		{
+			MonoString* name = mono::to_mono_string(power.internal_name);
+			void* args[]     = {name};
+			mono::invoke_method(set_power, player, args);
+		}
+
+		MonoString* restore_name = mono::to_mono_string(current);
+		void* restore_args[]     = {restore_name};
+		mono::invoke_method(set_power, player, restore_args);
+		notification::success("Guardian Powers", std::format("Discovered {} registered guardian powers.", powers.size()));
+		return true;
+	}
+
+	bool buff_tools::activate_selected_guardian_power_impl(const std::string& power_name)
+	{
+		auto player = unity::get_local_player();
+		if (!player || power_name.empty())
+		{
+			return false;
+		}
+
+		static auto set_power   = mono::get_method("Player", "SetGuardianPower", 1, "assembly_valheim");
+		static auto start_power = mono::get_method("Player", "StartGuardianPower", 0, "assembly_valheim");
+		if (!set_power || !start_power)
+		{
+			return false;
+		}
+
+		MonoString* name = mono::to_mono_string(power_name);
+		void* args[]     = {name};
+		mono::invoke_method(set_power, player, args);
+		auto started = mono::invoke_method(start_power, player, nullptr);
+		if (!started || !*static_cast<bool*>(mono::object_unbox(started)))
+		{
+			return false;
+		}
+
+		notification::success("Guardian Powers", std::format("Started {} through Valheim's native power action.", power_name));
+		return true;
 	}
 
 	void buff_tools::activate_all_guardian_powers_impl()
@@ -282,14 +421,32 @@ namespace big
 			return;
 		}
 
-		for (const auto& bp : s_boss_powers)
+		const auto powers = get_boss_powers_impl();
+		for (const auto& bp : powers)
 		{
 			int hash = get_stable_hash_impl(bp.internal_name);
 			if (!add_effect_impl(seman, hash, 0, 0.f))
+			{
 				return;
+			}
 		}
 
-		notification::success("Boss Buffs", "All 7 Guardian Powers successfully activated together!");
+		notification::success("Boss Buffs", std::format("Applied {} registered guardian effects.", powers.size()));
+	}
+
+	bool buff_tools::reset_guardian_power_cooldown_impl()
+	{
+		auto player                = unity::get_local_player();
+		static auto player_class   = mono::get_class("Player", "assembly_valheim");
+		static auto cooldown_field = player_class ? mono::get_field(player_class, "m_guardianPowerCooldown") : nullptr;
+		if (!player || !cooldown_field)
+		{
+			return false;
+		}
+
+		float cooldown = 0.f;
+		mono::set_field_value(player, cooldown_field, &cooldown);
+		return true;
 	}
 
 	void buff_tools::apply_eitr_shield_impl(float hp)
@@ -301,11 +458,13 @@ namespace big
 			return;
 		}
 
-		int shield_hash = 0;
+		int shield_hash           = 0;
 		MonoObject* shield_prefab = find_shield_in_object_db_impl(shield_hash);
 
 		if (shield_hash == 0)
+		{
 			shield_hash = get_stable_hash_impl("Staff_shield");
+		}
 
 		MonoObject* active_shield = get_active_shield_impl(seman, shield_hash);
 
@@ -332,17 +491,14 @@ namespace big
 
 			if (!active_shield)
 			{
-				const int candidate_hashes[] = {
-				    shield_hash,
-				    get_stable_hash_impl("Staff_shield"),
-				    get_stable_hash_impl("SE_Shield"),
-				    get_stable_hash_impl("StaffShield"),
-				    get_stable_hash_impl("se_shield")};
+				const int candidate_hashes[] = {shield_hash, get_stable_hash_impl("Staff_shield"), get_stable_hash_impl("SE_Shield"), get_stable_hash_impl("StaffShield"), get_stable_hash_impl("se_shield")};
 
 				for (int h : candidate_hashes)
 				{
 					if (h == 0)
+					{
 						continue;
+					}
 					active_shield = add_effect_impl(seman, h, 1, 100.f);
 					if (active_shield)
 					{
@@ -360,7 +516,9 @@ namespace big
 		}
 
 		if (!active_shield)
+		{
 			active_shield = get_active_shield_impl(seman, shield_hash);
+		}
 
 		if (!active_shield)
 		{
@@ -374,11 +532,15 @@ namespace big
 		{
 			auto absorb_field = mono::get_field(se_klass, "m_absorbDamage");
 			if (absorb_field)
+			{
 				mono::set_field_value(active_shield, absorb_field, &hp);
+			}
 
 			auto total_absorb_field = mono::get_field(se_klass, "m_totalAbsorbDamage");
 			if (total_absorb_field)
+			{
 				mono::set_field_value(active_shield, total_absorb_field, &hp);
+			}
 
 			auto damage_field = mono::get_field(se_klass, "m_damage");
 			if (damage_field)
@@ -413,16 +575,63 @@ namespace big
 	{
 		auto seman = get_seman_impl();
 		if (!seman)
+		{
 			return;
+		}
 
 		auto remove_se_method = get_remove_effect_method_impl();
 		if (!remove_se_method)
+		{
 			return;
+		}
 
-		int hash = get_stable_hash_impl(name);
-		bool quiet = true;
+		int hash      = get_stable_hash_impl(name);
+		bool quiet    = true;
 		void* args[2] = {&hash, &quiet};
 		mono::invoke_method(remove_se_method, seman, args);
+	}
+
+	bool buff_tools::apply_registered_effect_impl(const std::string& prefab_name)
+	{
+		auto seman = get_seman_impl();
+		auto db    = unity::get_object_db();
+		if (!seman || !db)
+		{
+			return false;
+		}
+		auto db_class            = mono::object_get_class(db);
+		auto effects_field       = db_class ? mono::get_field(db_class, "m_StatusEffects") : nullptr;
+		MonoObject* effects_list = nullptr;
+		if (!effects_field)
+		{
+			return false;
+		}
+		mono::get_field_value(db, effects_field, &effects_list);
+		if (!effects_list)
+		{
+			return false;
+		}
+		for (auto* effect : unity::list_to_vector(effects_list))
+		{
+			if (!effect || unity::get_name(effect) != prefab_name)
+			{
+				continue;
+			}
+			auto method = get_add_status_effect_method_impl(true);
+			if (!method)
+			{
+				return false;
+			}
+			auto applied = invoke_add_status_effect_impl(seman, method, effect, 0, 0.f);
+			if (applied)
+			{
+				notification::success("Status Effects", std::format("Applied {}.", prefab_name));
+				return true;
+			}
+			// Valheim returns null when the status effect is already active but resets its duration.
+			return true;
+		}
+		return false;
 	}
 
 	void buff_tools::clear_all_debuffs_impl(bool notify)
@@ -431,23 +640,29 @@ namespace big
 		if (!seman)
 		{
 			if (notify)
+			{
 				notification::warning("Buff Manager", "Local player or status effect manager is not ready.");
+			}
 			return;
 		}
 
 		auto remove_se_method = get_remove_effect_method_impl();
 		if (!remove_se_method)
+		{
 			return;
+		}
 
 		bool quiet = true;
 		for (const auto& debuff : s_debuff_names)
 		{
-			int hash = get_stable_hash_impl(debuff);
+			int hash      = get_stable_hash_impl(debuff);
 			void* args[2] = {&hash, &quiet};
 			mono::invoke_method(remove_se_method, seman, args);
 		}
 
 		if (notify)
+		{
 			notification::success("Debuff Purge", "All harmful status effects removed (Wet, Poison, Freeze, Burn, etc.)!");
+		}
 	}
 }

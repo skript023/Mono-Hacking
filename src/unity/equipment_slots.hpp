@@ -34,10 +34,10 @@ namespace big
 	class equipment_manager
 	{
 	public:
-		static constexpr int grid_width = 8;
-		static constexpr int grid_height = 5;
-		static constexpr int page_count = 6;
-		static constexpr int equipment_page_idx = 5;
+		static constexpr int grid_width          = 8;
+		static constexpr int grid_height         = 5;
+		static constexpr int page_count          = 6;
+		static constexpr int equipment_page_idx  = 5;
 		static constexpr int max_extra_utilities = 3; // 1 vanilla + 3 extras = 4 total
 
 		static equipment_manager& get()
@@ -57,7 +57,7 @@ namespace big
 
 		// Lifecycle & Persistence
 		void init_or_sync();
-		void save_to_player();
+		bool save_to_player();
 		void tick(MonoObject* player);
 
 		// Slot actions

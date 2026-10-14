@@ -56,7 +56,7 @@ include(scripts/vulkan.cmake)
 
 # Valheim
 message(STATUS "Valheim")
-file(GLOB_RECURSE SRC_MAIN
+file(GLOB_RECURSE SRC_MAIN CONFIGURE_DEPENDS
     "${SRC_DIR}/**.hpp"
     "${SRC_DIR}/**.h"
     "${SRC_DIR}/**.cpp"

@@ -11,19 +11,42 @@ namespace big::features
 	class max_health : public looped_command
 	{
 		using looped_command::looped_command;
+		MonoObject* m_player    = nullptr;
+		float m_original_health = 25.f;
+		bool m_has_original     = false;
 
 		virtual void on_tick() override
 		{
-			auto player = self::get_player();
+			auto player  = self::get_player();
+			auto* object = player.get_object();
+			if (!object)
+			{
+				return;
+			}
 
-			player.set_base_health(_max_hp.get_state());
+			if (object != m_player)
+			{
+				m_player          = object;
+				m_original_health = player.get_base_health();
+				m_has_original    = true;
+			}
+			const float desired_health = _max_hp.get_state();
+			if (player.get_base_health() != desired_health)
+			{
+				player.set_base_health(desired_health);
+			}
 		}
 
 		virtual void on_disable() override
 		{
 			auto player = self::get_player();
-
-			player.set_base_health(25.f);
+			if (m_has_original && player.get_object() == m_player)
+			{
+				player.set_base_health(m_original_health);
+			}
+			m_player          = nullptr;
+			m_original_health = 25.f;
+			m_has_original    = false;
 		}
 	};
 

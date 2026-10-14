@@ -16,7 +16,10 @@
 #include "worker/main_worker.hpp"
 #include "worker/entity_worker.hpp"
 #include "unity/hud.hpp"
+#include "unity/animal_tools.hpp"
+#include "unity/camera_tools.hpp"
 #include "unity/crafting_tools.hpp"
+#include "unity/world_time.hpp"
 #include "javascript/javascript_manager.hpp"
 
 #include "services/notification/notification_service.hpp"
@@ -28,7 +31,9 @@ DWORD APIENTRY main_thread(LPVOID)
 	do
 	{
 		if (FindWindow(WINDOW_CLASS, WINDOW_NAME))
+		{
 			break;
+		}
 		std::this_thread::sleep_for(10ms);
 	} while (g_running);
 
@@ -110,6 +115,9 @@ DWORD APIENTRY main_thread(LPVOID)
 		}
 
 		crafting_tools::shutdown();
+		animal_tools::shutdown();
+		world_time::shutdown();
+		camera_tools::shutdown();
 		unity::hud_manager::shutdown();
 		render_vulkan::detach();
 		g_hooking->disable();
@@ -179,12 +187,10 @@ BOOL APIENTRY DllMain(HMODULE hmod, DWORD reason, PVOID)
 	case DLL_PROCESS_ATTACH:
 		DisableThreadLibraryCalls(hmod);
 
-		g_hmodule = hmod;
+		g_hmodule     = hmod;
 		g_main_thread = CreateThread(nullptr, 0, &main_thread, nullptr, 0, &g_main_thread_id);
 		break;
-	case DLL_PROCESS_DETACH:
-		g_running = false;
-		break;
+	case DLL_PROCESS_DETACH: g_running = false; break;
 	}
 
 	return true;

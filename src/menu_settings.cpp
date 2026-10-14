@@ -13,14 +13,18 @@ namespace big
 	void menu_settings::attempt_save()
 	{
 		nlohmann::json j = *this;
+		this->serialize_extra_options(j);
 		if (deep_compare(this->options, j, true))
+		{
 			this->save();
+		}
 	}
 
 	bool menu_settings::load()
 	{
 		this->default_options = *this;
-		this->options = this->default_options;
+		this->serialize_extra_options(this->default_options);
+		this->options            = this->default_options;
 		const auto settings_file = this->get_settings_file_path();
 		try
 		{
@@ -33,16 +37,22 @@ namespace big
 			file >> this->options;
 			file.close();
 			if (!this->options.is_object())
+			{
 				throw std::runtime_error("Menu settings root must be an object");
+			}
 			bool should_save = this->deep_compare(this->options, this->default_options);
 			from_json(this->options, *this);
+			this->deserialize_extra_options(this->options);
 			if (should_save)
+			{
 				return this->save();
+			}
 		}
 		catch (const std::exception& e)
 		{
 			LOG(WARNING) << "Invalid menu settings at " << settings_file.string() << ": " << e.what() << "; using defaults.";
 			from_json(this->default_options, *this);
+			this->deserialize_extra_options(this->default_options);
 			this->options = this->default_options;
 			return this->write_default_config();
 		}
@@ -58,22 +68,24 @@ namespace big
 			if (current_settings.count(key) == 0 || (compare_value && current_settings[key] != e.value()))
 			{
 				current_settings[key] = e.value();
-				should_save = true;
+				should_save           = true;
 			}
 			else if (current_settings[key].is_object() && e.value().is_object())
 			{
 				if (deep_compare(current_settings[key], e.value(), compare_value))
+				{
 					should_save = true;
+				}
 			}
 			else if (!current_settings[key].is_object() && e.value().is_object())
 			{
 				current_settings[key] = e.value();
-				should_save = true;
+				should_save           = true;
 			}
 			else if (current_settings[key].size() < e.value().size())
 			{
 				current_settings[key] = e.value();
-				should_save = true;
+				should_save           = true;
 			}
 		}
 		return should_save;
@@ -96,6 +108,7 @@ namespace big
 			return false;
 		}
 		nlohmann::json j = *this;
+		this->serialize_extra_options(j);
 		file << j.dump(4);
 		file.close();
 		if (file.fail())

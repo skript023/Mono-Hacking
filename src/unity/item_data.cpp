@@ -1,5 +1,8 @@
 #include "item_data.hpp"
 
+#include <charconv>
+#include <format>
+
 namespace big
 {
 	item_data::item_data(MonoObject* o) :
@@ -31,11 +34,17 @@ namespace big
 	}
 	float item_data::get_max_durability()
 	{
+		float override_value = 0.f;
+		if (get_stat_override("ew_max_durability", override_value))
+		{
+			return override_value;
+		}
+
 		auto shared = get_shared_data();
 
-		auto durability = shared.get_max_durability();
+		auto durability           = shared.get_max_durability();
 		auto durability_per_level = shared.get_durability_per_level();
-		auto quality = mono::get_field_value<"ItemDrop/ItemData", "m_quality", int>(obj);
+		auto quality              = mono::get_field_value<"ItemDrop/ItemData", "m_quality", int>(obj);
 
 		return durability + (float)std::max(0, quality - 1) * durability_per_level;
 	}
@@ -93,7 +102,9 @@ namespace big
 	bool item_data::get_cheated()
 	{
 		if (!obj)
+		{
 			return false;
+		}
 		return mono::get_field_value<"ItemDrop/ItemData", "m_cheated", bool>(obj);
 	}
 	void item_data::set_crafter_id(int64_t crafter_id)
@@ -106,7 +117,9 @@ namespace big
 	int64_t item_data::get_crafter_id()
 	{
 		if (!obj)
+		{
 			return 0;
+		}
 		return mono::get_field_value<"ItemDrop/ItemData", "m_crafterID", int64_t>(obj);
 	}
 	void item_data::set_crafter_name(const std::string& name)
@@ -120,8 +133,106 @@ namespace big
 	std::string item_data::get_crafter_name()
 	{
 		if (!obj)
+		{
 			return "";
+		}
 		auto ms = mono::get_field_value<"ItemDrop/ItemData", "m_crafterName", MonoString*>(obj);
 		return ms ? mono::from_mono_string(ms) : "";
+	}
+
+	bool item_data::get_stat_override(const std::string& name, float& value)
+	{
+		if (!obj)
+		{
+			return false;
+		}
+
+		auto custom_data = mono::get_field_value<"ItemDrop/ItemData", "m_customData", MonoObject*>(obj);
+		if (!custom_data)
+		{
+			return false;
+		}
+
+		static MonoMethod* try_get_value = nullptr;
+		if (!try_get_value)
+		{
+			auto klass    = mono::object_get_class(custom_data);
+			try_get_value = klass ? mono::class_get_method_from_name(klass, "TryGetValue", 2) : nullptr;
+		}
+		if (!try_get_value)
+		{
+			return false;
+		}
+
+		MonoString* raw_value = nullptr;
+		void* args[2]         = {mono::to_mono_string(name), &raw_value};
+		auto found            = mono::invoke_method(try_get_value, custom_data, args);
+		if (!found || !*reinterpret_cast<bool*>(mono::object_unbox(found)) || !raw_value)
+		{
+			return false;
+		}
+
+		auto text         = mono::from_mono_string(raw_value);
+		const auto* begin = text.data();
+		const auto* end   = begin + text.size();
+		auto result       = std::from_chars(begin, end, value);
+		return result.ec == std::errc{} && result.ptr == end;
+	}
+
+	void item_data::set_stat_override(const std::string& name, float value)
+	{
+		if (!obj)
+		{
+			return;
+		}
+
+		auto custom_data = mono::get_field_value<"ItemDrop/ItemData", "m_customData", MonoObject*>(obj);
+		if (!custom_data)
+		{
+			return;
+		}
+
+		static MonoMethod* set_item = nullptr;
+		if (!set_item)
+		{
+			auto klass = mono::object_get_class(custom_data);
+			set_item   = klass ? mono::class_get_method_from_name(klass, "set_Item", 2) : nullptr;
+		}
+		if (!set_item)
+		{
+			return;
+		}
+
+		const auto value_text = std::format("{:.6g}", value);
+		void* args[2]         = {mono::to_mono_string(name), mono::to_mono_string(value_text)};
+		mono::invoke_method(set_item, custom_data, args);
+	}
+
+	void item_data::remove_stat_override(const std::string& name)
+	{
+		if (!obj)
+		{
+			return;
+		}
+
+		auto custom_data = mono::get_field_value<"ItemDrop/ItemData", "m_customData", MonoObject*>(obj);
+		if (!custom_data)
+		{
+			return;
+		}
+
+		static MonoMethod* remove = nullptr;
+		if (!remove)
+		{
+			auto klass = mono::object_get_class(custom_data);
+			remove     = klass ? mono::class_get_method_from_name(klass, "Remove", 1) : nullptr;
+		}
+		if (!remove)
+		{
+			return;
+		}
+
+		void* args[1] = {mono::to_mono_string(name)};
+		mono::invoke_method(remove, custom_data, args);
 	}
 }

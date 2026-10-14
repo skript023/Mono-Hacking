@@ -7,90 +7,100 @@ namespace big
 	void mono::init_impl()
 	{
 		if (initalized)
+		{
 			return;
+		}
 
 		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(120);
-		auto wait_for = [&](auto ready, const char* stage) {
+		auto wait_for       = [&](auto ready, const char* stage) {
 			LOG(INFO) << "Waiting for Mono: " << stage;
 			while (!ready())
 			{
 				if (!g_running)
+				{
 					throw std::runtime_error("Mono initialization cancelled.");
+				}
 				if (std::chrono::steady_clock::now() >= deadline)
+				{
 					throw std::runtime_error(std::string("Mono initialization timed out waiting for ") + stage);
+				}
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		};
 
 		HMODULE runtime = nullptr;
-		wait_for([&] {
-			return (runtime = GetModuleHandleA("mono-2.0-bdwgc.dll")) != nullptr;
-		},
+		wait_for(
+		    [&] {
+			    return (runtime = GetModuleHandleA("mono-2.0-bdwgc.dll")) != nullptr;
+		    },
 		    "runtime DLL");
 		auto require_export = [&](const char* name) {
 			auto address = GetProcAddress(runtime, name);
 			if (!address)
+			{
 				throw std::runtime_error(std::string("Missing Mono export: ") + name);
+			}
 			return memory::handle(address);
 		};
 
 		// Necessary functions to get method addresses
 		mono_domain_assembly_open = require_export("mono_domain_assembly_open").as<mono_domain_assembly_open_t>();
-		mono_assembly_get_image = require_export("mono_assembly_get_image").as<mono_assembly_get_image_t>();
-		mono_class_from_name = require_export("mono_class_from_name").as<mono_class_from_name_t>();
+		mono_assembly_get_image   = require_export("mono_assembly_get_image").as<mono_assembly_get_image_t>();
+		mono_class_from_name      = require_export("mono_class_from_name").as<mono_class_from_name_t>();
 		mono_class_get_method_from_name = require_export("mono_class_get_method_from_name").as<mono_class_get_method_from_name_t>();
 		mono_class_get_methods = require_export("mono_class_get_methods").as<mono_class_get_methods_t>();
-		mono_method_get_name = require_export("mono_method_get_name").as<mono_method_get_name_t>();
-		mono_method_signature = require_export("mono_method_signature").as<mono_method_signature_t>();
+		mono_method_get_name   = require_export("mono_method_get_name").as<mono_method_get_name_t>();
+		mono_method_signature  = require_export("mono_method_signature").as<mono_method_signature_t>();
 		mono_signature_get_param_count = require_export("mono_signature_get_param_count").as<mono_signature_get_param_count_t>();
 		mono_signature_get_return_type = require_export("mono_signature_get_return_type").as<mono_signature_get_return_type_t>();
 		mono_signature_get_params = require_export("mono_signature_get_params").as<mono_signature_get_params_t>();
-		mono_type_get_name = require_export("mono_type_get_name").as<mono_type_get_name_t>();
-		mono_compile_method = require_export("mono_compile_method").as<mono_compile_method_t>();
-		mono_runtime_invoke = require_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
-		mono_object_unbox = require_export("mono_object_unbox").as<mono_object_unbox_t>();
-		mono_object_get_class = require_export("mono_object_get_class").as<mono_object_get_class_t>();
-		mono_object_new = require_export("mono_object_new").as<mono_object_new_t>();
+		mono_type_get_name        = require_export("mono_type_get_name").as<mono_type_get_name_t>();
+		mono_compile_method       = require_export("mono_compile_method").as<mono_compile_method_t>();
+		mono_runtime_invoke       = require_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
+		mono_object_unbox         = require_export("mono_object_unbox").as<mono_object_unbox_t>();
+		mono_object_get_class     = require_export("mono_object_get_class").as<mono_object_get_class_t>();
+		mono_object_new           = require_export("mono_object_new").as<mono_object_new_t>();
 		m_class_get_element_class = require_export("mono_class_get_element_class").as<decltype(m_class_get_element_class)>();
-		m_array_new = require_export("mono_array_new").as<decltype(m_array_new)>();
-		m_array_setref = require_export("mono_gc_wbarrier_set_arrayref").as<decltype(m_array_setref)>();
-		m_gchandle_new = require_export("mono_gchandle_new_v2").as<decltype(m_gchandle_new)>();
+		m_array_new           = require_export("mono_array_new").as<decltype(m_array_new)>();
+		m_array_setref        = require_export("mono_gc_wbarrier_set_arrayref").as<decltype(m_array_setref)>();
+		m_gchandle_new        = require_export("mono_gchandle_new_v2").as<decltype(m_gchandle_new)>();
 		m_gchandle_get_target = require_export("mono_gchandle_get_target_v2").as<decltype(m_gchandle_get_target)>();
-		m_gchandle_free = require_export("mono_gchandle_free_v2").as<decltype(m_gchandle_free)>();
+		m_gchandle_free       = require_export("mono_gchandle_free_v2").as<decltype(m_gchandle_free)>();
 
 		mono_class_get_field_from_name = require_export("mono_class_get_field_from_name").as<mono_class_get_field_from_name_t>();
 		mono_class_get_parent = require_export("mono_class_get_parent").as<mono_class_get_parent_t>();
-		mono_field_get_value = require_export("mono_field_get_value").as<mono_field_get_value_t>();
+		mono_field_get_value  = require_export("mono_field_get_value").as<mono_field_get_value_t>();
 		m_field_get_value_object = require_export("mono_field_get_value_object").as<decltype(m_field_get_value_object)>();
-		m_class_get_type = require_export("mono_class_get_type").as<decltype(m_class_get_type)>();
-		m_type_get_object = require_export("mono_type_get_object").as<decltype(m_type_get_object)>();
-		mono_field_set_value = require_export("mono_field_set_value").as<mono_field_set_value_t>();
+		m_class_get_type      = require_export("mono_class_get_type").as<decltype(m_class_get_type)>();
+		m_type_get_object     = require_export("mono_type_get_object").as<decltype(m_type_get_object)>();
+		mono_field_set_value  = require_export("mono_field_set_value").as<mono_field_set_value_t>();
 		mono_method_get_class = require_export("mono_method_get_class").as<mono_method_get_class_t>();
-		mono_class_vtable = require_export("mono_class_vtable").as<mono_class_vtable_t>();
+		mono_class_vtable     = require_export("mono_class_vtable").as<mono_class_vtable_t>();
 		mono_vtable_get_static_field_data = require_export("mono_vtable_get_static_field_data").as<mono_vtable_get_static_field_data_t>();
-		mono_field_get_offset = require_export("mono_field_get_offset").as<mono_field_get_offset_t>();
-		mono_class_get_name = require_export("mono_class_get_name").as<mono_class_get_name_t>();
-		mono_class_get_namespace = require_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
-		mono_string_to_utf8 = require_export("mono_string_to_utf8").as<mono_string_to_utf8_t>();
-		mono_string_new = require_export("mono_string_new").as<mono_string_new_t>();
-		mono_string_new_utf16 = require_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
+		mono_field_get_offset     = require_export("mono_field_get_offset").as<mono_field_get_offset_t>();
+		mono_class_get_name       = require_export("mono_class_get_name").as<mono_class_get_name_t>();
+		mono_class_get_namespace  = require_export("mono_class_get_namespace").as<mono_class_get_namespace_t>();
+		mono_string_to_utf8       = require_export("mono_string_to_utf8").as<mono_string_to_utf8_t>();
+		mono_string_new           = require_export("mono_string_new").as<mono_string_new_t>();
+		mono_string_new_utf16     = require_export("mono_string_new_utf16").as<mono_string_new_utf16_t>();
 		mono_array_addr_with_size = require_export("mono_array_addr_with_size").as<mono_array_addr_with_size_t>();
-		mono_array_length = require_export("mono_array_length").as<mono_array_length_t>();
+		mono_array_length         = require_export("mono_array_length").as<mono_array_length_t>();
 		mono_core::mono_array_addr_with_size = require_export("mono_array_addr_with_size").as<mono_core::mono_array_addr_with_size_t>();
 		mono_core::mono_array_length = require_export("mono_array_length").as<mono_core::mono_array_length_t>();
-		mono_free = require_export("mono_free").as<mono_free_t>();
+		mono_free                    = require_export("mono_free").as<mono_free_t>();
 
 		// Attach thread to prevent crashes
-		mono_thread_attach = require_export("mono_thread_attach").as<mono_thread_attach_t>();
+		mono_thread_attach   = require_export("mono_thread_attach").as<mono_thread_attach_t>();
 		mono_get_root_domain = require_export("mono_get_root_domain").as<mono_get_root_domain_t>();
-		mono_domain_get = require_export("mono_domain_get").as<mono_domain_get_t>();
+		mono_domain_get      = require_export("mono_domain_get").as<mono_domain_get_t>();
 
 		// A loaded DLL alone does not mean the host has initialized the runtime.
 		auto get_main_thread = require_export("mono_thread_get_main").as<MonoThread* (*)()>();
-		auto get_corlib = require_export("mono_get_corlib").as<MonoImage* (*)()>();
-		wait_for([&] {
-			return mono_get_root_domain() && get_main_thread() && get_corlib();
-		},
+		auto get_corlib      = require_export("mono_get_corlib").as<MonoImage* (*)()>();
+		wait_for(
+		    [&] {
+			    return mono_get_root_domain() && get_main_thread() && get_corlib();
+		    },
 		    "root domain, main thread and corlib");
 		ensure_thread_attached_impl();
 
@@ -98,10 +108,11 @@ namespace big
 		for (const char* name : {"assembly_valheim", "assembly_utils", "UnityEngine.CoreModule"})
 		{
 			MonoImage* image = nullptr;
-			wait_for([&] {
-				image = image_loaded(name);
-				return image != nullptr;
-			},
+			wait_for(
+			    [&] {
+				    image = image_loaded(name);
+				    return image != nullptr;
+			    },
 			    name);
 			std::scoped_lock lock(m_image_cache_mutex);
 			m_image_cache.emplace(name, image);
@@ -114,21 +125,31 @@ namespace big
 	{
 		static thread_local bool attached = false;
 		if (attached)
+		{
 			return;
+		}
 		if (!mono_thread_attach || !mono_get_root_domain)
+		{
 			throw std::runtime_error("Mono thread attachment requested before initialization.");
+		}
 		auto domain = mono_get_root_domain();
 		if (!domain || !mono_thread_attach(domain))
+		{
 			throw std::runtime_error("Failed to attach current thread to Mono.");
+		}
 		attached = true;
 	}
 
 	MonoObject* mono::invoke_method_impl(MonoMethod* method, void* obj, void** params, MonoObject** exception) const
 	{
 		if (exception)
+		{
 			*exception = nullptr;
+		}
 		if (!method)
+		{
 			return nullptr;
+		}
 
 		ensure_thread_attached_impl();
 
@@ -136,32 +157,44 @@ namespace big
 
 		auto result = mono_runtime_invoke(method, obj, params, &execution);
 		if (exception)
+		{
 			*exception = execution;
+		}
 		return execution ? nullptr : result;
 	}
 
 	MonoImage* mono::get_image_impl(const char* assemblyName) const
 	{
 		if (!assemblyName)
+		{
 			return nullptr;
+		}
 
 		ensure_thread_attached_impl();
 		std::scoped_lock lock(m_image_cache_mutex);
 		if (auto it = m_image_cache.find(assemblyName); it != m_image_cache.end())
+		{
 			return it->second;
+		}
 
 		auto domain = mono_get_root_domain();
 		if (!domain)
+		{
 			return nullptr;
+		}
 
-		auto path = get_assembly_path(assemblyName).string();
+		auto path     = get_assembly_path(assemblyName).string();
 		auto assembly = mono_domain_assembly_open(domain, path.c_str());
 		if (!assembly)
+		{
 			return nullptr;
+		}
 
 		auto image = mono_assembly_get_image(assembly);
 		if (image)
+		{
 			m_image_cache.emplace(assemblyName, image);
+		}
 
 		return image;
 	}
@@ -195,6 +228,11 @@ namespace big
 		return mono_compile_method(method);
 	}
 
+	void* mono::compile_method_impl(MonoMethod* method) const
+	{
+		return method ? mono_compile_method(method) : nullptr;
+	}
+
 	MonoMethod* mono::get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const
 	{
 		MonoImage* image = get_image_impl(assemblyName);
@@ -219,7 +257,9 @@ namespace big
 	MonoMethod* mono::get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const
 	{
 		if (!mono_class_get_methods || !mono_method_get_name || !mono_method_signature)
+		{
 			return nullptr;
+		}
 
 		MonoClass* klass = get_class_impl(className, assemblyName, nameSpace);
 		if (!klass)
@@ -228,48 +268,66 @@ namespace big
 			return nullptr;
 		}
 
-		void* iter = nullptr;
+		void* iter         = nullptr;
 		MonoMethod* method = nullptr;
 		while ((method = mono_class_get_methods(klass, &iter)) != nullptr)
 		{
 			const char* name = mono_method_get_name(method);
 			if (!name || strcmp(name, methodName) != 0)
+			{
 				continue;
+			}
 
 			MonoMethodSignature* sig = mono_method_signature(method);
 			if (!sig)
+			{
 				continue;
+			}
 
 			if (param_count >= 0 && mono_signature_get_param_count && mono_signature_get_param_count(sig) != (uint32_t)param_count)
+			{
 				continue;
+			}
 
 			if (returnTypeName && mono_signature_get_return_type && mono_type_get_name)
 			{
 				MonoType* ret_type = mono_signature_get_return_type(sig);
 				if (!ret_type)
+				{
 					continue;
+				}
 
-				char* ret_name = mono_type_get_name(ret_type);
+				char* ret_name     = mono_type_get_name(ret_type);
 				const bool matches = ret_name && strstr(ret_name, returnTypeName);
 				if (ret_name)
+				{
 					mono_free(ret_name);
+				}
 				if (!matches)
+				{
 					continue;
+				}
 			}
 
 			if (paramTypeName && mono_signature_get_params && mono_type_get_name)
 			{
-				void* p_iter = nullptr;
+				void* p_iter     = nullptr;
 				MonoType* p_type = mono_signature_get_params(sig, &p_iter);
 				if (!p_type)
+				{
 					continue;
+				}
 
-				char* p_name = mono_type_get_name(p_type);
+				char* p_name       = mono_type_get_name(p_type);
 				const bool matches = p_name && strstr(p_name, paramTypeName);
 				if (p_name)
+				{
 					mono_free(p_name);
+				}
 				if (!matches)
+				{
 					continue;
+				}
 			}
 
 			return method;
@@ -282,7 +340,9 @@ namespace big
 	uint32_t mono::get_param_count_impl(MonoMethod* method) const
 	{
 		if (!method || !mono_method_signature || !mono_signature_get_param_count)
+		{
 			return 0;
+		}
 
 		auto sig = mono_method_signature(method);
 		return sig ? mono_signature_get_param_count(sig) : 0;
@@ -292,36 +352,51 @@ namespace big
 	{
 		auto klass = get_class_impl(type, assembly, name_space);
 		if (!klass)
+		{
 			return nullptr;
+		}
 
 		auto type_matches = [](const char* actual, const char* expected) {
 			if (!actual || !expected)
+			{
 				return false;
+			}
 			if (std::strcmp(actual, expected) == 0)
+			{
 				return true;
-			if ((std::strcmp(actual, "int") == 0 && std::strcmp(expected, "System.Int32") == 0) ||
-			    (std::strcmp(actual, "System.Int32") == 0 && std::strcmp(expected, "int") == 0))
+			}
+			if ((std::strcmp(actual, "int") == 0 && std::strcmp(expected, "System.Int32") == 0) || (std::strcmp(actual, "System.Int32") == 0 && std::strcmp(expected, "int") == 0))
+			{
 				return true;
-			if ((std::strcmp(actual, "string") == 0 && std::strcmp(expected, "System.String") == 0) ||
-			    (std::strcmp(actual, "System.String") == 0 && std::strcmp(expected, "string") == 0))
+			}
+			if ((std::strcmp(actual, "string") == 0 && std::strcmp(expected, "System.String") == 0) || (std::strcmp(actual, "System.String") == 0 && std::strcmp(expected, "string") == 0))
+			{
 				return true;
-			if ((std::strcmp(actual, "bool") == 0 && std::strcmp(expected, "System.Boolean") == 0) ||
-			    (std::strcmp(actual, "System.Boolean") == 0 && std::strcmp(expected, "bool") == 0))
+			}
+			if ((std::strcmp(actual, "bool") == 0 && std::strcmp(expected, "System.Boolean") == 0) || (std::strcmp(actual, "System.Boolean") == 0 && std::strcmp(expected, "bool") == 0))
+			{
 				return true;
-			if ((std::strcmp(actual, "float") == 0 && std::strcmp(expected, "System.Single") == 0) ||
-			    (std::strcmp(actual, "System.Single") == 0 && std::strcmp(expected, "float") == 0))
+			}
+			if ((std::strcmp(actual, "float") == 0 && std::strcmp(expected, "System.Single") == 0) || (std::strcmp(actual, "System.Single") == 0 && std::strcmp(expected, "float") == 0))
+			{
 				return true;
-			if ((std::strcmp(actual, "long") == 0 && std::strcmp(expected, "System.Int64") == 0) ||
-			    (std::strcmp(actual, "System.Int64") == 0 && std::strcmp(expected, "long") == 0))
+			}
+			if ((std::strcmp(actual, "long") == 0 && std::strcmp(expected, "System.Int64") == 0) || (std::strcmp(actual, "System.Int64") == 0 && std::strcmp(expected, "long") == 0))
+			{
 				return true;
-			if ((std::strcmp(actual, "short") == 0 && std::strcmp(expected, "System.Int16") == 0) ||
-			    (std::strcmp(actual, "System.Int16") == 0 && std::strcmp(expected, "short") == 0))
+			}
+			if ((std::strcmp(actual, "short") == 0 && std::strcmp(expected, "System.Int16") == 0) || (std::strcmp(actual, "System.Int16") == 0 && std::strcmp(expected, "short") == 0))
+			{
 				return true;
-			if ((std::strcmp(actual, "byte") == 0 && std::strcmp(expected, "System.Byte") == 0) ||
-			    (std::strcmp(actual, "System.Byte") == 0 && std::strcmp(expected, "byte") == 0))
+			}
+			if ((std::strcmp(actual, "byte") == 0 && std::strcmp(expected, "System.Byte") == 0) || (std::strcmp(actual, "System.Byte") == 0 && std::strcmp(expected, "byte") == 0))
+			{
 				return true;
+			}
 			if (std::strstr(actual, expected) != nullptr || std::strstr(expected, actual) != nullptr)
+			{
 				return true;
+			}
 			return false;
 		};
 
@@ -329,24 +404,34 @@ namespace big
 		while (auto method = mono_class_get_methods(klass, &iterator))
 		{
 			if (std::strcmp(mono_method_get_name(method), name) != 0)
+			{
 				continue;
+			}
 			auto signature = mono_method_signature(method);
 			if (!signature || mono_signature_get_param_count(signature) != parameters.size())
+			{
 				continue;
+			}
 			void* parameter_iterator = nullptr;
-			bool matches = true;
+			bool matches             = true;
 			for (const char* expected : parameters)
 			{
 				auto parameter = mono_signature_get_params(signature, &parameter_iterator);
-				auto actual = parameter ? mono_type_get_name(parameter) : nullptr;
-				matches = actual && type_matches(actual, expected);
+				auto actual    = parameter ? mono_type_get_name(parameter) : nullptr;
+				matches        = actual && type_matches(actual, expected);
 				if (actual)
+				{
 					mono_free(actual);
+				}
 				if (!matches)
+				{
 					break;
+				}
 			}
 			if (matches)
+			{
 				return method;
+			}
 		}
 		return nullptr;
 	}
@@ -355,7 +440,9 @@ namespace big
 	{
 		MonoImage* image = get_image_impl(assemblyName);
 		if (image == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClass* klass = mono_class_from_name(image, nameSpace, className);
 
@@ -371,11 +458,15 @@ namespace big
 	{
 		MonoImage* image = get_image_impl(assemblyName);
 		if (image == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClass* klass = mono_class_from_name(image, nameSpace, className);
 		if (klass == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = mono_class_get_field_from_name(klass, fieldName);
 
@@ -392,7 +483,9 @@ namespace big
 	uint32_t mono::get_field_offset_impl(MonoClassField* field) const
 	{
 		if (!field)
+		{
 			return 0u;
+		}
 
 		return mono_field_get_offset(field);
 	}
@@ -400,7 +493,9 @@ namespace big
 	void mono::get_field_value_impl(void* instance, MonoClassField* field, void* out) const
 	{
 		if (!instance || !field || !out)
+		{
 			return;
+		}
 
 		mono_field_get_value(instance, field, out);
 	}
@@ -408,7 +503,9 @@ namespace big
 	void mono::set_field_value_impl(MonoObject* obj, MonoClassField* field, void* value)
 	{
 		if (!obj || !field)
+		{
 			return;
+		}
 
 		mono_field_set_value(obj, field, value);
 	}
@@ -416,7 +513,9 @@ namespace big
 	MonoArray* mono::new_reference_array_impl(MonoArray* source, int length)
 	{
 		if (!source || length < 0)
+		{
 			return nullptr;
+		}
 		ensure_thread_attached_impl();
 		auto element = m_class_get_element_class(mono_object_get_class(reinterpret_cast<MonoObject*>(source)));
 		return element ? m_array_new(get_root_domain_impl(), element, length) : nullptr;
@@ -425,7 +524,9 @@ namespace big
 	void mono::set_array_reference_impl(MonoArray* array, int index, MonoObject* value)
 	{
 		if (!array || index < 0 || index >= mono_array_length(array))
+		{
 			throw std::out_of_range("Mono array reference index");
+		}
 		m_array_setref(array, mono_array_addr_with_size(array, sizeof(MonoObject*), index), value);
 	}
 
@@ -442,13 +543,17 @@ namespace big
 	void mono::release_impl(uintptr_t handle)
 	{
 		if (handle)
+		{
 			m_gchandle_free(handle);
+		}
 	}
 
 	MonoVTable* mono::get_vtable_impl(MonoClass* pKlass) const
 	{
 		if (!pKlass)
+		{
 			return nullptr;
+		}
 
 		return mono_class_vtable(mono_get_root_domain(), pKlass);
 	}
@@ -456,7 +561,9 @@ namespace big
 	void* mono::get_static_field_data_impl(MonoVTable* pVTable) const
 	{
 		if (!pVTable)
+		{
 			return nullptr;
+		}
 
 		return mono_vtable_get_static_field_data(pVTable);
 	}
@@ -465,7 +572,9 @@ namespace big
 	{
 		MonoVTable* vtable = get_vtable_impl(pKlass);
 		if (vtable == nullptr)
+		{
 			return nullptr;
+		}
 
 		return mono_vtable_get_static_field_data(vtable);
 	}
@@ -474,13 +583,17 @@ namespace big
 	{
 		MonoClass* klass = get_class_impl(className, assemblyName, nameSpace);
 		if (klass == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = get_field_impl(klass, fieldName);
 		if (field == nullptr)
+		{
 			return nullptr;
+		}
 
-		auto addr = (uintptr_t)get_static_field_data_impl(klass);
+		auto addr       = (uintptr_t)get_static_field_data_impl(klass);
 		uint32_t offset = get_field_offset_impl(field);
 
 		void* value = (void*)(addr + offset);
@@ -506,7 +619,9 @@ namespace big
 	std::string mono::from_mono_string_impl(MonoString* monoStr) const
 	{
 		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
+		{
 			return {};
+		}
 
 		//auto raw = this->mono_string_to_utf8(monoStr);
 
@@ -518,27 +633,11 @@ namespace big
 
 		//return out;
 
-		int len = WideCharToMultiByte(
-		    CP_UTF8,
-		    0,
-		    (wchar_t*)monoStr->chars,
-		    monoStr->length,
-		    nullptr,
-		    0,
-		    nullptr,
-		    nullptr);
+		int len = WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)monoStr->chars, monoStr->length, nullptr, 0, nullptr, nullptr);
 
 		std::string out(len, '\0');
 
-		WideCharToMultiByte(
-		    CP_UTF8,
-		    0,
-		    (wchar_t*)monoStr->chars,
-		    monoStr->length,
-		    out.data(),
-		    len,
-		    nullptr,
-		    nullptr);
+		WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)monoStr->chars, monoStr->length, out.data(), len, nullptr, nullptr);
 
 		return out;
 	}
@@ -546,7 +645,9 @@ namespace big
 	std::wstring_view mono::view_mono_string_impl(MonoString* monoStr) const
 	{
 		if (!monoStr || monoStr->length < 0 || monoStr->length > 0x2000)
+		{
 			return {};
+		}
 
 		const wchar_t* wchars = reinterpret_cast<const wchar_t*>(monoStr->chars);
 
@@ -558,7 +659,9 @@ namespace big
 		ensure_thread_attached_impl();
 		MonoDomain* domain = mono_domain_get ? mono_domain_get() : nullptr;
 		if (!domain && mono_get_root_domain)
+		{
 			domain = mono_get_root_domain();
+		}
 
 		if (mono_string_new && domain)
 		{
@@ -566,25 +669,15 @@ namespace big
 		}
 
 		if (!mono_string_new_utf16 || !domain)
+		{
 			return nullptr;
+		}
 
-		int size_needed = MultiByteToWideChar(
-		    CP_UTF8,
-		    0,
-		    str.c_str(),
-		    (int)str.length(),
-		    nullptr,
-		    0);
+		int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), nullptr, 0);
 
 		std::wstring wstr(size_needed, 0);
 
-		MultiByteToWideChar(
-		    CP_UTF8,
-		    0,
-		    str.c_str(),
-		    (int)str.length(),
-		    wstr.data(),
-		    size_needed);
+		MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), wstr.data(), size_needed);
 
 		return mono_string_new_utf16(domain, (mono_unichar2*)wstr.data(), size_needed);
 	}

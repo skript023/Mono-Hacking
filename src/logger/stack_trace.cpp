@@ -32,6 +32,17 @@ namespace big
 		m_dump.clear();
 
 		m_dump << exception_code_to_string(exception_info->ExceptionRecord->ExceptionCode) << '\n';
+		m_dump << "Exception address: " << HEX_TO_UPPER(reinterpret_cast<uintptr_t>(exception_info->ExceptionRecord->ExceptionAddress)) << '\n';
+		if (exception_info->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION
+		    && exception_info->ExceptionRecord->NumberParameters >= 2)
+		{
+			const auto operation = exception_info->ExceptionRecord->ExceptionInformation[0];
+			const char* access   = operation == 0 ? "read" :
+			    operation == 1                    ? "write" :
+			    operation == 8                    ? "execute" :
+			                                        "unknown";
+			m_dump << "Access violation: " << access << " at " << HEX_TO_UPPER(exception_info->ExceptionRecord->ExceptionInformation[1]) << '\n';
+		}
 
 		dump_module_info();
 		dump_registers();
@@ -51,32 +62,39 @@ namespace big
 	{
 		// modules cached already
 		if (m_modules.size())
+		{
 			return;
+		}
 
 		m_dump << "Dumping modules:\n";
 
 		const auto peb = reinterpret_cast<PPEB>(NtCurrentTeb()->ProcessEnvironmentBlock);
 		if (!peb)
+		{
 			return;
+		}
 
 		const auto ldr_data = peb->Ldr;
 		if (!ldr_data)
+		{
 			return;
+		}
 
 		const auto module_list = &ldr_data->InMemoryOrderModuleList;
-		auto module_entry = module_list->Flink;
+		auto module_entry      = module_list->Flink;
 		for (; module_list != module_entry; module_entry = module_entry->Flink)
 		{
 			const auto table_entry = CONTAINING_RECORD(module_entry, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
 			if (!table_entry)
+			{
 				continue;
+			}
 
 			if (table_entry->FullDllName.Buffer)
 			{
 				auto mod_info = module_info(table_entry->FullDllName.Buffer, table_entry->DllBase);
 
-				m_dump << mod_info.m_name << " Base Address: " << HEX_TO_UPPER(mod_info.m_base)
-				       << " Size: " << mod_info.m_size << '\n';
+				m_dump << mod_info.m_name << " Base Address: " << HEX_TO_UPPER(mod_info.m_base) << " Size: " << mod_info.m_size << '\n';
 
 				m_modules.emplace_back(std::move(mod_info));
 			}
@@ -88,6 +106,7 @@ namespace big
 		const auto context = m_exception_info->ContextRecord;
 
 		m_dump << "Dumping registers:\n"
+		       << "RIP: " << HEX_TO_UPPER(context->Rip) << '\n'
 		       << "RAX: " << HEX_TO_UPPER(context->Rax) << '\n'
 		       << "RCX: " << HEX_TO_UPPER(context->Rcx) << '\n'
 		       << "RDX: " << HEX_TO_UPPER(context->Rdx) << '\n'
@@ -113,9 +132,9 @@ namespace big
 
 		// alloc once
 		char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME];
-		auto symbol = reinterpret_cast<SYMBOL_INFO*>(buffer);
+		auto symbol          = reinterpret_cast<SYMBOL_INFO*>(buffer);
 		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-		symbol->MaxNameLen = MAX_SYM_NAME;
+		symbol->MaxNameLen   = MAX_SYM_NAME;
 
 		DWORD64 displacement64;
 		DWORD displacement;
@@ -126,7 +145,7 @@ namespace big
 
 		for (size_t i = 0; i < m_frame_pointers.size() && m_frame_pointers[i]; ++i)
 		{
-			const auto addr = m_frame_pointers[i];
+			const auto addr        = m_frame_pointers[i];
 			const auto module_info = get_module_by_address(addr);
 
 			m_dump << "\n[" << i << "]\t";
@@ -178,10 +197,10 @@ namespace big
 		CONTEXT context = *m_exception_info->ContextRecord;
 
 		STACKFRAME64 frame{};
-		frame.AddrPC.Mode = AddrModeFlat;
-		frame.AddrFrame.Mode = AddrModeFlat;
-		frame.AddrStack.Mode = AddrModeFlat;
-		frame.AddrPC.Offset = context.Rip;
+		frame.AddrPC.Mode      = AddrModeFlat;
+		frame.AddrFrame.Mode   = AddrModeFlat;
+		frame.AddrStack.Mode   = AddrModeFlat;
+		frame.AddrPC.Offset    = context.Rip;
 		frame.AddrFrame.Offset = context.Rbp;
 		frame.AddrStack.Offset = context.Rsp;
 
@@ -216,7 +235,9 @@ namespace big
 		static const std::map<DWORD, std::string> exceptions = {MAP_PAIR_STRINGIFY(EXCEPTION_ACCESS_VIOLATION), MAP_PAIR_STRINGIFY(EXCEPTION_ARRAY_BOUNDS_EXCEEDED), MAP_PAIR_STRINGIFY(EXCEPTION_DATATYPE_MISALIGNMENT), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_DENORMAL_OPERAND), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_DIVIDE_BY_ZERO), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_INEXACT_RESULT), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_INEXACT_RESULT), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_INVALID_OPERATION), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_OVERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_STACK_CHECK), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_UNDERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_ILLEGAL_INSTRUCTION), MAP_PAIR_STRINGIFY(EXCEPTION_IN_PAGE_ERROR), MAP_PAIR_STRINGIFY(EXCEPTION_INT_DIVIDE_BY_ZERO), MAP_PAIR_STRINGIFY(EXCEPTION_INT_OVERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_INVALID_DISPOSITION), MAP_PAIR_STRINGIFY(EXCEPTION_NONCONTINUABLE_EXCEPTION), MAP_PAIR_STRINGIFY(EXCEPTION_PRIV_INSTRUCTION), MAP_PAIR_STRINGIFY(EXCEPTION_STACK_OVERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_BREAKPOINT), MAP_PAIR_STRINGIFY(EXCEPTION_SINGLE_STEP)};
 
 		if (const auto& it = exceptions.find(code); it != exceptions.end())
+		{
 			return it->second;
+		}
 
 		return "UNKNOWN_EXCEPTION: CODE: " + std::to_string(code);
 	}

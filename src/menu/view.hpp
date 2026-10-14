@@ -26,6 +26,8 @@ namespace big
 		static void draw_overlay();
 		static void notifications();
 		static void online_player_panel();
+		static void generated_location_browser();
+		static void toggle_generated_location_browser();
 		static void base_tools_submenu();
 		static void base_tools_panel();
 

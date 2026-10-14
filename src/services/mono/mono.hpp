@@ -20,20 +20,29 @@ namespace big
 			if (!compiledMethod)
 			{
 				if constexpr (std::is_void_v<Return>)
+				{
 					return;
+				}
 				else
+				{
 					return Return{};
+				}
 			}
 
 			ensure_thread_attached_impl();
 			auto function = reinterpret_cast<function_t>(compiledMethod);
 
 			if constexpr (std::is_void_v<Return>)
+			{
 				function(args...);
+			}
 			else
+			{
 				return function(args...);
+			}
 		}
 		void* get_compile_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
+		void* compile_method_impl(MonoMethod* method) const;
 		MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
 		MonoMethod* get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const;
 		uint32_t get_param_count_impl(MonoMethod* method) const;
@@ -139,6 +148,10 @@ namespace big
 		{
 			return get_instance().get_compile_method_impl(className, methodName, param_count, assemblyName, nameSpace);
 		};
+		static void* compile_method(MonoMethod* method)
+		{
+			return get_instance().compile_method_impl(method);
+		}
 		static MonoMethod* get_method(const char* className, const char* methodName, int param_count = 0, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "")
 		{
 			return get_instance().get_method_impl(className, methodName, param_count, assemblyName, nameSpace);
@@ -216,12 +229,14 @@ namespace big
 			void* static_field = mono::get_static_field_data(klass);
 
 			uint32_t offset = mono::get_field_offset(field);
-			void* address = (void*)((uintptr_t)static_field + offset);
+			void* address   = (void*)((uintptr_t)static_field + offset);
 
 			MonoObject* value = *(MonoObject**)address;
 
 			if constexpr (std::is_same_v<T, MonoObject*>)
+			{
 				return value;
+			}
 
 			return T(value);
 		}
@@ -252,15 +267,21 @@ namespace big
 
 
 			if (!klass || !field)
+			{
 				return false;
+			}
 
 			auto temp = std::forward<T>(value);
 
 			// Mono takes managed references directly; only value types use an address.
 			if constexpr (std::is_pointer_v<decltype(temp)> || std::is_same_v<decltype(temp), std::nullptr_t>)
+			{
 				set_field_value(obj, field, temp);
+			}
 			else
+			{
 				set_field_value(obj, field, &temp);
+			}
 
 			return true;
 		}
@@ -268,18 +289,24 @@ namespace big
 		static mono_array_view<T> list(MonoObject* list)
 		{
 			if (!list)
+			{
 				return {};
+			}
 
 			auto klass = object_get_class(list);
 
 			if (!klass)
+			{
 				return {};
+			}
 
 			static MonoClassField* items_field = get_field(klass, "_items");
-			static MonoClassField* size_field = get_field(klass, "_size");
+			static MonoClassField* size_field  = get_field(klass, "_size");
 
 			if (!items_field || !size_field)
+			{
 				return {};
+			}
 
 			MonoObject* items{};
 			int size{};
@@ -288,32 +315,40 @@ namespace big
 			get_field_value(list, size_field, &size);
 
 			if (!items || size <= 0)
+			{
 				return {};
+			}
 
-			return mono_array_view<T>(
-			    reinterpret_cast<MonoArray*>(items),
-			    size);
+			return mono_array_view<T>(reinterpret_cast<MonoArray*>(items), size);
 		}
 		template<typename T = MonoObject*>
 		static std::vector<T> from_list(MonoObject* list)
 		{
 			std::vector<T> out;
 			if (!list)
+			{
 				return out;
+			}
 
 			auto klass = object_get_class(list);
 			if (!klass)
+			{
 				return out;
+			}
 
 			static auto getCount = class_get_method_from_name(klass, "get_Count", 0);
-			static auto getItem = class_get_method_from_name(klass, "get_Item", 1);
+			static auto getItem  = class_get_method_from_name(klass, "get_Item", 1);
 
 			if (!getCount || !getItem)
+			{
 				return out;
+			}
 
 			auto ret = invoke_method(getCount, list);
 			if (!ret)
+			{
 				return out;
+			}
 
 			int count = *(int*)object_unbox(ret);
 
@@ -322,10 +357,12 @@ namespace big
 			for (int i = 0; i < count; ++i)
 			{
 				void* args[1] = {&i};
-				auto item = invoke_method(getItem, list, args);
+				auto item     = invoke_method(getItem, list, args);
 
 				if (!item)
+				{
 					continue;
+				}
 
 				if constexpr (std::is_same_v<T, MonoObject*>)
 				{
@@ -351,14 +388,18 @@ namespace big
 		static MonoObject* boxed_field(MonoObject* obj, MonoClassField* field)
 		{
 			if (!obj || !field)
+			{
 				return nullptr;
+			}
 			auto& instance = get_instance();
 			return instance.m_field_get_value_object(instance.get_root_domain_impl(), field, obj);
 		}
 		static MonoObject* reflection_type(MonoClass* klass)
 		{
 			if (!klass)
+			{
 				return nullptr;
+			}
 			auto& instance = get_instance();
 			return instance.m_type_get_object(instance.get_root_domain_impl(), instance.m_class_get_type(klass));
 		}
@@ -422,54 +463,54 @@ namespace big
 
 	private:
 		// --- Member untuk Fungsi Runtime dan Domain (Menggunakan alias _t) ---
-		MonoClass* (*m_class_get_element_class)(MonoClass*) = nullptr;
-		MonoArray* (*m_array_new)(MonoDomain*, MonoClass*, uintptr_t) = nullptr;
-		void (*m_array_setref)(MonoArray*, void*, MonoObject*) = nullptr;
-		uintptr_t (*m_gchandle_new)(MonoObject*, mono_bool) = nullptr;
-		MonoObject* (*m_gchandle_get_target)(uintptr_t) = nullptr;
-		void (*m_gchandle_free)(uintptr_t) = nullptr;
+		MonoClass* (*m_class_get_element_class)(MonoClass*)                                = nullptr;
+		MonoArray* (*m_array_new)(MonoDomain*, MonoClass*, uintptr_t)                      = nullptr;
+		void (*m_array_setref)(MonoArray*, void*, MonoObject*)                             = nullptr;
+		uintptr_t (*m_gchandle_new)(MonoObject*, mono_bool)                                = nullptr;
+		MonoObject* (*m_gchandle_get_target)(uintptr_t)                                    = nullptr;
+		void (*m_gchandle_free)(uintptr_t)                                                 = nullptr;
 		MonoObject* (*m_field_get_value_object)(MonoDomain*, MonoClassField*, MonoObject*) = nullptr;
-		MonoType* (*m_class_get_type)(MonoClass*) = nullptr;
-		MonoObject* (*m_type_get_object)(MonoDomain*, MonoType*) = nullptr;
+		MonoType* (*m_class_get_type)(MonoClass*)                                          = nullptr;
+		MonoObject* (*m_type_get_object)(MonoDomain*, MonoType*)                           = nullptr;
 
-		mono_thread_attach_t mono_thread_attach = nullptr;
-		mono_get_root_domain_t mono_get_root_domain = nullptr;
-		mono_domain_get_t mono_domain_get = nullptr;
-		mono_domain_assembly_open_t mono_domain_assembly_open = nullptr;
-		mono_assembly_get_image_t mono_assembly_get_image = nullptr;
-		mono_class_from_name_t mono_class_from_name = nullptr;
+		mono_thread_attach_t mono_thread_attach                           = nullptr;
+		mono_get_root_domain_t mono_get_root_domain                       = nullptr;
+		mono_domain_get_t mono_domain_get                                 = nullptr;
+		mono_domain_assembly_open_t mono_domain_assembly_open             = nullptr;
+		mono_assembly_get_image_t mono_assembly_get_image                 = nullptr;
+		mono_class_from_name_t mono_class_from_name                       = nullptr;
 		mono_class_get_method_from_name_t mono_class_get_method_from_name = nullptr;
-		mono_class_get_methods_t mono_class_get_methods = nullptr;
-		mono_method_get_name_t mono_method_get_name = nullptr;
-		mono_method_signature_t mono_method_signature = nullptr;
-		mono_signature_get_param_count_t mono_signature_get_param_count = nullptr;
-		mono_signature_get_return_type_t mono_signature_get_return_type = nullptr;
-		mono_signature_get_params_t mono_signature_get_params = nullptr;
-		mono_type_get_name_t mono_type_get_name = nullptr;
-		mono_compile_method_t mono_compile_method = nullptr;
-		mono_runtime_invoke_t mono_runtime_invoke = nullptr;
-		mono_object_unbox_t mono_object_unbox = nullptr;
-		mono_object_get_class_t mono_object_get_class = nullptr;
-		mono_object_new_t mono_object_new = nullptr;
+		mono_class_get_methods_t mono_class_get_methods                   = nullptr;
+		mono_method_get_name_t mono_method_get_name                       = nullptr;
+		mono_method_signature_t mono_method_signature                     = nullptr;
+		mono_signature_get_param_count_t mono_signature_get_param_count   = nullptr;
+		mono_signature_get_return_type_t mono_signature_get_return_type   = nullptr;
+		mono_signature_get_params_t mono_signature_get_params             = nullptr;
+		mono_type_get_name_t mono_type_get_name                           = nullptr;
+		mono_compile_method_t mono_compile_method                         = nullptr;
+		mono_runtime_invoke_t mono_runtime_invoke                         = nullptr;
+		mono_object_unbox_t mono_object_unbox                             = nullptr;
+		mono_object_get_class_t mono_object_get_class                     = nullptr;
+		mono_object_new_t mono_object_new                                 = nullptr;
 
 		// --- Member untuk Fungsi Class dan Field ---
 
-		mono_class_get_field_from_name_t mono_class_get_field_from_name = nullptr;
-		mono_class_get_parent_t mono_class_get_parent = nullptr;
-		mono_field_get_value_t mono_field_get_value = nullptr;
-		mono_field_set_value_t mono_field_set_value = nullptr;
-		mono_method_get_class_t mono_method_get_class = nullptr;
-		mono_class_vtable_t mono_class_vtable = nullptr;
+		mono_class_get_field_from_name_t mono_class_get_field_from_name       = nullptr;
+		mono_class_get_parent_t mono_class_get_parent                         = nullptr;
+		mono_field_get_value_t mono_field_get_value                           = nullptr;
+		mono_field_set_value_t mono_field_set_value                           = nullptr;
+		mono_method_get_class_t mono_method_get_class                         = nullptr;
+		mono_class_vtable_t mono_class_vtable                                 = nullptr;
 		mono_vtable_get_static_field_data_t mono_vtable_get_static_field_data = nullptr;
-		mono_field_get_offset_t mono_field_get_offset = nullptr;
-		mono_class_get_name_t mono_class_get_name = nullptr;
-		mono_class_get_namespace_t mono_class_get_namespace = nullptr;
-		mono_string_to_utf8_t mono_string_to_utf8 = nullptr;
-		mono_string_new_t mono_string_new = nullptr;
-		mono_string_new_utf16_t mono_string_new_utf16 = nullptr;
-		mono_array_addr_with_size_t mono_array_addr_with_size = nullptr;
-		mono_array_length_t mono_array_length = nullptr;
-		mono_free_t mono_free = nullptr;
+		mono_field_get_offset_t mono_field_get_offset                         = nullptr;
+		mono_class_get_name_t mono_class_get_name                             = nullptr;
+		mono_class_get_namespace_t mono_class_get_namespace                   = nullptr;
+		mono_string_to_utf8_t mono_string_to_utf8                             = nullptr;
+		mono_string_new_t mono_string_new                                     = nullptr;
+		mono_string_new_utf16_t mono_string_new_utf16                         = nullptr;
+		mono_array_addr_with_size_t mono_array_addr_with_size                 = nullptr;
+		mono_array_length_t mono_array_length                                 = nullptr;
+		mono_free_t mono_free                                                 = nullptr;
 
 		// mono_domain_assembly_open increments/retains runtime assembly state.  Do not
 		// call it for every entity getter; images are stable for the domain lifetime.

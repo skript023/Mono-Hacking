@@ -7,16 +7,20 @@
 
 namespace big::features
 {
-	float_command _food_hp("food_hp", "Food Health Amount", "Amount of food health.", 25.f, 10000000.f, 25.f);
+	float_command _food_hp("food_hp", "Food Duration", "Remaining food duration maintained in seconds.", 25.f, 10000000.f, 25.f);
 
 	static void set_all_food_health(MonoObject* foodsList, float newHealth)
 	{
 		if (!foodsList)
+		{
 			return;
+		}
 
 		auto foods = unity::list_to_vector(foodsList);
 		if (foods.empty())
+		{
 			return;
+		}
 
 		// Ambil field m_health dari class Food yang BENAR
 		MonoClass* foodClass = mono::get_class("Player/Food", "assembly_valheim");
@@ -62,19 +66,7 @@ namespace big::features
 				food.set_time(_food_hp.get_state());
 			}
 		}
-
-		virtual void on_disable() override
-		{
-			auto player = self::get_player();
-
-			auto foods = player.get_sfoods();
-
-			for (auto food : foods)
-			{
-				food.set_time(10.f);
-			}
-		}
 	};
 
-	static food_health _food_health("max_food_health", "Food Timer", "Amount of food time.");
+	static food_health _food_health("max_food_health", "Maintain Food Timer", "Keep each active food timer at the selected duration.");
 }

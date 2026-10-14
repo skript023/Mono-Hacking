@@ -26,10 +26,14 @@ namespace big::unity
 		{
 			instance().queue_reset_impl();
 		}
+		static void toggle_visibility()
+		{
+			instance().queue_toggle_visibility_impl();
+		}
 
 	private:
-		hud_manager() = default;
-		hud_manager(const hud_manager&) = delete;
+		hud_manager()                              = default;
+		hud_manager(const hud_manager&)            = delete;
 		hud_manager& operator=(const hud_manager&) = delete;
 		static hud_manager& instance()
 		{
@@ -40,6 +44,7 @@ namespace big::unity
 		void shutdown_impl();
 		bool cleanup_pending_impl() const;
 		void queue_reset_impl();
+		void queue_toggle_visibility_impl();
 		void update_impl();
 		void reset_impl();
 		void restore_impl();
@@ -51,8 +56,8 @@ namespace big::unity
 		uintptr_t retain_impl(MonoObject* object);
 		bool m_pending = false;
 		std::atomic<bool> m_cleanup_pending{false};
-		bool m_failed = false;
-		int m_target = 3;
+		bool m_failed   = false;
+		int m_target    = 3;
 		uintptr_t m_hud = 0;
 		std::array<MonoClassField*, 3> m_fields{};
 		std::array<uintptr_t, 3> m_originals{};

@@ -7,6 +7,77 @@
 namespace big
 {
 	using namespace features;
+	bool hooks::attack_use_ammo(MonoObject* attack, MonoObject** ammo_item)
+	{
+		const bool used = detour_base::get_original<attack_use_ammo>()(attack, ammo_item);
+		if (!used || !g_running || !g_settings.self.preserve_ammunition || !attack || !ammo_item || !*ammo_item)
+		{
+			return used;
+		}
+
+		static auto character_field   = mono::get_field("Attack", "m_character", "assembly_valheim");
+		static auto get_inventory     = mono::get_method("Humanoid", "GetInventory", 0, "assembly_valheim");
+		static auto contains_item     = mono::get_method("Inventory", "ContainsItem", 1, "assembly_valheim");
+		static auto add_item          = mono::get_method("Inventory", "AddItem", 1, "assembly_valheim");
+		static auto inventory_changed = []() {
+			auto m = mono::get_method("Inventory", "Changed", 2, "assembly_valheim");
+			if (!m)
+			{
+				m = mono::get_method("Inventory", "Changed", 0, "assembly_valheim");
+			}
+			return m;
+		}();
+		static auto stack_field = mono::get_field("ItemDrop/ItemData", "m_stack", "assembly_valheim");
+		if (!character_field || !get_inventory || !contains_item || !add_item || !stack_field)
+		{
+			return used;
+		}
+
+		MonoObject* character = nullptr;
+		mono::get_field_value(attack, character_field, &character);
+		if (!character || character != unity::get_local_player())
+		{
+			return used;
+		}
+
+		auto inventory = mono::invoke_method(get_inventory, character, nullptr);
+		if (!inventory)
+		{
+			return used;
+		}
+
+		void* contains_args[]         = {*ammo_item};
+		auto contains                 = mono::invoke_method(contains_item, inventory, contains_args);
+		const bool still_in_inventory = contains && *reinterpret_cast<bool*>(mono::object_unbox(contains));
+		if (still_in_inventory)
+		{
+			int stack = 0;
+			mono::get_field_value(*ammo_item, stack_field, &stack);
+			mono::set_field_value(*ammo_item, stack_field, &++stack);
+			if (inventory_changed)
+			{
+				if (mono::get_param_count(inventory_changed) == 2)
+				{
+					bool success  = true;
+					bool cheated  = false;
+					void* cargs[] = {&success, &cheated};
+					mono::invoke_method(inventory_changed, inventory, cargs);
+				}
+				else
+				{
+					mono::invoke_method(inventory_changed, inventory, nullptr);
+				}
+			}
+		}
+		else
+		{
+			int restored_stack = 1;
+			mono::set_field_value(*ammo_item, stack_field, &restored_stack);
+			void* add_args[] = {*ammo_item};
+			mono::invoke_method(add_item, inventory, add_args);
+		}
+		return used;
+	}
 
 	static MonoObject* find_best_target(Vector3 shooter)
 	{

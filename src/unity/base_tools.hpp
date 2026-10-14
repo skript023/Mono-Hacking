@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <chrono>
+#include <mutex>
 #include <unordered_map>
 #include "class/vector.hpp"
 #include "mono/metadata/object-forward.h"
@@ -14,15 +15,18 @@ namespace big
 	public:
 		struct options
 		{
-			float radius = 30.f;
+			float radius   = 30.f;
 			bool keep_food = true, keep_ammo = true, keep_hotbar = true;
 			bool hotkey = false, damaged_markers = false;
 			float smelter_speed = 1.f, fermenter_speed = 1.f, honey_speed = 1.f, plant_speed = 1.f;
 			float cooking_speed = 1.f, sap_speed = 1.f;
 			bool bypass_plant_restrictions = true;
-			bool prevent_burning = true;
-			bool lock_daylight = false;
-			float daylight = .5f;
+			bool prevent_burning           = true;
+			bool lock_daylight             = false;
+			float daylight                 = .5f;
+			bool controlled_wind           = false;
+			float wind_direction           = 0.f;
+			float wind_strength            = 0.5f;
 			std::string weather;
 		};
 		struct row
@@ -41,7 +45,7 @@ namespace big
 			std::vector<row> production, plants, buildings, comfort;
 			std::vector<std::string> weather;
 			int comfort_level = 0;
-			bool sheltered = false;
+			bool sheltered    = false;
 		};
 		static options get_options()
 		{
@@ -106,8 +110,8 @@ namespace big
 		static inline thread_local bool filtering_stack = false;
 
 	private:
-		base_tools() = default;
-		base_tools(const base_tools&) = delete;
+		base_tools()                             = default;
+		base_tools(const base_tools&)            = delete;
 		base_tools& operator=(const base_tools&) = delete;
 		static base_tools& instance()
 		{
@@ -132,6 +136,8 @@ namespace big
 		bool protected_item_impl(MonoObject* item);
 
 		options config;
+		mutable std::mutex options_mutex;
+		mutable std::mutex snapshot_mutex;
 		snapshot data;
 		std::atomic_bool scan_requested = false;
 		std::chrono::steady_clock::time_point scanned;

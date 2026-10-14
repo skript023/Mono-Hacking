@@ -2,9 +2,19 @@
 #include "class/vector.hpp"
 #include "mono/mono.hpp"
 #include <string_view>
+#include <string>
+#include <vector>
 
 namespace big
 {
+	struct generated_location
+	{
+		std::string name;
+		std::string prefab_name;
+		Vector3 position{};
+		float distance{};
+	};
+
 	class zone_system
 	{
 	private:
@@ -30,6 +40,10 @@ namespace big
 		}
 
 		bool find_closest_location(std::string_view name, const Vector3& my_pos, Vector3& out_pos);
+		std::vector<generated_location> get_generated_locations(const Vector3& my_pos);
+		std::vector<std::string> get_global_keys();
+		bool set_global_key(const std::string& name);
+		bool remove_global_key(const std::string& name);
 
 		bool operator==(const zone_system& other) const
 		{
