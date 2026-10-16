@@ -235,6 +235,9 @@ namespace big
 			sub->add_option<bool_option<bool>>("Ctrl + Middle Click Map Teleport",
 			    "Hold Ctrl and Middle Click anywhere on the map to teleport there.",
 			    &g_settings.self.map_click_teleport);
+			sub->add_option<bool_option<bool>>("Allow Teleporting with Any Items",
+			    "Teleport through portals with ores and metals.",
+			    &g_settings.self.is_teleportable);
 		});
 
 		canvas::add_submenu<regular_submenu>("Objectives", SubmenuObjectives, [](regular_submenu* sub) {
