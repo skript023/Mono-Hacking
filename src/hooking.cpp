@@ -110,6 +110,7 @@ namespace big
 		add_mono_hook<hooks::get_body_armor>("Player::GetBodyArmor", "Player", "GetBodyArmor", 0, "assembly_valheim");
 		add_mono_hook<hooks::have_empty_slot>("Inventory::HaveEmptySlot", "Inventory", "HaveEmptySlot", 0, "assembly_valheim");
 		add_mono_hook<hooks::allowed_command>("Terminal::ConsoleCommand::IsValid", "Terminal/ConsoleCommand", "IsValid", 2, "assembly_valheim");
+		add_mono_hook<hooks::console_run_action>("Terminal::ConsoleCommand::RunAction", "Terminal/ConsoleCommand", "RunAction", 1, "assembly_valheim");
 		add_mono_hook<hooks::camera_render>("Camera::Render", "Camera", "Render", 0, "UnityEngine.CoreModule", "UnityEngine");
 		add_mono_hook<hooks::get_projectile_spawn_point>("Attack::GetProjectileSpawnPoint", "Attack", "GetProjectileSpawnPoint", 2, "assembly_valheim");
 		add_mono_hook<hooks::on_hit>("Projectile::OnHit", "Projectile", "OnHit", 4, "assembly_valheim");

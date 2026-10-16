@@ -55,6 +55,7 @@ namespace big
 		static float get_body_armor(MonoObject* player);
 		static bool have_empty_slot(MonoObject* inventory);
 		static bool allowed_command(MonoObject* ConsoleCommand, MonoObject* Terminal, bool Boolean);
+		static void console_run_action(MonoObject* command, MonoObject* args);
 		static void camera_render(MonoObject* Camera);
 		static void get_projectile_spawn_point(MonoObject* attack, Vector3* spawnPoint, Vector3* aimDir);
 		static void on_hit(MonoObject* attack, MonoObject* spawnPoint, Vector3 hitPoint, bool water, Vector3 normal);
