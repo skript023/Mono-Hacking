@@ -11,6 +11,7 @@
 
 #include <imgui.h>
 #include "astra/host/canvas.hpp"
+#include <astra/banners.hpp>
 #include "javascript/bindings/gui_binding.hpp"
 
 #include "menu/view.hpp"
@@ -267,10 +268,8 @@ namespace big
 			}
 		};
 
-		load_banner("Quantum Green", quantum_green, sizeof(quantum_green));
-		load_banner("Ellohim", ellohim, sizeof(ellohim));
-		load_banner("Ellohim Green", ellohim_green, sizeof(ellohim_green));
-		load_banner("Astra Standard", astra_standard, sizeof(astra_standard));
+		for (const auto& banner : astra::banners())
+			load_banner(std::string(banner.name), banner.image.data(), static_cast<int>(banner.image.size()));
 
 		load(toggle_texture, sizeof(toggle_texture), m_toggle, m_toggle_size);
 
