@@ -304,12 +304,15 @@ namespace big
 	// SetCursorPos alone leaves it stuck there.
 	static std::mutex g_cursor_clip_mutex;
 	static std::optional<RECT> g_game_cursor_clip;
+	static bool g_game_cursor_clip_seen = false;
 	static bool g_cursor_clip_released = false;
+	static std::optional<POINT> g_menu_cursor;
 
 	BOOL hooks::clip_cursor(const RECT* rect)
 	{
 		std::lock_guard lock(g_cursor_clip_mutex);
 		g_game_cursor_clip = rect ? std::optional<RECT>(*rect) : std::nullopt;
+		g_game_cursor_clip_seen = true;
 		if (g_cursor_clip_released)
 		{
 			return TRUE;
@@ -327,7 +330,27 @@ namespace big
 		}
 
 		g_cursor_clip_released = menu_uses_mouse;
-		const RECT* clip       = !menu_uses_mouse && g_game_cursor_clip ? &*g_game_cursor_clip : nullptr;
-		detour_base::get_original<hooks::clip_cursor>()(clip);
+		if (!menu_uses_mouse)
+		{
+			if (POINT cursor; GetCursorPos(&cursor))
+				g_menu_cursor = cursor;
+			detour_base::get_original<hooks::clip_cursor>()(g_game_cursor_clip ? &*g_game_cursor_clip : nullptr);
+			return;
+		}
+
+		// A clip Unity set before injection never passed through the hook; lifting it unrecorded would leave the
+		// hidden cursor free to drift after the menu closes.
+		if (RECT clip{}; !g_game_cursor_clip_seen && GetClipCursor(&clip))
+		{
+			const int x = GetSystemMetrics(SM_XVIRTUALSCREEN), y = GetSystemMetrics(SM_YVIRTUALSCREEN);
+			const RECT desktop{x, y, x + GetSystemMetrics(SM_CXVIRTUALSCREEN), y + GetSystemMetrics(SM_CYVIRTUALSCREEN)};
+			if (!EqualRect(&clip, &desktop))
+				g_game_cursor_clip = clip;
+			g_game_cursor_clip_seen = true;
+		}
+		detour_base::get_original<hooks::clip_cursor>()(nullptr);
+		// As in RDR2, the menu cursor comes back where it was left, not where the clip pulled it.
+		if (g_menu_cursor)
+			detour_base::get_original<hooks::set_cursor_pos>()(g_menu_cursor->x, g_menu_cursor->y);
 	}
 }

@@ -180,19 +180,6 @@ namespace big
 	void renderer::wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
 		std::lock_guard lock(render_mutex);
-		if (msg == WM_KEYUP && wparam == VK_INSERT)
-		{
-			//Persist and restore the cursor position between menu instances.
-			static POINT cursor_coords{};
-			if (canvas::is_opened())
-			{
-				GetCursorPos(&cursor_coords);
-			}
-			else if (cursor_coords.x + cursor_coords.y != 0)
-			{
-				SetCursorPos(cursor_coords.x, cursor_coords.y);
-			}
-		}
 		if (msg == WM_KEYUP && wparam == VK_END)
 		{
 			g_running = false;
