@@ -9,6 +9,7 @@
 #include "graphic/graphic_manager.hpp"
 
 #include <ellohim/logger.hpp>
+#include <imgui.h>
 
 namespace big
 {
@@ -82,6 +83,7 @@ namespace big
 
 		detour_hook::add<hooks::set_cursor_pos>("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>());
 		detour_hook::add<hooks::clip_cursor>("ClipCursor", memory::module("user32.dll").get_export("ClipCursor").as<void*>());
+		LOG(INFO) << "Mouse in pointer mode: " << (IsMouseInPointerEnabled() ? "on" : "off");
 		detour_hook::add<hooks::convert_thread_to_fiber>("ConvertThreadToFiber",
 		    memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>());
 
@@ -107,6 +109,7 @@ namespace big
 		add_mono_hook<hooks::raise_skill>("Player::RaiseSkill", "Player", "RaiseSkill", 2, "assembly_valheim");
 		add_mono_hook<hooks::lower_all_skills>("Skills::LowerAllSkills", "Skills", "LowerAllSkills", 1, "assembly_valheim");
 		add_mono_hook<hooks::take_input>("PlayerController::TakeInput", "PlayerController", "TakeInput", 1, "assembly_valheim");
+		add_mono_hook<hooks::player_set_controls>("Player::SetControls", "Player", "SetControls", 12, "assembly_valheim");
 		add_mono_hook<hooks::get_body_armor>("Player::GetBodyArmor", "Player", "GetBodyArmor", 0, "assembly_valheim");
 		add_mono_hook<hooks::have_empty_slot>("Inventory::HaveEmptySlot", "Inventory", "HaveEmptySlot", 0, "assembly_valheim");
 		add_mono_hook<hooks::allowed_command>("Terminal::ConsoleCommand::IsValid", "Terminal/ConsoleCommand", "IsValid", 2, "assembly_valheim");
@@ -274,13 +277,41 @@ namespace big
 		return detour_base::get_original<hooks::convert_thread_to_fiber>()(param);
 	}
 
+	// Astra holds back the keyboard whenever ImGui holds a widget, such as a checkbox under a pressed button.
+	// The game keeps its keys unless a menu text field is typing, and always gets releases so no key sticks.
+	static bool game_keeps_message(UINT msg, LPARAM lparam)
+	{
+		const auto& io = ImGui::GetIO();
+		if (msg >= WM_KEYFIRST && msg <= WM_KEYLAST)
+			return !io.WantTextInput || msg == WM_KEYUP || msg == WM_SYSKEYUP;
+		if (msg != WM_INPUT)
+			return false;
+
+		RAWINPUT raw{};
+		UINT size = sizeof(raw);
+		if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lparam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER)) == static_cast<UINT>(-1))
+			return false;
+
+		if (raw.header.dwType == RIM_TYPEMOUSE)
+			return !io.WantCaptureMouse;
+		if (raw.header.dwType == RIM_TYPEKEYBOARD)
+			return !io.WantTextInput || (raw.data.keyboard.Flags & RI_KEY_BREAK);
+		return false;
+	}
+
 	LRESULT hooks::wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
 		if (g_running)
 		{
 			std::lock_guard lock(render_mutex);
 			g_renderer->wndproc(hwnd, msg, wparam, lparam);
-			if (canvas::captures_message(msg))
+			// Unity takes the wheel from pointer messages, which Astra does not filter. DefWindowProc turns
+			// them into WM_MOUSEWHEEL, so the menu still scrolls.
+			if ((msg == WM_POINTERWHEEL || msg == WM_POINTERHWHEEL) && canvas::uses_mouse() && ImGui::GetIO().WantCaptureMouse)
+			{
+				return DefWindowProcW(hwnd, msg, wparam, lparam);
+			}
+			if (canvas::captures_message(msg) && !game_keeps_message(msg, lparam))
 			{
 				if (msg == WM_INPUT)
 				{

@@ -52,6 +52,7 @@ namespace big
 		static void raise_skill(MonoObject* player, SkillType type, float value);
 		static void lower_all_skills(MonoObject* skills, float factor);
 		static bool take_input(MonoObject* player_controller, bool look);
+		static void player_set_controls(MonoObject* player, Vector3 movedir, bool attack, bool attack_hold, bool secondary_attack, bool secondary_attack_hold, bool block, bool block_hold, bool jump, bool crouch, bool run, bool auto_run, bool dodge);
 		static float get_body_armor(MonoObject* player);
 		static bool have_empty_slot(MonoObject* inventory);
 		static bool allowed_command(MonoObject* ConsoleCommand, MonoObject* Terminal, bool Boolean);
