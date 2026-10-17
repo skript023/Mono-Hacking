@@ -140,11 +140,7 @@ namespace big
 		item_icons::begin_frame();
 		auto& io = ImGui::GetIO();
 		hooks::sync_cursor_clip(canvas::uses_mouse());
-		io.MouseDrawCursor = canvas::uses_mouse();
-		if (canvas::uses_mouse())
-			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-		else
-			io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+		canvas::prepare_imgui_mouse();
 		ImGui_ImplWin32_NewFrame();
 		if (framebuffer_size.x > 0.f && framebuffer_size.y > 0.f)
 		{
