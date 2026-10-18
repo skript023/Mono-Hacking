@@ -141,6 +141,7 @@ namespace big
 		auto& io = ImGui::GetIO();
 		hooks::sync_cursor_clip(canvas::uses_mouse());
 		canvas::prepare_imgui_mouse();
+		canvas::apply_panel_theme();
 		ImGui_ImplWin32_NewFrame();
 		if (framebuffer_size.x > 0.f && framebuffer_size.y > 0.f)
 		{
@@ -149,6 +150,7 @@ namespace big
 			io.DisplayFramebufferScale = {framebuffer_size.x / io.DisplaySize.x, framebuffer_size.y / io.DisplaySize.y};
 		}
 		ImGui::NewFrame();
+		canvas::keep_windows_off_menu();
 		for (const auto& cb : g_gui.m_dx_callbacks | std::views::values)
 			cb();
 		ImGui::Render();

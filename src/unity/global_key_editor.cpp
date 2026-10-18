@@ -1,10 +1,11 @@
 #include "global_key_editor.hpp"
 
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "task_mgr.hpp"
 #include "zone_system.hpp"
 
 #include <algorithm>
+#include <astra/host/canvas.hpp>
 #include <cctype>
 #include <imgui.h>
 
@@ -28,10 +29,9 @@ namespace big
 		{
 			return;
 		}
-		ImGui::SetNextWindowSize({540.f, 480.f}, ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Global Key Editor", &s_open))
+		if (!canvas::begin_panel("Global Key Editor", &s_open, {.size = {540.f, 480.f}}))
 		{
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 
@@ -39,7 +39,7 @@ namespace big
 		if (!system)
 		{
 			ImGui::TextDisabled("Join a world to inspect its global keys.");
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 		ImGui::TextDisabled("World flags  /  Server synchronized");
@@ -84,7 +84,7 @@ namespace big
 		ImGui::Text("Add key or key value, for example: defeated_eikthyr or worldlevel 2");
 		ImGui::SetNextItemWidth(-1.f);
 		ImGui::InputTextWithHint("##NewGlobalKey", "global_key [value]", s_new_key, sizeof(s_new_key));
-		if (ImGui::Button("Set Global Key", {-1.f, 30.f}) && s_new_key[0])
+		if (ImGui::Button("Set Global Key", {-1.f, 0.f}) && s_new_key[0])
 		{
 			std::string key = s_new_key;
 			async_run([key] {
@@ -99,6 +99,6 @@ namespace big
 			});
 			s_new_key[0] = '\0';
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 }

@@ -1,5 +1,5 @@
 #include "fishing_tools.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "utility/unity.hpp"
 
 namespace big

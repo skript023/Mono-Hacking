@@ -2,11 +2,12 @@
 
 #include "buff_tools.hpp"
 #include "localization.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "task_mgr.hpp"
 #include "utility/unity.hpp"
 
 #include <algorithm>
+#include <astra/host/canvas.hpp>
 #include <cctype>
 #include <imgui.h>
 
@@ -76,10 +77,9 @@ namespace big
 		{
 			return;
 		}
-		ImGui::SetNextWindowSize({600.f, 520.f}, ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Status Effect Browser", &s_open))
+		if (!canvas::begin_panel("Status Effect Browser", &s_open, {.size = {600.f, 520.f}}))
 		{
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 		ImGui::TextDisabled("Runtime ObjectDB  /  search, apply, or remove effects");
@@ -117,7 +117,7 @@ namespace big
 					ImGui::PopID();
 				}
 				ImGui::EndChild();
-				if (ImGui::Button("Remove All Active", {-1.f, 30.f}))
+				if (ImGui::Button("Remove All Active", {-1.f, 0.f}))
 				{
 					for (auto* effect : effects)
 					{
@@ -169,6 +169,6 @@ namespace big
 			}
 			ImGui::EndTabBar();
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 }

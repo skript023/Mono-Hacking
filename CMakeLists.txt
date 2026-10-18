@@ -80,6 +80,7 @@ else()
     target_sources(Valheim PRIVATE "${SRC_DIR}/services/javascript/bindings/trampoline_stub.S")
 endif()
 target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/canvas.cpp")
+target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/notification.cpp")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET Valheim PROPERTY CXX_STANDARD 23) # 23 Because std::format is not avalible in std:c++20 for some reason. Maybe it's because i use v142 toolset.

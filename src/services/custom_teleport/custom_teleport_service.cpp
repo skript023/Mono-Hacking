@@ -1,6 +1,6 @@
 #include "custom_teleport_service.hpp"
 #include "file_manager.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 namespace big
 {

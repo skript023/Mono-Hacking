@@ -1,7 +1,7 @@
 #include "hotkeys.hpp"
 #include "bool_command.hpp"
 #include "commands.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "pointers.hpp"
 #include "utility/joaat.hpp"
 #include <imgui.h>

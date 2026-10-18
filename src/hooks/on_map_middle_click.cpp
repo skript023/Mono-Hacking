@@ -1,6 +1,6 @@
 #include "hooking.hpp"
 #include "utility/unity.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 namespace big
 {

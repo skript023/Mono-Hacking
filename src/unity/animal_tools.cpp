@@ -1,6 +1,6 @@
 #include "animal_tools.hpp"
 #include "astra/host/canvas.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "pointers.hpp"
 #include "unity/character.hpp"
 #include "unity/localization.hpp"
@@ -20,11 +20,6 @@ namespace big
 {
 	namespace
 	{
-		void show_center_message(const std::string& msg)
-		{
-			unity::show_message(msg, 2);
-		}
-
 		bool is_hostile_to_player(MonoObject* creature, MonoObject* player)
 		{
 			static auto get_base_ai   = mono::get_method("Character", "GetBaseAI", 0, "assembly_valheim");
@@ -206,7 +201,6 @@ namespace big
 
 		std::string name = creature.get_hover_name();
 		notification::success("Animal Tamer", std::format("Successfully tamed {}!", name));
-		show_center_message(std::format("{} tamed!", name));
 
 		return true;
 	}
@@ -365,7 +359,6 @@ namespace big
 		if (count > 0)
 		{
 			notification::success("Animal Tamer", std::format("Tamed {} creatures within {:.0f}m!", count, radius));
-			show_center_message(std::format("Tamed {} nearby creatures!", count));
 		}
 		else
 		{
@@ -600,129 +593,81 @@ namespace big
 			flags |= ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav;
 		}
 
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.06f, 0.08f, 0.13f, 0.92f));
-		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.45f, 0.80f, 0.65f));
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.f, 10.f));
-
 		if (ImGui::Begin("Animal Inspector##Overlay", nullptr, flags))
 		{
-			ImGui::PushTextWrapPos(0.f);
-
-			// Header: Name and Stars
-			ImGui::TextColored(ImVec4(0.95f, 0.95f, 1.0f, 1.0f), "%s", s.name.c_str());
+			ImGui::TextUnformatted(s.name.c_str());
 			ImGui::SameLine();
 			if (s.stars == 0)
 			{
-				ImGui::TextColored(ImVec4(0.65f, 0.65f, 0.70f, 1.0f), "[Lvl %d]", s.level);
-			}
-			else if (s.stars == 1)
-			{
-				ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.20f, 1.0f), "[★ 1 Star]");
-			}
-			else if (s.stars == 2)
-			{
-				ImGui::TextColored(ImVec4(1.0f, 0.55f, 0.15f, 1.0f), "[★★ 2 Stars]");
+				ImGui::TextDisabled("Lvl %d", s.level);
 			}
 			else
 			{
-				ImGui::TextColored(ImVec4(1.0f, 0.30f, 0.30f, 1.0f), "[★★★ %d Stars]", s.stars);
+				ImGui::TextDisabled("%d %s", s.stars, s.stars == 1 ? "star" : "stars");
 			}
 
-			ImGui::Separator();
-
-			// Health Bar
-			float fraction   = s.max_health > 0.f ? std::clamp(s.health / s.max_health, 0.f, 1.f) : 0.f;
-			ImVec4 bar_color = fraction > 0.5f ? ImVec4(0.2f, 0.85f, 0.3f, 1.f) :
-			    fraction > 0.25f               ? ImVec4(0.95f, 0.85f, 0.2f, 1.f) :
-			                                     ImVec4(0.95f, 0.25f, 0.2f, 1.f);
-			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, bar_color);
+			const float fraction = s.max_health > 0.f ? std::clamp(s.health / s.max_health, 0.f, 1.f) : 0.f;
 			ImGui::ProgressBar(fraction, ImVec2(-1, 8.f), "");
-			ImGui::PopStyleColor();
 
-			ImGui::Text("HP: %.0f / %.0f (%.0f%%)  |  Dist: %.1fm", s.health, s.max_health, fraction * 100.f, s.distance);
-
-			// Tame status
+			// Status is spelled out in words; the old green, yellow, and orange text was unreadable on light themes.
+			std::string status = "Wild";
 			if (s.is_tamed)
 			{
-				ImGui::TextColored(ImVec4(0.3f, 0.95f, 0.4f, 1.0f), "● Tamed (Friendly)");
+				status = "Tamed";
 			}
 			else if (s.has_tameable && s.tameness > 0)
 			{
-				int rem_min = static_cast<int>(s.remaining_time) / 60;
-				int rem_sec = static_cast<int>(s.remaining_time) % 60;
-				ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.2f, 1.0f), "● Taming: %d%% (~%dm %ds)", s.tameness, rem_min, rem_sec);
+				const int remaining = static_cast<int>(s.remaining_time);
+				status = std::format("Taming {}% (~{}m {}s)", s.tameness, remaining / 60, remaining % 60);
 			}
-			else
+			if (ImGui::BeginTable("##animal_status", 2))
 			{
-				ImGui::TextColored(ImVec4(1.0f, 0.55f, 0.25f, 1.0f), "● Wild (Untamed)");
-			}
-
-			// Mood & Hunger
-			ImGui::TextUnformatted("State: ");
-			ImGui::SameLine();
-			if (s.is_alerted)
-			{
-				ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Scared / Alerted!");
-			}
-			else
-			{
-				ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.5f, 1.0f), "Calm");
-			}
-
-			ImGui::SameLine();
-			ImGui::TextUnformatted(" • ");
-			ImGui::SameLine();
-			if (s.is_hungry)
-			{
-				ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.3f, 1.0f), "Hungry");
-			}
-			else
-			{
-				ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.5f, 1.0f), "Well-fed");
-			}
-
-			// Breeding status
-			if (s.has_procreation)
-			{
-				if (s.is_pregnant)
+				ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
+				const auto row = [](const char* label, const std::string& value) {
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextDisabled("%s", label);
+					ImGui::TableSetColumnIndex(1);
+					ImGui::TextUnformatted(value.c_str());
+				};
+				row("Health", std::format("{:.0f} / {:.0f} ({:.0f}%)", s.health, s.max_health, fraction * 100.f));
+				row("Distance", std::format("{:.1f} m", s.distance));
+				row("Status", status);
+				row("Mood", s.is_alerted ? "Alerted" : "Calm");
+				row("Hunger", s.is_hungry ? "Hungry" : "Well-fed");
+				if (s.has_procreation && s.is_pregnant)
 				{
-					ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.85f, 1.0f), "♥ Pregnant!");
+					row("Breeding", "Pregnant");
 				}
-				else if (s.love_points > 0)
+				else if (s.has_procreation && s.love_points > 0)
 				{
-					ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.85f, 1.0f), "Ready to breed (Love: %d/%d)", s.love_points, s.required_love_points);
+					row("Breeding", std::format("Ready (love {} / {})", s.love_points, s.required_love_points));
 				}
+				ImGui::EndTable();
 			}
 
-			// Hotkey Hint & Menu Buttons
-			ImGui::Separator();
 			if (g_options.enable_hotkey)
 			{
-				ImGui::TextColored(ImVec4(0.7f, 0.8f, 0.95f, 1.0f),
-				    "Press [%c] to Instant Tame",
-				    static_cast<char>(g_options.hotkey));
+				ImGui::Separator();
+				auto accent = canvas::current_theme().accent;
+				accent.w    = 1.f;
+				ImGui::TextColored(accent, "Press [%c] to tame instantly", static_cast<char>(g_options.hotkey));
 			}
 
 			if (canvas::is_opened())
 			{
-				if (ImGui::Button("Instant Tame", ImVec2(120.f, 24.f)))
+				if (ImGui::Button("Instant Tame", ImVec2(120.f, 0.f)))
 				{
 					tame_aimed_creature();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Heal Full", ImVec2(100.f, 24.f)))
+				if (ImGui::Button("Heal Full", ImVec2(100.f, 0.f)))
 				{
 					heal_aimed_creature();
 				}
 			}
-
-			ImGui::PopTextWrapPos();
 		}
 		ImGui::End();
-
-		ImGui::PopStyleVar(3);
-		ImGui::PopStyleColor(2);
 	}
 }

@@ -3,6 +3,7 @@
 #include "unity/item_data.hpp"
 #include "unity/player.hpp"
 #include "utility/unity.hpp"
+#include <astra/host/notification.hpp>
 #include <format>
 
 namespace big
@@ -151,11 +152,11 @@ namespace big
 							name = mono::from_mono_string(ms);
 						}
 					}
-					unity::show_message(std::format("Repaired {}", name));
+					notification::success("Repair", std::format("Repaired {}.", name));
 					return;
 				}
 			}
-			unity::show_message("No more items to repair");
+			notification::info("Repair", "No more items to repair.");
 			return;
 		}
 

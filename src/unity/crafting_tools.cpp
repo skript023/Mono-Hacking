@@ -8,6 +8,7 @@
 #include "utility/unity.hpp"
 
 #include <algorithm>
+#include <astra/host/canvas.hpp>
 #include <cctype>
 #include <imgui.h>
 
@@ -420,14 +421,14 @@ namespace big
 			return;
 		}
 
-		ImGui::SetNextWindowSize({620.f, 560.f}, ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Runtime Recipe Browser", &m_browser_open, ImGuiWindowFlags_NoCollapse))
+		if (!canvas::begin_panel("Runtime Recipe Browser", &m_browser_open, {.size = {620.f, 560.f}, .collapsible = false}))
 		{
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 
-		ImGui::SetNextItemWidth(-132.f);
+		// Leaves exactly the button's room, so the button never runs past the panel's edge.
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 120.f - ImGui::GetStyle().ItemSpacing.x);
 		ImGui::InputTextWithHint("##RecipeSearch", "Search recipes and outputs", m_browser_search, sizeof(m_browser_search));
 		ImGui::SameLine();
 		if (ImGui::Button(m_browser_refreshing ? "Scanning..." : "Refresh", {120.f, 0.f}) && !m_browser_refreshing)
@@ -477,6 +478,6 @@ namespace big
 			ImGui::PopID();
 		}
 		ImGui::EndChild();
-		ImGui::End();
+		canvas::end_panel();
 	}
 }

@@ -4,7 +4,7 @@
 #include "utility/unity.hpp"
 #include "unity/self.hpp"
 #include "unity/localization.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "menu_settings.hpp"
 #include "input/input_service.hpp"
 #include <custom_teleport/custom_teleport_service.hpp>

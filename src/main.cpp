@@ -22,7 +22,7 @@
 #include "unity/world_time.hpp"
 #include "javascript/javascript_manager.hpp"
 
-#include "services/notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 DWORD APIENTRY main_thread(LPVOID)
 {

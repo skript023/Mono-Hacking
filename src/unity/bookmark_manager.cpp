@@ -1,10 +1,11 @@
 #include "bookmark_manager.hpp"
 
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "task_mgr.hpp"
 #include "utility/unity.hpp"
 
 #include <algorithm>
+#include <astra/host/canvas.hpp>
 #include <imgui.h>
 #include <nlohmann/json.hpp>
 
@@ -150,23 +151,22 @@ namespace big
 		{
 			return;
 		}
-		ImGui::SetNextWindowSize({520.f, 460.f}, ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("World Bookmarks", &s_open))
+		if (!canvas::begin_panel("World Bookmarks", &s_open, {.size = {520.f, 460.f}}))
 		{
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 		auto player = unity::get_local_player();
 		if (!player || world_bookmark_key().empty())
 		{
 			ImGui::TextDisabled("Join a world to create bookmarks.");
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 		ImGui::TextDisabled("Per-world coordinates  /  saved with this character");
 		ImGui::SetNextItemWidth(-1.f);
 		ImGui::InputTextWithHint("##BookmarkName", "Bookmark name", s_name, sizeof(s_name));
-		if (ImGui::Button("Save Current Location", {-1.f, 32.f}) && s_name[0])
+		if (ImGui::Button("Save Current Location", {-1.f, 0.f}) && s_name[0])
 		{
 			auto items       = load_bookmarks();
 			std::string name = s_name;
@@ -226,6 +226,6 @@ namespace big
 			ImGui::PopID();
 		}
 		ImGui::EndChild();
-		ImGui::End();
+		canvas::end_panel();
 	}
 }

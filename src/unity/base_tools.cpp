@@ -4,7 +4,7 @@
 #include "unity/localization.hpp"
 #include "utility/unity.hpp"
 #include "pointers.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 namespace big
 {

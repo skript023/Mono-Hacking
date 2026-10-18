@@ -4,7 +4,7 @@
 #include "item_drop.hpp"
 #include "equipment_slots.hpp"
 #include "localization.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "player.hpp"
 #include "utility/unity.hpp"
 #include "zone_system.hpp"
@@ -823,7 +823,6 @@ namespace big
 					}
 				}
 			}
-			unity::show_message(std::format("Repaired {} items to 100%!", repaired_count));
 			notification::success("Repair Tools", std::format("Repaired {} inventory and equipped items!", repaired_count));
 		}
 		else
@@ -852,7 +851,6 @@ namespace big
 
 		mono::invoke_method(gen_m, zs.get_object(), nullptr);
 		notification::success("World Upgrade", "Generating missing locations across unexplored zones (background task started)!");
-		unity::show_message("Generating locations for old world...");
 		return true;
 	}
 
@@ -878,7 +876,6 @@ namespace big
 		}
 
 		notification::success("World Upgrade", "Optimized old terrain modifications in loaded area!");
-		unity::show_message("Terrain upgraded to modern format.");
 		return true;
 	}
 
@@ -947,7 +944,6 @@ namespace big
 		}
 
 		notification::success("World Upgrade", "World generation version upgraded to v2 (Modern rules)!");
-		unity::show_message("WorldGen upgraded to version 2.");
 		return true;
 	}
 
@@ -979,7 +975,6 @@ namespace big
 		if (res && *static_cast<bool*>(mono::object_unbox(res)))
 		{
 			notification::success("World Upgrade", std::format("Spawned location '{}' nearby!", location_name));
-			unity::show_message(std::format("Spawned {} nearby", location_name));
 			return true;
 		}
 		else
