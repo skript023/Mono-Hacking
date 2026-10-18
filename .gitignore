@@ -19,3 +19,21 @@ bin/
 version.cpp
 Injector.exe
 scarlet-nexus.dll
+
+# AI & assistant tooling
+anti-slop/
+.agents/
+.gemini/
+.cursor/
+.cursorrules
+.claude/
+.claudecode/
+.cline/
+.clinerules
+.roo/
+.windsurf/
+.windsurfrules
+.continue/
+.cody/
+.copilot/
+.aider*
