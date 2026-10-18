@@ -11,6 +11,13 @@ for name, parameters in [(b"CanGetAchievements", ["System.Boolean"]), (b"IsCheat
     assert flags & 0x10, (name, "must be static; native callback has no this argument")
 print("PASS: installed achievement eligibility methods are static and match hook ABI")
 
+console_command = get_class(game_image, b"", b"Terminal/ConsoleCommand")
+run_action = exact(console_command, b"RunAction", ["Terminal.ConsoleEventArgs"])
+assert run_action == legacy_lookup(console_command, b"RunAction", 1)
+assert not api("mono_method_get_flags", c.c_uint, P, P)(run_action, None) & 0x10, "native callback expects the command as this"
+assert get_field(console_command, b"IsCheat")
+print("PASS: console RunAction cheat gate and IsCheat field match hook ABI")
+
 game_camera = get_class(game_image, b"", b"GameCamera")
 exact(game_camera, b"get_instance", [])
 assert get_field(game_camera, b"m_camera")

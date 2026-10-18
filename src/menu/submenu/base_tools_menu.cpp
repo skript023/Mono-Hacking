@@ -173,12 +173,6 @@ namespace big
 			    50.f,
 			    1.f,
 			    0);
-			sub->add_option<reguler_option>("Refuel All Nearby Stations & Fires", "Top off fuel to 100% on smelters, cookers, fireplaces, and shield generators.", [] {
-				queue(base_tools::refuel_nearby);
-			});
-			sub->add_option<reguler_option>("Instant Finish All Queues", "Instantly produce all queued ores, foods, and sap.", [] {
-				queue(base_tools::instant_finish_nearby);
-			});
 			sub->add_option<reguler_option>("Reset All Speeds to 1x", "Restore normal production speeds.", [] {
 				config.smelter_speed = config.fermenter_speed = config.honey_speed = config.plant_speed = config.cooking_speed =
 				    config.sap_speed = 1.f;

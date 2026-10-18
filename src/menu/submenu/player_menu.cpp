@@ -43,6 +43,15 @@ namespace big
 		std::string panel_status;
 		int panel_frame        = -1;
 		float world_time_scale = 1.f;
+
+		// Shared by Exploration & Map, Boss Altars and Traders & POIs so Pin All World Altars
+		// applies to every reveal action in all three.
+		exploration::options& exploration_options()
+		{
+			static exploration::options options = exploration::get_options();
+			return options;
+		}
+
 		struct generated_location_browser_state
 		{
 			bool open{};
@@ -364,7 +373,7 @@ namespace big
 			sub->add_option<sub_option>("Ship & Sailing", "Ashlands immunity, wave protection, speed boost, anchor.", "SubmenuShip"_hash);
 			sub->add_option<sub_option>("Fishing Assistant", "Instant bite, unbreakable line, zero stamina, auto-catch.", "SubmenuFishing"_hash);
 			sub->add_option<sub_option>("Inventory", nullptr, "SubmenuInventory"_hash);
-			sub->add_option<sub_option>("Equipment & Quick Slots", "BetrValheim gear, food, ammo, trinket, and quick slots.", "SubmenuEquipmentSlots"_hash);
+			sub->add_option<sub_option>("Building & Crafting", "Free crafting and building, recipe and piece unlocks, stability, ward bypass.", "SubmenuBuilding"_hash);
 			sub->add_option<sub_option>("World", nullptr, "SubmenuWorld"_hash);
 			sub->add_option<sub_option>("Base Tools", "Storage, production, repair, farming and environment.", "BaseTools"_hash);
 			sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
@@ -376,28 +385,20 @@ namespace big
 			sub->add_option<bool_option<bool>>("Show Information Overlay",
 			    "Show player health, stamina, eitr, and world coordinates on screen.",
 			    &g_settings.window.overlay);
-			sub->add_option<sub_option>("Combat & Survival", "God mode, damage multiplier, instant bow, stamina, health.", "SubmenuCombat"_hash);
-			sub->add_option<sub_option>("Movement & Flight", "Fly mode, speed multiplier, wind direction, teleportation.", "SubmenuMovement"_hash);
-			sub->add_option<sub_option>("Building & Crafting", "Free crafting & building, infinite durability, stability, ward bypass.", "SubmenuBuilding"_hash);
-			sub->add_option<sub_option>("Farming & World QoL", "Loot vacuum magnet, 1-hit tree/mine breaker, animal alerts.", "SubmenuFarmingQoL"_hash);
+			sub->add_option<bool_option<bool>>("allowed_command"_hash);
+			sub->add_option<sub_option>("Attack", "Damage, backstab, one-hit kills, attack speed, push force, melee and eitr costs.", "SubmenuSelfAttack"_hash);
+			sub->add_option<sub_option>("Bows & Crossbows", "Instant draw and reload, ammunition, ranged stamina cost.", "SubmenuSelfRanged"_hash);
+			sub->add_option<sub_option>("Parry", "Automatic and guaranteed parries, parry force and timing window.", "SubmenuSelfParry"_hash);
+			sub->add_option<sub_option>("Defense", "God mode, ghost mode, incoming damage and stagger, fall damage, body armor.", "SubmenuSelfDefense"_hash);
+			sub->add_option<sub_option>("Health, Stamina & Eitr", "Keep them full, regeneration, and base maximums.", "SubmenuSelfVitals"_hash);
+			sub->add_option<sub_option>("Food", "Food slots, food duration, and food timer.", "SubmenuSelfFood"_hash);
+			sub->add_option<sub_option>("Weather Effects", "Freezing, cold, and wet.", "SubmenuSelfWeather"_hash);
+			sub->add_option<sub_option>("Movement & Flight", "Flying, noclip, and speed and jump multipliers.", "SubmenuMovement"_hash);
+			sub->add_option<sub_option>("Camera", "Freecam, field of view, zoom, smoothing, camera shake, and HUD.", "SubmenuSelfCamera"_hash);
+			sub->add_option<sub_option>("Gathering & Pickup", "One-hit trees and ore, pickup range, and collecting nearby drops.", "SubmenuSelfGathering"_hash);
 		});
 
-		canvas::add_submenu<regular_submenu>("Combat & Survival", "SubmenuCombat"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("God Mode",
-			    "Invulnerable to all incoming damage, fall, hazards, and debuffs.",
-			    &g_settings.self.god_mode);
-			sub->add_option<bool_option<bool>>("Incoming Hit Invulnerability",
-			    "Ignore damage RPCs while leaving other world systems active.",
-			    &g_settings.self.incoming_invulnerability);
-			sub->add_option<bool_option<bool>>("Ghost Mode",
-			    "Enemies and bosses cannot detect, target, or hear you.",
-			    &g_settings.self.ghost_mode);
-			sub->add_option<bool_option<bool>>("Auto Parry",
-			    "Automatically parry incoming melee and ranged attacks (360-degree, infinite parry power, staggers attackers).",
-			    &g_settings.self.auto_parry);
-			sub->add_option<bool_option<bool>>("Always Parry",
-			    "Guarantees a perfect parry (staggers enemy) whenever you manually block, ignoring the parry timing window.",
-			    &g_settings.self.always_parry);
+		canvas::add_submenu<regular_submenu>("Attack", "SubmenuSelfAttack"_hash, [](regular_submenu* sub) {
 			sub->add_option<number_option<float>>("Damage Multiplier",
 			    "Multiplier for player attacks (set high for 1-hit kill).",
 			    &g_settings.self.damage_multiplier,
@@ -415,34 +416,6 @@ namespace big
 			sub->add_option<bool_option<bool>>("Hostile One-Hit Damage",
 			    "Set outgoing damage high enough to defeat hostile targets in one hit.",
 			    &g_settings.self.hostile_one_hit);
-			sub->add_option<number_option<float>>("Incoming Damage Multiplier",
-			    "Scale damage received by the local player; 0 disables hit damage.",
-			    &g_settings.self.incoming_damage_multiplier,
-			    0.f,
-			    10.f,
-			    0.1f,
-			    1);
-			sub->add_option<number_option<float>>("Melee Stamina Cost",
-			    "Scale stamina cost for local melee attacks.",
-			    &g_settings.self.melee_stamina_multiplier,
-			    0.f,
-			    10.f,
-			    0.1f,
-			    1);
-			sub->add_option<number_option<float>>("Ranged Stamina Cost",
-			    "Scale stamina cost for local bows and reload based ranged attacks.",
-			    &g_settings.self.ranged_stamina_multiplier,
-			    0.f,
-			    10.f,
-			    0.1f,
-			    1);
-			sub->add_option<number_option<float>>("Eitr Attack Cost",
-			    "Scale eitr cost for player attacks.",
-			    &g_settings.self.attack_eitr_multiplier,
-			    0.f,
-			    10.f,
-			    0.1f,
-			    1);
 			sub->add_option<number_option<float>>("Attack Animation Speed",
 			    "Scale the local player's animation speed while a melee or ranged attack animation is active.",
 			    &g_settings.self.attack_animation_speed,
@@ -457,13 +430,45 @@ namespace big
 			    20.f,
 			    0.25f,
 			    1);
-			sub->add_option<number_option<float>>("Incoming Stagger Multiplier",
-			    "Scale stagger taken; 0 prevents stagger from incoming hits.",
-			    &g_settings.self.stagger_multiplier,
+			sub->add_option<number_option<float>>("Melee Stamina Cost",
+			    "Scale stamina cost for local melee attacks.",
+			    &g_settings.self.melee_stamina_multiplier,
 			    0.f,
 			    10.f,
 			    0.1f,
 			    1);
+			sub->add_option<number_option<float>>("Eitr Attack Cost",
+			    "Scale eitr cost for player attacks.",
+			    &g_settings.self.attack_eitr_multiplier,
+			    0.f,
+			    10.f,
+			    0.1f,
+			    1);
+		});
+
+		canvas::add_submenu<regular_submenu>("Bows & Crossbows", "SubmenuSelfRanged"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("Instant Bow & Crossbow",
+			    "Instant full bow draw and instant crossbow reload.",
+			    &g_settings.self.instant_bow_draw);
+			sub->add_option<bool_option<bool>>("Preserve Ammunition",
+			    "Restore the ammunition item after a successful ranged attack.",
+			    &g_settings.self.preserve_ammunition);
+			sub->add_option<number_option<float>>("Ranged Stamina Cost",
+			    "Scale stamina cost for local bows and reload based ranged attacks.",
+			    &g_settings.self.ranged_stamina_multiplier,
+			    0.f,
+			    10.f,
+			    0.1f,
+			    1);
+		});
+
+		canvas::add_submenu<regular_submenu>("Parry", "SubmenuSelfParry"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("Auto Parry",
+			    "Automatically parry incoming melee and ranged attacks (360-degree, infinite parry power, staggers attackers).",
+			    &g_settings.self.auto_parry);
+			sub->add_option<bool_option<bool>>("Always Parry",
+			    "Guarantees a perfect parry (staggers enemy) whenever you manually block, ignoring the parry timing window.",
+			    &g_settings.self.always_parry);
 			sub->add_option<number_option<float>>("Parry Force Multiplier",
 			    "Scale block power during manual and automatic parries.",
 			    &g_settings.self.parry_force_multiplier,
@@ -478,33 +483,39 @@ namespace big
 			    10.f,
 			    0.1f,
 			    1);
-			sub->add_option<bool_option<bool>>("Instant Bow & Crossbow",
-			    "Instant full bow draw and instant crossbow reload.",
-			    &g_settings.self.instant_bow_draw);
-			sub->add_option<bool_option<bool>>("Preserve Ammunition",
-			    "Restore the ammunition item after a successful ranged attack.",
-			    &g_settings.self.preserve_ammunition);
-			sub->add_option<number_option<int>>("Max Food Slots",
-			    "Allow eating more than 3 foods simultaneously (HP, Stamina, Eitr buffs stack!).",
-			    &g_settings.self.max_food_slots,
-			    3,
-			    10,
-			    1,
-			    0);
-			sub->add_option<bool_option<bool>>("Don't Drop Items when Dead", nullptr, &g_settings.self.no_drop_on_dead);
+		});
+
+		canvas::add_submenu<regular_submenu>("Defense", "SubmenuSelfDefense"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("God Mode",
+			    "Invulnerable to all incoming damage, fall, hazards, and debuffs.",
+			    &g_settings.self.god_mode);
+			sub->add_option<bool_option<bool>>("Incoming Hit Invulnerability",
+			    "Ignore damage RPCs while leaving other world systems active.",
+			    &g_settings.self.incoming_invulnerability);
+			sub->add_option<bool_option<bool>>("Ghost Mode",
+			    "Enemies and bosses cannot detect, target, or hear you.",
+			    &g_settings.self.ghost_mode);
+			sub->add_option<number_option<float>>("Incoming Damage Multiplier",
+			    "Scale damage received by the local player; 0 disables hit damage.",
+			    &g_settings.self.incoming_damage_multiplier,
+			    0.f,
+			    10.f,
+			    0.1f,
+			    1);
+			sub->add_option<number_option<float>>("Incoming Stagger Multiplier",
+			    "Scale stagger taken; 0 prevents stagger from incoming hits.",
+			    &g_settings.self.stagger_multiplier,
+			    0.f,
+			    10.f,
+			    0.1f,
+			    1);
 			sub->add_option<bool_option<bool>>("No Fall Damage",
 			    "Ignore damage from falls while keeping other incoming damage rules active.",
 			    &g_settings.self.no_fall_damage);
-			sub->add_option<bool_option<bool>>("Prevent Freezing",
-			    "Remove the Freezing environment effect from the local player.",
-			    &g_settings.self.prevent_freezing);
-			sub->add_option<bool_option<bool>>("Prevent Cold",
-			    "Remove the Cold environment effect from the local player.",
-			    &g_settings.self.prevent_cold);
-			sub->add_option<bool_option<bool>>("Never Wet",
-			    "Treat the local player as sheltered from rain without changing roof checks elsewhere.",
-			    &g_settings.self.is_wet);
-			sub->add_option<bool_option<bool>>("Forsaken Power Always Ready", nullptr, &g_settings.self.forsaken_power_always_ready);
+			sub->add_option<bool_slider_float_option>("max_body_armor"_hash, "num_body_armor"_hash, 10.f);
+		});
+
+		canvas::add_submenu<regular_submenu>("Health, Stamina & Eitr", "SubmenuSelfVitals"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Maintain Health",
 			    "Restore health to maximum after each player update.",
 			    &g_settings.self.maintain_health);
@@ -515,6 +526,25 @@ namespace big
 			    10000.f,
 			    10.f,
 			    0);
+			sub->add_option<bool_slider_float_option>("max_health"_hash, "max_hp"_hash, 10.f);
+			sub->add_option<bool_option<bool>>("Maintain Stamina",
+			    "Keep stamina at its current maximum.",
+			    &g_settings.self.maintain_stamina);
+			sub->add_option<bool_slider_float_option>("max_stamina"_hash, "max_stam"_hash, 10.f);
+			sub->add_option<bool_slider_float_option>("stamina_regen"_hash, "stamina_regen_amount"_hash, 5.f);
+			sub->add_option<bool_option<bool>>("Maintain Eitr", "Keep eitr at its current maximum.", &g_settings.self.maintain_eitr);
+			sub->add_option<bool_slider_float_option>("eitr"_hash, "eitr_amount"_hash, 5.f);
+			sub->add_option<bool_slider_float_option>("eitr_regen"_hash, "eitr_regen_amount"_hash, 5.f);
+		});
+
+		canvas::add_submenu<regular_submenu>("Food", "SubmenuSelfFood"_hash, [](regular_submenu* sub) {
+			sub->add_option<number_option<int>>("Max Food Slots",
+			    "Allow eating more than 3 foods simultaneously (HP, Stamina, Eitr buffs stack!).",
+			    &g_settings.self.max_food_slots,
+			    3,
+			    10,
+			    1,
+			    0);
 			sub->add_option<number_option<float>>("Food Duration Multiplier",
 			    "Scale how quickly food timers decay; 0 keeps food duration from decreasing.",
 			    &g_settings.self.food_duration_multiplier,
@@ -522,76 +552,24 @@ namespace big
 			    10.f,
 			    0.1f,
 			    1);
-			sub->add_option<bool_option<bool>>("Maintain Stamina",
-			    "Keep stamina at its current maximum.",
-			    &g_settings.self.maintain_stamina);
-			sub->add_option<bool_option<bool>>("Maintain Eitr", "Keep eitr at its current maximum.", &g_settings.self.maintain_eitr);
-			sub->add_option<bool_option<bool>>("allowed_command"_hash);
-			sub->add_option<bool_slider_float_option>("max_health"_hash, "max_hp"_hash, 10.f);
-			sub->add_option<bool_slider_float_option>("max_stamina"_hash, "max_stam"_hash, 10.f);
-			sub->add_option<bool_slider_float_option>("stamina_regen"_hash, "stamina_regen_amount"_hash, 5.f);
-			sub->add_option<bool_slider_float_option>("eitr"_hash, "eitr_amount"_hash, 5.f);
-			sub->add_option<bool_slider_float_option>("eitr_regen"_hash, "eitr_regen_amount"_hash, 5.f);
 			sub->add_option<bool_slider_float_option>("max_food_health"_hash, "food_hp"_hash, 1000.f);
-			sub->add_option<bool_slider_float_option>("max_body_armor"_hash, "num_body_armor"_hash, 10.f);
-			sub->add_option<bool_slider_float_option>("enable_raise_skill"_hash, "raise_skill"_hash, 1.f);
+		});
+
+		canvas::add_submenu<regular_submenu>("Weather Effects", "SubmenuSelfWeather"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("Prevent Freezing",
+			    "Remove the Freezing environment effect from the local player.",
+			    &g_settings.self.prevent_freezing);
+			sub->add_option<bool_option<bool>>("Prevent Cold",
+			    "Remove the Cold environment effect from the local player.",
+			    &g_settings.self.prevent_cold);
+			sub->add_option<bool_option<bool>>("Never Wet",
+			    "Treat the local player as sheltered from rain without changing roof checks elsewhere.",
+			    &g_settings.self.is_wet);
 		});
 
 		canvas::add_submenu<regular_submenu>("Movement & Flight", "SubmenuMovement"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Flying", "Toggle creative free flight mode.", &g_settings.self.flying);
 			sub->add_option<bool_option<bool>>("Noclip", "Pass through world collision while enabled.", &g_settings.self.noclip);
-			sub->add_option<reguler_option>("Toggle Freecam", "Toggle Valheim's camera free flight mode.", [] {
-				queue_job([] {
-					camera_tools::toggle_freecam();
-					camera_tools::apply_settings();
-				});
-			});
-			sub->add_option<reguler_option>("Toggle HUD Visibility", "Use Valheim's own HUD hide/show state.", [] {
-				unity::hud_manager::toggle_visibility();
-			});
-			sub->add_option<number_option<float>>("Camera Field of View",
-			    "Main camera field of view in degrees.",
-			    &g_settings.self.camera_fov,
-			    30.f,
-			    120.f,
-			    1.f,
-			    0);
-			sub->add_option<number_option<float>>("Camera Zoom Sensitivity",
-			    "Adjust how quickly the camera zooms with the mouse wheel.",
-			    &g_settings.self.camera_zoom_sensitivity,
-			    0.1f,
-			    30.f,
-			    0.5f,
-			    1);
-			sub->add_option<number_option<float>>("Camera Smoothing",
-			    "Adjust the smoothing applied to the player camera.",
-			    &g_settings.self.camera_smoothness,
-			    0.f,
-			    1.f,
-			    0.05f,
-			    2);
-			sub->add_option<number_option<float>>("Freecam Speed",
-			    "Movement speed used by Valheim's free camera.",
-			    &g_settings.self.freecam_speed,
-			    1.f,
-			    1000.f,
-			    5.f,
-			    0);
-			sub->add_option<number_option<float>>("Freecam Smoothing",
-			    "Movement smoothing used by Valheim's free camera.",
-			    &g_settings.self.freecam_smoothness,
-			    0.f,
-			    1.f,
-			    0.05f,
-			    2);
-			sub->add_option<bool_option<bool>>("Camera Shake",
-			    "Enable or disable camera shake effects.",
-			    &g_settings.self.camera_shake_enabled);
-			sub->add_option<reguler_option>("Apply Camera Settings", "Apply the selected camera and freecam settings now.", [] {
-				queue_job([] {
-					camera_tools::apply_settings();
-				});
-			});
 			sub->add_option<number_option<float>>("Movement Speed Multiplier",
 			    "Scale normal movement and sprint speed before their separate modifiers.",
 			    &g_settings.self.movement_speed_multiplier,
@@ -627,18 +605,103 @@ namespace big
 			    20.f,
 			    0.1f,
 			    1);
-			sub->add_option<bool_option<bool>>("Always Have Wind Facing Boat",
-			    "Wind always blows from behind your boat.",
-			    &g_settings.self.always_wind);
-			sub->add_option<bool_option<bool>>("Allow Teleporting with Any Items",
-			    "Teleport through portals with ores and metals.",
-			    &g_settings.self.is_teleportable);
+		});
+
+		canvas::add_submenu<regular_submenu>("Camera", "SubmenuSelfCamera"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Toggle Freecam", "Toggle Valheim's camera free flight mode.", [] {
+				queue_job([] {
+					camera_tools::toggle_freecam();
+					camera_tools::apply_settings();
+				});
+			});
+			sub->add_option<number_option<float>>("Freecam Speed",
+			    "Movement speed used by Valheim's free camera.",
+			    &g_settings.self.freecam_speed,
+			    1.f,
+			    1000.f,
+			    5.f,
+			    0);
+			sub->add_option<number_option<float>>("Freecam Smoothing",
+			    "Movement smoothing used by Valheim's free camera.",
+			    &g_settings.self.freecam_smoothness,
+			    0.f,
+			    1.f,
+			    0.05f,
+			    2);
+			sub->add_option<number_option<float>>("Camera Field of View",
+			    "Main camera field of view in degrees.",
+			    &g_settings.self.camera_fov,
+			    30.f,
+			    120.f,
+			    1.f,
+			    0);
+			sub->add_option<number_option<float>>("Camera Zoom Sensitivity",
+			    "Adjust how quickly the camera zooms with the mouse wheel.",
+			    &g_settings.self.camera_zoom_sensitivity,
+			    0.1f,
+			    30.f,
+			    0.5f,
+			    1);
+			sub->add_option<number_option<float>>("Camera Smoothing",
+			    "Adjust the smoothing applied to the player camera.",
+			    &g_settings.self.camera_smoothness,
+			    0.f,
+			    1.f,
+			    0.05f,
+			    2);
+			sub->add_option<bool_option<bool>>("Camera Shake",
+			    "Enable or disable camera shake effects.",
+			    &g_settings.self.camera_shake_enabled);
+			sub->add_option<reguler_option>("Apply Camera Settings", "Apply the selected camera and freecam settings now.", [] {
+				queue_job([] {
+					camera_tools::apply_settings();
+				});
+			});
+			sub->add_option<reguler_option>("Toggle HUD Visibility", "Use Valheim's own HUD hide/show state.", [] {
+				unity::hud_manager::toggle_visibility();
+			});
+		});
+
+		canvas::add_submenu<regular_submenu>("Gathering & Pickup", "SubmenuSelfGathering"_hash, [](regular_submenu* sub) {
+			static float drop_action_radius = 30.f;
+			sub->add_option<bool_option<bool>>("One-Hit Tree & Mine Breaker",
+			    "Instantly fell trees and shatter rocks / ore veins in one hit.",
+			    &g_settings.self.one_hit_resource);
+			sub->add_option<number_option<float>>("Vacuum Pickup Range",
+			    "Item magnet pickup radius in meters (default: 2m).",
+			    &g_settings.self.pickup_range,
+			    2.f,
+			    50.f,
+			    2.f,
+			    1);
+			sub->add_option<number_option<float>>("Nearby Drop Radius", "Maximum distance for the nearby drop collection action.", &drop_action_radius, 1.f, 100.f, 5.f, 0);
+			sub->add_option<reguler_option>("Collect Nearby Drops", "Pick up available dropped items within the selected radius.", [] {
+				queue_job([radius = drop_action_radius] {
+					const int count = world_tools::pickup_nearby_drops(radius);
+					if (count > 0)
+					{
+						notification::success("Nearby Drops", std::format("Collected {} item drop{}.", count, count == 1 ? "" : "s"));
+					}
+					else
+					{
+						notification::info("Nearby Drops", "No available item drops were collected.");
+					}
+				});
+			});
 		});
 
 		canvas::add_submenu<regular_submenu>("Building & Crafting", "SubmenuBuilding"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Free Crafting & Building",
 			    "Craft anywhere with 0 cost, deconstruct/repair pieces with no station requirement.",
 			    &g_settings.self.free_crafting);
+			sub->add_option<bool_option<bool>>("Free Material Costs",
+			    "Skip resource consumption for recipes and build pieces.",
+			    &g_settings.self.free_material_costs);
+			sub->add_option<sub_option>("Crafting", "Crafting speed, station requirements and level, recipe unlocks, recipe browser.", "SubmenuCrafting"_hash);
+			sub->add_option<sub_option>("Building", "Workbench requirement, piece unlocks, stability, wards, placement, piece browser.", "SubmenuBuildingPieces"_hash);
+		});
+
+		canvas::add_submenu<regular_submenu>("Crafting", "SubmenuCrafting"_hash, [](regular_submenu* sub) {
 			sub->add_option<number_option<float>>("Crafting Speed Multiplier",
 			    "Scales the time required for single and multi-item crafts.",
 			    &g_settings.self.crafting_speed_multiplier,
@@ -646,24 +709,9 @@ namespace big
 			    20.f,
 			    0.5f,
 			    1);
-			sub->add_option<bool_option<bool>>("Free Material Costs",
-			    "Skip resource consumption for recipes and build pieces.",
-			    &g_settings.self.free_material_costs);
 			sub->add_option<bool_option<bool>>("Ignore Crafting Station Requirement",
 			    "Craft and repair recipes without the required station.",
 			    &g_settings.self.ignore_crafting_station);
-			sub->add_option<bool_option<bool>>("Ignore Building Workbench Requirement",
-			    "Place build pieces without a nearby workbench or crafting station.",
-			    &g_settings.self.ignore_building_workbench);
-			sub->add_option<bool_option<bool>>("Unlock Runtime Recipes",
-			    "Treat all enabled ObjectDB recipes as unlocked in crafting lists.",
-			    &g_settings.self.unlock_runtime_recipes);
-			sub->add_option<bool_option<bool>>("Unlock Materials",
-			    "Treat all runtime materials as discovered.",
-			    &g_settings.self.unlock_materials);
-			sub->add_option<bool_option<bool>>("Unlock Building Pieces",
-			    "Allow every piece in the current build tables, including pieces without known recipes.",
-			    &g_settings.self.unlock_building_pieces);
 			sub->add_option<bool_option<bool>>("Override Crafting Station Level",
 			    "Use a custom level for station checks while keeping the station itself required.",
 			    &g_settings.self.station_level_override);
@@ -674,14 +722,25 @@ namespace big
 			    100,
 			    1,
 			    0);
-			sub->add_option<reguler_option>("Repair All Items (Anywhere)", "Instantly restore all equipped weapons, armor, and inventory items to 100% durability.", [] {
-				queue_job([] {
-					world_tools::repair_all_inventory();
-				});
+			sub->add_option<bool_option<bool>>("Unlock Runtime Recipes",
+			    "Treat all enabled ObjectDB recipes as unlocked in crafting lists.",
+			    &g_settings.self.unlock_runtime_recipes);
+			sub->add_option<bool_option<bool>>("Unlock Materials",
+			    "Treat all runtime materials as discovered.",
+			    &g_settings.self.unlock_materials);
+			sub->add_option<bool_option<bool>>("open_all_recepies"_hash);
+			sub->add_option<reguler_option>("Open Runtime Recipe Browser", "Search ObjectDB recipes, view ingredients, and send an output to Item Spawner.", [] {
+				crafting_tools::toggle_recipe_browser();
 			});
-			sub->add_option<bool_option<bool>>("Infinite Durability",
-			    "Weapons, tools, shields, and armor never degrade.",
-			    &g_settings.self.infinite_durability);
+		});
+
+		canvas::add_submenu<regular_submenu>("Building", "SubmenuBuildingPieces"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("Ignore Building Workbench Requirement",
+			    "Place build pieces without a nearby workbench or crafting station.",
+			    &g_settings.self.ignore_building_workbench);
+			sub->add_option<bool_option<bool>>("Unlock Building Pieces",
+			    "Allow every piece in the current build tables, including pieces without known recipes.",
+			    &g_settings.self.unlock_building_pieces);
 			sub->add_option<bool_option<bool>>("Infinite Building Stability",
 			    "Pieces never collapse from lack of support.",
 			    &g_settings.self.infinite_stability);
@@ -719,39 +778,9 @@ namespace big
 			sub->add_option<bool_option<bool>>("Allow Rotated Same-Piece Overlap",
 			    "Allow identical pieces to overlap when their rotations differ, following Valheim's piece overlap rule.",
 			    &g_settings.self.allow_rotated_piece_overlap);
-			sub->add_option<bool_option<bool>>("open_all_recepies"_hash);
-			sub->add_option<reguler_option>("Open Runtime Recipe Browser", "Search ObjectDB recipes, view ingredients, and send an output to Item Spawner.", [] {
-				crafting_tools::toggle_recipe_browser();
-			});
 			sub->add_option<reguler_option>("Open Dynamic Build Piece Browser", "Browse runtime Piece prefabs and find the build tool whose PieceTable contains the selected piece.", [] {
 				prefab_spawner::open_piece_browser();
 			});
-		});
-
-		canvas::add_submenu<regular_submenu>("Farming & World QoL", "SubmenuFarmingQoL"_hash, [](regular_submenu* sub) {
-			sub->add_option<bool_option<bool>>("One-Hit Tree & Mine Breaker",
-			    "Instantly fell trees and shatter rocks / ore veins in one hit.",
-			    &g_settings.self.one_hit_resource);
-			sub->add_option<number_option<float>>("Vacuum Pickup Range",
-			    "Item magnet pickup radius in meters (default: 2m).",
-			    &g_settings.self.pickup_range,
-			    2.f,
-			    50.f,
-			    2.f,
-			    1);
-			sub->add_option<bool_option<bool>>("No Alert Animal",
-			    "Animals never become alarmed or flee.",
-			    &g_settings.self.no_animal_alert);
-			sub->add_option<bool_option<bool>>("Allow Picking Up Fish in Water", nullptr, &g_settings.self.allow_pickup_fish);
-			sub->add_option<bool_option<bool>>("No Weight", nullptr, &g_settings.self.no_weight);
-			sub->add_option<bool_option<bool>>("No Encumbrance",
-			    "Ignore carry weight when checking whether the local player is encumbered. Item weights stay unchanged.",
-			    &g_settings.self.no_encumbrance);
-			sub->add_option<bool_slider_float_option>("max_carry_weight"_hash, "carry_amount"_hash, 100.f);
-			sub->add_option<bool_option<bool>>("Fill Inventory Top First",
-			    "Items added to inventory will fill slots from the top down instead of bottom.",
-			    &g_settings.self.inventory_top_first);
-			sub->add_option<bool_slider_int_option>("inventory_size"_hash, "inventory_height"_hash, 1);
 		});
 
 		canvas::add_submenu<regular_submenu>("Skills", "SubmenuSkills"_hash, [](regular_submenu* sub) {
@@ -874,10 +903,6 @@ namespace big
 				});
 			});
 
-			sub->add_option<sub_option>("Combat Skills", "Swords, bows, axes, polearms, magic, blocking, unarmed...", "SubmenuCombatSkills"_hash);
-			sub->add_option<sub_option>("Physical & Survival Skills", "Run, jump, sneak, swim, dodge, ride, fishing...", "SubmenuPhysicalSkills"_hash);
-			sub->add_option<sub_option>("Gathering & Crafting Skills", "Wood cutting, pickaxes, cooking, farming, crafting...", "SubmenuCraftingSkills"_hash);
-
 			sub->add_option<reguler_option>("Max All Skills (Level 100)", "Set every skill to level 100 immediately.", [] {
 				queue_job([] {
 					auto sk = skills::get_local_skills();
@@ -920,6 +945,10 @@ namespace big
 			sub->add_option<bool_slider_float_option>("enable_raise_skill"_hash, "raise_skill"_hash, 1.f);
 			sub->add_option<bool_option<bool>>("prevent_skill_loss"_hash);
 			sub->add_option<bool_option<bool>>("freeze_skills"_hash);
+
+			sub->add_option<sub_option>("Combat Skills", "Swords, bows, axes, polearms, magic, blocking, unarmed...", "SubmenuCombatSkills"_hash);
+			sub->add_option<sub_option>("Physical & Survival Skills", "Run, jump, sneak, swim, dodge, ride, fishing...", "SubmenuPhysicalSkills"_hash);
+			sub->add_option<sub_option>("Gathering & Crafting Skills", "Wood cutting, pickaxes, cooking, farming, crafting...", "SubmenuCraftingSkills"_hash);
 		});
 
 		canvas::add_submenu<regular_submenu>("Combat Skills", "SubmenuCombatSkills"_hash, [](regular_submenu* sub) {
@@ -1069,16 +1098,27 @@ namespace big
 					world_tools::repair_all_inventory();
 				});
 			});
-			sub->add_option<bool_option<bool>>("Equipment & Quick Slots (BetrValheim)",
-			    "Enable BetrValheim style equipment, food, ammo, and quick slots.",
-			    &g_settings.self.equipment_slots_enabled);
-			sub->add_option<bool_option<bool>>("Open Equipment & Slots Window",
-			    "Show the ImGui equipment panel only while the inventory is open.",
-			    &g_settings.self.equipment_slots_window);
-			sub->add_option<sub_option>("Equipment & Quick Slots Menu", "Manage gear slots, hotkeys, auto-fill, deposit, and utilities.", "SubmenuEquipmentSlots"_hash);
+			sub->add_option<bool_option<bool>>("Infinite Durability",
+			    "Weapons, tools, shields, and armor never degrade.",
+			    &g_settings.self.infinite_durability);
+			sub->add_option<sub_option>("Carry Weight & Size", "Item weight, encumbrance, max carry weight, inventory size and fill order.", "SubmenuInventoryCapacity"_hash);
+			sub->add_option<sub_option>("Item Overrides", "Dropped stack size and the selected item's durability, quality, stack and variant.", "SubmenuInventoryOverrides"_hash);
+			sub->add_option<sub_option>("Equipment & Quick Slots", "BetrValheim gear, food, ammo, trinket, and quick slots.", "SubmenuEquipmentSlots"_hash);
+		});
+
+		canvas::add_submenu<regular_submenu>("Carry Weight & Size", "SubmenuInventoryCapacity"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("No Weight", nullptr, &g_settings.self.no_weight);
+			sub->add_option<bool_option<bool>>("No Encumbrance",
+			    "Ignore carry weight when checking whether the local player is encumbered. Item weights stay unchanged.",
+			    &g_settings.self.no_encumbrance);
+			sub->add_option<bool_slider_float_option>("max_carry_weight"_hash, "carry_amount"_hash, 100.f);
+			sub->add_option<bool_slider_int_option>("inventory_size"_hash, "inventory_height"_hash, 1);
 			sub->add_option<bool_option<bool>>("Fill Inventory Top First",
 			    "Items added to inventory will fill slots from the top down instead of bottom.",
 			    &g_settings.self.inventory_top_first);
+		});
+
+		canvas::add_submenu<regular_submenu>("Item Overrides", "SubmenuInventoryOverrides"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_slider_int_option>("override_drop"_hash, "drop_amount"_hash);
 			sub->add_option<bool_option<bool>>("override_selected"_hash);
 			if (features::_override_selected.get_state())
@@ -1146,40 +1186,18 @@ namespace big
 
 
 		canvas::add_submenu<regular_submenu>("World", "SubmenuWorld"_hash, [](regular_submenu* sub) {
-			static float day_fraction       = 0.5f;
-			static float drop_action_radius = 30.f;
-			static const std::vector<const char*> world_presets{"Default", "Custom", "Normal", "Casual", "Easy", "Hard", "Hardcore", "Immersive", "Hammer"};
-			static int selected_world_preset = 0;
-			sub->add_option<choose_option<const char*, int>>("Native World Preset", "Choose a preset registered by Valheim's WorldPresets enum.", &world_presets, &selected_world_preset);
-			sub->add_option<reguler_option>("Apply Native World Preset", "Replace the current world's native world modifier preset.", [] {
-				const std::string preset = world_presets.at(
-				    static_cast<std::size_t>(std::clamp(selected_world_preset, 0, static_cast<int>(world_presets.size()) - 1)));
-				queue_job([preset] {
-					if (world_tools::apply_world_preset(preset))
-					{
-						notification::success("World Preset", std::format("Applied native '{}' preset.", preset));
-					}
-					else
-					{
-						notification::warning("World Preset", "Valheim could not apply this preset in the current session.");
-					}
-				});
-			});
-			sub->add_option<sub_option>("World Modifier Controls", "Change native combat, death penalty, resource, raid and portal settings independently.", "SubmenuWorldModifiers"_hash);
-			sub->add_option<number_option<float>>("Nearby Drop Radius", "Maximum distance for the nearby drop collection action.", &drop_action_radius, 1.f, 100.f, 5.f, 0);
-			sub->add_option<reguler_option>("Collect Nearby Drops", "Pick up available dropped items within the selected radius.", [] {
-				queue_job([radius = drop_action_radius] {
-					const int count = world_tools::pickup_nearby_drops(radius);
-					if (count > 0)
-					{
-						notification::success("Nearby Drops", std::format("Collected {} item drop{}.", count, count == 1 ? "" : "s"));
-					}
-					else
-					{
-						notification::info("Nearby Drops", "No available item drops were collected.");
-					}
-				});
-			});
+			sub->add_option<sub_option>("Time", "Simulation speed, pause, and time of day.", "SubmenuWorldTime"_hash);
+			sub->add_option<sub_option>("World Preset & Modifiers", "Apply a native world preset, or change combat, death penalty, resource, raid and portal settings independently.", "SubmenuWorldModifiers"_hash);
+			sub->add_option<sub_option>("Exploration & Map", "Reveal map fog, locate all bosses and traders.", "SubmenuExploration"_hash);
+			sub->add_option<sub_option>("Creatures & Taming", "Aimed animal inspection, instant tame hotkey, and area taming.", "SubmenuCreatures"_hash);
+			sub->add_option<sub_option>("Base Raids & Events", "Trigger or stop custom raids, disable base attacks.", "SubmenuRaids"_hash);
+			sub->add_option<sub_option>("Death & Tombstone", "Keep items and skills on death, and return to your tombstone.", "SubmenuTombstone"_hash);
+			sub->add_option<sub_option>("Remote Merchant", "Open Haldor, Hildir, or Bog Witch store from anywhere.", "SubmenuTrader"_hash);
+			sub->add_option<sub_option>("World Upgrade & Maintenance", "Save the world, edit global keys, upgrade old worlds, generate missing update POIs, and optimize terrain.", "SubmenuUpgradeWorld"_hash);
+		});
+
+		canvas::add_submenu<regular_submenu>("Time", "SubmenuWorldTime"_hash, [](regular_submenu* sub) {
+			static float day_fraction = 0.5f;
 			sub->add_option<number_option<float>>("World Time Scale", "Local Unity simulation speed: 0 pauses, 1 is normal.", &world_time_scale, 0.f, 5.f, 0.1f, 1);
 			sub->add_option<reguler_option>("Apply Time Scale", "Apply the selected simulation speed.", [] {
 				const float scale = std::clamp(world_time_scale, 0.f, 5.f);
@@ -1192,6 +1210,12 @@ namespace big
 				const float scale = paused ? 0.f : (world_time_scale > 0.f ? world_time_scale : 1.f);
 				queue_job([scale] {
 					world_time::set_time_scale(scale);
+				});
+			});
+			sub->add_option<reguler_option>("Reset Time Scale", "Restore local simulation speed to normal.", [] {
+				world_time_scale = 1.f;
+				queue_job([] {
+					world_time::reset_time_scale();
 				});
 			});
 			sub->add_option<number_option<float>>("Day Fraction", "Select a time of day from 0.00 to 1.00.", &day_fraction, 0.f, 0.99f, 0.01f, 2);
@@ -1228,39 +1252,27 @@ namespace big
 					}
 				});
 			});
-			sub->add_option<reguler_option>("Save World Now", "Run Valheim's native world and player profile save on the host.", [] {
-				queue_job([] {
-					if (world_time::save_world())
+		});
+
+		canvas::add_submenu<regular_submenu>("World Preset & Modifiers", "SubmenuWorldModifiers"_hash, [](regular_submenu* sub) {
+			static const std::vector<const char*> world_presets{"Default", "Custom", "Normal", "Casual", "Easy", "Hard", "Hardcore", "Immersive", "Hammer"};
+			static int selected_world_preset = 0;
+			sub->add_option<choose_option<const char*, int>>("Native World Preset", "Choose a preset registered by Valheim's WorldPresets enum.", &world_presets, &selected_world_preset);
+			sub->add_option<reguler_option>("Apply Native World Preset", "Replace the current world's native world modifier preset.", [] {
+				const std::string preset = world_presets.at(
+				    static_cast<std::size_t>(std::clamp(selected_world_preset, 0, static_cast<int>(world_presets.size()) - 1)));
+				queue_job([preset] {
+					if (world_tools::apply_world_preset(preset))
 					{
-						notification::success("World Save", "Native world and player profile save requested.");
+						notification::success("World Preset", std::format("Applied native '{}' preset.", preset));
 					}
 					else
 					{
-						notification::warning("World Save", "This action requires a loaded world hosted by this session.");
+						notification::warning("World Preset", "Valheim could not apply this preset in the current session.");
 					}
 				});
 			});
-			sub->add_option<reguler_option>("Reset Time Scale", "Restore local simulation speed to normal.", [] {
-				world_time_scale = 1.f;
-				queue_job([] {
-					world_time::reset_time_scale();
-				});
-			});
-			sub->add_option<sub_option>("World Upgrade & Maintenance", "Upgrade old worlds, generate missing update POIs, and optimize terrain.", "SubmenuUpgradeWorld"_hash);
-			sub->add_option<reguler_option>("Open Global Key Editor", "Search active world keys and request keys to be set or removed.", [] {
-				global_key_editor::toggle_window();
-			});
-			sub->add_option<reguler_option>("Open Status Effect Browser", "Search active effects, remove them, or apply effects registered in ObjectDB.", [] {
-				status_effect_browser::toggle_window();
-			});
-			sub->add_option<sub_option>("Exploration & Map", "Reveal map fog, locate all bosses and traders.", "SubmenuExploration"_hash);
-			sub->add_option<sub_option>("Creatures & Taming", "Aimed animal inspection, instant tame hotkey, and area taming.", "SubmenuCreatures"_hash);
-			sub->add_option<sub_option>("Base Raids & Events", "Trigger or stop custom raids, disable base attacks.", "SubmenuRaids"_hash);
-			sub->add_option<sub_option>("Tombstone Recovery", "Teleport to last death point and retrieve corpse items.", "SubmenuTombstone"_hash);
-			sub->add_option<sub_option>("Remote Merchant", "Open Haldor, Hildir, or Bog Witch store from anywhere.", "SubmenuTrader"_hash);
-		});
 
-		canvas::add_submenu<regular_submenu>("World Modifier Controls", "SubmenuWorldModifiers"_hash, [](regular_submenu* sub) {
 			static const std::vector<const char*> combat_values{"VeryEasy", "Easy", "Hard", "VeryHard"};
 			static const std::vector<const char*> death_values{"Casual", "VeryEasy", "Easy", "Hard", "Hardcore"};
 			static const std::vector<const char*> resource_values{"MuchLess", "Less", "More", "MuchMore", "Most"};
@@ -1303,7 +1315,7 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Exploration & Map", "SubmenuExploration"_hash, [](regular_submenu* sub) {
-			static exploration::options exp_cfg = exploration::get_options();
+			static exploration::options& exp_cfg = exploration_options();
 			sub->add_option<reguler_option>("Named World Bookmarks", "Save, teleport to, and remove locations stored per world.", [] {
 				bookmark_manager::toggle_window();
 			});
@@ -1347,26 +1359,6 @@ namespace big
 					});
 				});
 			});
-			sub->add_option<bool_option<bool>>("Pin All World Altars",
-			    "If enabled, discovers all altars in the world instead of only the closest one.",
-			    &exp_cfg.discover_all);
-			sub->add_option<sub_option>("Boss Altars", "Individual progression boss altar pins.", "SubmenuBosses"_hash);
-			sub->add_option<sub_option>("Traders & POIs", "Merchants and special quest locations.", "SubmenuTraders"_hash);
-			sub->add_option<reguler_option>("Reveal All Bosses", "Request boss altar pins, including Ashlands and Deep North. Enable Pin All World Altars for every location.", [] {
-				queue_job([discover_all = exp_cfg.discover_all] {
-					exploration::discover_all_bosses(discover_all);
-				});
-			});
-			sub->add_option<reguler_option>("Reveal All Traders & Quests", "Pin Haldor, Hildir, Bog Witch, and dungeons.", [] {
-				queue_job([discover_all = exp_cfg.discover_all] {
-					exploration::discover_all_traders(discover_all);
-				});
-			});
-			sub->add_option<reguler_option>("Reveal Everything", "Pin all bosses, traders, and special locations.", [] {
-				queue_job([discover_all = exp_cfg.discover_all] {
-					exploration::discover_everything(discover_all);
-				});
-			});
 			sub->add_option<reguler_option>("Explore Entire Map", "Reveal all fog of war on the minimap.", [] {
 				queue_job([] {
 					exploration::explore_all_map();
@@ -1377,13 +1369,20 @@ namespace big
 					exploration::reset_map();
 				});
 			});
+			sub->add_option<bool_option<bool>>("Pin All World Altars",
+			    "If enabled, discovers all altars in the world instead of only the closest one.",
+			    &exp_cfg.discover_all);
+			sub->add_option<reguler_option>("Reveal Everything", "Pin all bosses, traders, and special locations.", [] {
+				queue_job([discover_all = exp_cfg.discover_all] {
+					exploration::discover_everything(discover_all);
+				});
+			});
+			sub->add_option<sub_option>("Boss Altars", "Individual progression boss altar pins.", "SubmenuBosses"_hash);
+			sub->add_option<sub_option>("Traders & POIs", "Merchants and special quest locations.", "SubmenuTraders"_hash);
 		});
 
 		canvas::add_submenu<regular_submenu>("Boss Altars", "SubmenuBosses"_hash, [](regular_submenu* sub) {
-			static exploration::options exp_cfg = exploration::get_options();
-			sub->add_option<bool_option<bool>>("Pin All World Altars",
-			    "Discover all instances across the world map.",
-			    &exp_cfg.discover_all);
+			static exploration::options& exp_cfg = exploration_options();
 			sub->add_option<reguler_option>("Reveal All Bosses", "Request boss altar pins, including Ashlands and Deep North. Enable Pin All World Altars for every location.", [] {
 				queue_job([discover_all = exp_cfg.discover_all] {
 					exploration::discover_all_bosses(discover_all);
@@ -1404,7 +1403,7 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Traders & POIs", "SubmenuTraders"_hash, [](regular_submenu* sub) {
-			static exploration::options exp_cfg = exploration::get_options();
+			static exploration::options& exp_cfg = exploration_options();
 			sub->add_option<reguler_option>("Reveal All Traders", "Pin all merchants and quest locations.", [] {
 				queue_job([discover_all = exp_cfg.discover_all] {
 					exploration::discover_all_traders(discover_all);
@@ -1432,6 +1431,9 @@ namespace big
 				prefab_spawner::toggle_window();
 			});
 
+			sub->add_option<bool_option<bool>>("No Alert Animal",
+			    "Animals never become alarmed or flee.",
+			    &g_settings.self.no_animal_alert);
 			sub->add_option<bool_option<bool>>("Show Animal Inspector HUD",
 			    "Display creature stats, health, stars, and taming info when aiming.",
 			    &anim_cfg.show_inspector);
@@ -1590,7 +1592,6 @@ namespace big
 			sub->add_option<bool_option<bool>>("draw_name"_hash);
 			sub->add_option<bool_option<bool>>("draw_health"_hash);
 			sub->add_option<bool_option<bool>>("draw_box"_hash);
-			sub->add_option<bool_option<bool>>("draw_fov"_hash);
 			sub->add_option<bool_option<bool>>("esp_dropped_items"_hash);
 			sub->add_option<bool_option<bool>>("esp_item_stack"_hash);
 			sub->add_option<bool_option<bool>>("esp_distance"_hash);
@@ -1772,9 +1773,22 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Buffs & Effects", "SubmenuBuffs"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Open Status Effect Browser", "Search active effects, remove them, or apply effects registered in ObjectDB.", [] {
+				status_effect_browser::toggle_window();
+			});
+			sub->add_option<reguler_option>("Apply Eitr Shield (1,000 HP)", "Grant indestructible Staff of Protection bubble dome.", [] {
+				queue_job([] {
+					buff_tools::apply_eitr_shield(1000.f);
+				});
+			});
+			sub->add_option<sub_option>("Rested", "Keep the Rested buff, or apply it at a chosen comfort level.", "SubmenuBuffsRested"_hash);
+			sub->add_option<sub_option>("Debuffs", "Cleanse harmful status effects automatically or now.", "SubmenuBuffsDebuffs"_hash);
+			sub->add_option<sub_option>("Guardian Powers", "Discover, activate, apply, and reset guardian powers.", "SubmenuGuardianPowers"_hash);
+			sub->add_option<sub_option>("Individual Boss Powers", "Select specific boss powers to toggle.", "SubmenuBossPowers"_hash);
+		});
+
+		canvas::add_submenu<regular_submenu>("Rested", "SubmenuBuffsRested"_hash, [](regular_submenu* sub) {
 			static int rested_comfort = 25;
-			static int selected_power = 0;
-			static std::vector<const char*> power_names;
 			sub->add_option<bool_option<bool>>("keep_rested"_hash);
 			sub->add_option<number_option<int>>("Rested Comfort Level", "Comfort value used when applying the Rested effect.", &rested_comfort, 1, 25, 1, 0);
 			sub->add_option<reguler_option>("Apply Rested Buff Now", "Apply the Rested effect using the selected comfort level.", [] {
@@ -1782,12 +1796,21 @@ namespace big
 					buff_tools::apply_rested(comfort);
 				});
 			});
+		});
+
+		canvas::add_submenu<regular_submenu>("Debuffs", "SubmenuBuffsDebuffs"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("auto_cleanse_debuffs"_hash);
 			sub->add_option<reguler_option>("Clear All Harmful Debuffs", "Immediately cleanse all negative status effects.", [] {
 				queue_job([] {
 					buff_tools::clear_all_debuffs();
 				});
 			});
+		});
+
+		canvas::add_submenu<regular_submenu>("Guardian Powers", "SubmenuGuardianPowers"_hash, [](regular_submenu* sub) {
+			static int selected_power = 0;
+			static std::vector<const char*> power_names;
+			sub->add_option<bool_option<bool>>("Forsaken Power Always Ready", nullptr, &g_settings.self.forsaken_power_always_ready);
 			sub->add_option<reguler_option>("Apply All Registered Guardian Effects", "Directly apply every guardian effect registered by the current game runtime.", [] {
 				queue_job([] {
 					buff_tools::activate_all_guardian_powers();
@@ -1834,12 +1857,6 @@ namespace big
 					}
 				});
 			});
-			sub->add_option<sub_option>("Individual Boss Powers", "Select specific boss powers to toggle.", "SubmenuBossPowers"_hash);
-			sub->add_option<reguler_option>("Apply Eitr Shield (1,000 HP)", "Grant indestructible Staff of Protection bubble dome.", [] {
-				queue_job([] {
-					buff_tools::apply_eitr_shield(1000.f);
-				});
-			});
 		});
 
 		canvas::add_submenu<regular_submenu>("Individual Boss Powers", "SubmenuBossPowers"_hash, [](regular_submenu* sub) {
@@ -1858,6 +1875,9 @@ namespace big
 			sub->add_option<bool_option<bool>>("ship_ashlands_immune"_hash);
 			sub->add_option<bool_option<bool>>("ship_no_wave_damage"_hash);
 			sub->add_option<bool_slider_float_option>("ship_speed"_hash, "ship_speed_multiplier"_hash, 0.5f, 1);
+			sub->add_option<bool_option<bool>>("Always Have Wind Facing Boat",
+			    "Wind always blows from behind your boat.",
+			    &g_settings.self.always_wind);
 			sub->add_option<reguler_option>("Emergency Anchor", "Instantly brake and halt ship momentum to prevent drifting.", [] {
 				queue_job([] {
 					ship_tools::emergency_anchor();
@@ -1879,6 +1899,7 @@ namespace big
 			sub->add_option<bool_option<bool>>("fishing_unbreakable_line"_hash);
 			sub->add_option<bool_option<bool>>("fishing_no_stamina"_hash);
 			sub->add_option<bool_option<bool>>("fishing_auto_catch"_hash);
+			sub->add_option<bool_option<bool>>("Allow Picking Up Fish in Water", nullptr, &g_settings.self.allow_pickup_fish);
 			sub->add_option<reguler_option>("Instant Catch Current Fish", "Reel in active bobber directly into inventory.", [] {
 				queue_job([] {
 					fishing_tools::instant_catch();
@@ -1905,7 +1926,8 @@ namespace big
 			}
 		});
 
-		canvas::add_submenu<regular_submenu>("Tombstone Recovery", "SubmenuTombstone"_hash, [](regular_submenu* sub) {
+		canvas::add_submenu<regular_submenu>("Death & Tombstone", "SubmenuTombstone"_hash, [](regular_submenu* sub) {
+			sub->add_option<bool_option<bool>>("Don't Drop Items when Dead", nullptr, &g_settings.self.no_drop_on_dead);
 			sub->add_option<bool_option<bool>>("keep_skills_on_death"_hash);
 			sub->add_option<reguler_option>("Teleport to Last Tombstone", "Instantly warp to the location where you last died.", [] {
 				queue_job([] {
@@ -1915,6 +1937,21 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("World Upgrade & Maintenance", "SubmenuUpgradeWorld"_hash, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Save World Now", "Run Valheim's native world and player profile save on the host.", [] {
+				queue_job([] {
+					if (world_time::save_world())
+					{
+						notification::success("World Save", "Native world and player profile save requested.");
+					}
+					else
+					{
+						notification::warning("World Save", "This action requires a loaded world hosted by this session.");
+					}
+				});
+			});
+			sub->add_option<reguler_option>("Open Global Key Editor", "Search active world keys and request keys to be set or removed.", [] {
+				global_key_editor::toggle_window();
+			});
 			sub->add_option<reguler_option>("Generate Missing Locations (genloc)", "Distribute all newly added update locations (Bog Witch, Hildir, Ashlands, Mistlands dungeons, Frost Caves, Tar Pits) into unexplored zones.", [] {
 				queue_job([] {
 					world_tools::generate_missing_locations();
