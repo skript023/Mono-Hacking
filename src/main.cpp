@@ -166,6 +166,12 @@ DWORD APIENTRY main_thread(LPVOID)
 		return 0;
 	}
 
+	if (!detour_base::hooks().empty())
+	{
+		LOG(WARNING) << "DLL retained because another program still calls into its hooks. Restart the game before injecting again.";
+		return 0;
+	}
+
 	// This DLL owns a static OpenSSL instance; all networking threads are gone.
 	OPENSSL_cleanup();
 	LOG(INFO) << "OpenSSL cleaned up. Releasing DLL.";

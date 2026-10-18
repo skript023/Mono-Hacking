@@ -222,12 +222,28 @@ namespace big
 			disable();
 		}
 
-		while (!detour_base::hooks().empty())
-		{
-			delete detour_base::hooks().back();
-		}
+		delete_disabled_hooks();
 
 		g_hooking = nullptr;
+	}
+
+	void hooking::delete_disabled_hooks()
+	{
+		// A hook stays enabled when another program, such as the Discord overlay, has hooked the same function on top
+		// of it: that program still calls the detour, so the detour and its trampoline must stay alive. With g_running
+		// false the detour only passes the call on, and main keeps the DLL loaded while any hook is left.
+		std::vector<detour_base*> disabled;
+		for (auto* hook : detour_base::hooks())
+		{
+			if (!hook->is_enabled())
+			{
+				disabled.push_back(hook);
+			}
+		}
+		for (auto* hook : disabled)
+		{
+			delete hook;
+		}
 	}
 
 	void hooking::enable()
@@ -258,11 +274,14 @@ namespace big
 		SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_og_wndproc));
 
 		detour_base::disable_all();
-
-		while (!detour_base::hooks().empty())
+		for (auto* hook : detour_base::hooks())
 		{
-			delete detour_base::hooks().back();
+			if (hook->is_enabled())
+			{
+				LOG(WARNING) << "Hook '" << hook->name() << "' is covered by another program's hook; it stays in place.";
+			}
 		}
+		delete_disabled_hooks();
 	}
 
 	void* hooks::convert_thread_to_fiber(void* param)
