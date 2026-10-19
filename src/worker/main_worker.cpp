@@ -10,8 +10,8 @@
 #include "unity/animal_tools.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
-#include "commands/hotkeys.hpp"
-#include "settings/settings.hpp"
+#include <astra/host/hotkeys.hpp>
+#include <astra/host/settings.hpp>
 #include "logger/exception_handler.hpp"
 
 namespace big
@@ -25,7 +25,7 @@ namespace big
 		animal_tools::update();
 		animal_tools::hotkey_tick();
 		settings::apply_external();
-		hotkeys::tick();
+		hotkeys::tick(g_pointers->m_hwnd);
 	}
 
 	static void safe_update()

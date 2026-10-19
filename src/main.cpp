@@ -11,7 +11,7 @@
 #include "mono/mono.hpp"
 #include "logger/logger.hpp"
 #include "plugins/plugins.hpp"
-#include "settings/settings.hpp"
+#include <astra/host/settings.hpp>
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
 #include "worker/entity_worker.hpp"
