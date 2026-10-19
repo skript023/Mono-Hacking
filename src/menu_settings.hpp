@@ -144,7 +144,7 @@ namespace big
 
 			int layout         = 0; // 0: List, 1: Window
 			int theme          = 4; // Emerald, Violet, Ocean
-			int banner         = 0; // 0: Quantum Green, 1: Astra Standard
+			int banner         = 0; // Index into astra::banners().
 			bool switched_view = true;
 			bool mouse_active  = false;
 			bool input         = false;

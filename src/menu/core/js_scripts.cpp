@@ -74,14 +74,7 @@ namespace big
 			scripts_scanned = true;
 		}
 
-		ImGui::SetNextWindowSize({850, 620}, ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSizeConstraints({650, 480}, ImGui::GetIO().DisplaySize);
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, {0.09f, 0.094f, 0.129f, 0.98f});
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.055f, 0.06f, 0.085f, 1.0f});
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 4.0f);
-		const bool visible = ImGui::Begin("Javascript Console", &g_settings.window.js_eval, ImGuiWindowFlags_NoCollapse);
+		const bool visible = canvas::begin_panel("Javascript Console", &g_settings.window.js_eval, {.size = {850.f, 620.f}, .min_size = {650.f, 480.f}, .collapsible = false});
 		if (visible)
 		{
 			const bool has_ui_font = g_renderer && g_renderer->m_font;
@@ -188,7 +181,6 @@ namespace big
 					{
 						javascript_manager::clear_console();
 					}
-					ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.06f, 0.06f, 0.08f, 1.0f});
 					if (ImGui::BeginChild("##js_output", {0, 0}, ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar))
 					{
 						const bool has_mono_font = g_renderer && g_renderer->m_monospace_font;
@@ -223,38 +215,27 @@ namespace big
 							{
 								continue;
 							}
-							ImGui::TextColored({0.50f, 0.52f, 0.58f, 1.0f}, "[%s]", entry.time.c_str());
-							ImGui::SameLine();
-							ImVec4 badge      = {0.35f, 0.75f, 0.95f, 1.0f};
+							// The level label names each entry, so it reads in every theme without its own colour.
 							const char* level = "INFO";
 							if (entry.level == js_log_level::warn)
 							{
-								badge = {0.95f, 0.72f, 0.20f, 1.0f};
 								level = "WARN";
 							}
 							if (entry.level == js_log_level::error)
 							{
-								badge = {0.95f, 0.35f, 0.35f, 1.0f};
 								level = "ERR ";
 							}
 							if (entry.level == js_log_level::eval_in)
 							{
-								badge = {0.68f, 0.55f, 0.95f, 1.0f};
 								level = "IN  ";
 							}
 							if (entry.level == js_log_level::eval_out)
 							{
-								badge = {0.35f, 0.90f, 0.55f, 1.0f};
 								level = "OUT ";
 							}
-							ImGui::TextColored(badge, "[%s]", level);
+							ImGui::TextDisabled("[%s] [%s]", entry.time.c_str(), level);
 							ImGui::SameLine();
-							ImVec4 color = entry.level == js_log_level::error ? ImVec4(0.95f, 0.45f, 0.45f, 1.0f) :
-							    entry.level == js_log_level::warn             ? ImVec4(0.95f, 0.85f, 0.45f, 1.0f) :
-							    entry.level == js_log_level::eval_in          ? ImVec4(0.75f, 0.80f, 0.90f, 1.0f) :
-							    entry.level == js_log_level::eval_out         ? ImVec4(0.40f, 0.95f, 0.65f, 1.0f) :
-							                                                    ImGui::GetStyleColorVec4(ImGuiCol_Text);
-							ImGui::TextColored(color, "%s", entry.message.c_str());
+							ImGui::TextUnformatted(entry.message.c_str());
 							if (ImGui::IsItemHovered())
 							{
 								ImGui::SetTooltip("%s", entry.message.c_str());
@@ -271,7 +252,6 @@ namespace big
 						}
 					}
 					ImGui::EndChild();
-					ImGui::PopStyleColor();
 					ImGui::EndTabItem();
 				}
 				if (ImGui::BeginTabItem("Script Manager"))
@@ -398,8 +378,6 @@ namespace big
 				ImGui::PopFont();
 			}
 		}
-		ImGui::End();
-		ImGui::PopStyleVar(3);
-		ImGui::PopStyleColor(2);
+		canvas::end_panel();
 	}
 }

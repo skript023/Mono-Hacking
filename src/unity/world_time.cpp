@@ -1,6 +1,6 @@
 #include "world_time.hpp"
 
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "task_mgr.hpp"
 #include "utility/unity.hpp"
 

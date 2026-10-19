@@ -5,7 +5,7 @@
 #include "features/features.hpp"
 #include "unity/online_players.hpp"
 #include "task_mgr.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "unity/exploration.hpp"
 #include "unity/animal_tools.hpp"
 #include "unity/camera_tools.hpp"
@@ -139,67 +139,50 @@ namespace big
 		{
 			return;
 		}
-		auto* viewport    = ImGui::GetMainViewport();
-		const float width = std::min(360.f, viewport->WorkSize.x);
-		ImGui::SetNextWindowPos({viewport->WorkPos.x + viewport->WorkSize.x - width - 16.f, viewport->WorkPos.y + 32.f}, ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize({width, std::min(390.f, viewport->WorkSize.y)}, ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSizeConstraints({std::min(240.f, width), 180.f}, viewport->WorkSize);
-		if (ImGui::Begin("Player Info", nullptr, ImGuiWindowFlags_NoCollapse))
+		astra::info_window info;
+		if (!panel_player)
 		{
-			ImGui::PushTextWrapPos(0.f);
-			if (!panel_player)
+			info.message = panel_status;
+		}
+		else
+		{
+			const auto& p = *panel_player;
+			info.heading  = p.name;
+			auto& rows    = info.rows;
+			rows.push_back({"", p.local ? "You" : "Online player"});
+			rows.push_back({"Character ID", p.id});
+			rows.push_back({"Platform", p.platform});
+			if (p.platform == "Steam")
 			{
-				ImGui::TextUnformatted(panel_status.c_str());
+				rows.push_back({"Steam ID", p.account_id});
 			}
 			else
 			{
-				const auto& p = *panel_player;
-				ImGui::TextUnformatted(p.name.c_str());
-				ImGui::Separator();
-				ImGui::TextUnformatted(p.local ? "You" : "Online player");
-				ImGui::Text("Character ID: %s", p.id.empty() ? "Not available" : p.id.c_str());
-				ImGui::Text("Platform: %s", p.platform.empty() ? "Not available" : p.platform.c_str());
-				if (p.platform == "Steam")
+				rows.push_back({"Steam ID", "not available for this platform"});
+				if (!p.account_id.empty())
 				{
-					ImGui::Text("Steam ID: %s", p.account_id.empty() ? "Not available" : p.account_id.c_str());
+					rows.push_back({"Platform account ID", p.account_id});
 				}
-				else
-				{
-					ImGui::TextUnformatted("Steam ID: not available for this platform");
-					if (!p.account_id.empty())
-					{
-						ImGui::Text("Platform account ID: %s", p.account_id.c_str());
-					}
-				}
-				ImGui::TextUnformatted(p.loaded ? "Character: loaded nearby" : "Character: outside loaded area / spawning");
-				ImGui::Text("Sharing map position: %s", p.public_position ? "Yes" : "No");
-				if (p.health && p.max_health)
-				{
-					ImGui::Text("Health: %.0f / %.0f", *p.health, *p.max_health);
-				}
-				else
-				{
-					ImGui::TextUnformatted("Health: not available outside loaded area");
-				}
-				if (p.position)
-				{
-					ImGui::Text("Position: %s", coordinates(*p.position).c_str());
-					ImGui::TextUnformatted(p.loaded ? "Position source: loaded character" : "Position source: shared map position");
-				}
-				else
-				{
-					ImGui::TextUnformatted("Position: not shared and character not loaded");
-				}
-				if (p.distance)
-				{
-					ImGui::Text("Distance: %.1f m", *p.distance);
-				}
-				ImGui::Separator();
-				ImGui::TextUnformatted("Updates every second. Shared map positions may lag behind movement.");
 			}
-			ImGui::PopTextWrapPos();
+			rows.push_back({"Character", p.loaded ? "loaded nearby" : "outside loaded area / spawning"});
+			rows.push_back({"Sharing map position", p.public_position ? "Yes" : "No"});
+			rows.push_back({"Health", p.health && p.max_health ? std::format("{:.0f} / {:.0f}", *p.health, *p.max_health) : "not available outside loaded area"});
+			if (p.position)
+			{
+				rows.push_back({"Position", coordinates(*p.position)});
+				rows.push_back({"Position source", p.loaded ? "loaded character" : "shared map position"});
+			}
+			else
+			{
+				rows.push_back({"Position", "not shared and character not loaded"});
+			}
+			if (p.distance)
+			{
+				rows.push_back({"Distance", std::format("{:.1f} m", *p.distance)});
+			}
+			info.note = "Updates every second. Shared map positions may lag behind movement.";
 		}
-		ImGui::End();
+		canvas::draw_info_window("Player Info", info);
 	}
 
 	void view::toggle_generated_location_browser()
@@ -218,15 +201,16 @@ namespace big
 			return;
 		}
 
-		ImGui::SetNextWindowSize({520.f, 480.f}, ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Generated Locations", &location_browser.open, ImGuiWindowFlags_NoCollapse))
+		if (!canvas::begin_panel("Generated Locations", &location_browser.open, {.size = {520.f, 480.f}, .collapsible = false}))
 		{
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 
 		ImGui::TextWrapped("Browse location types that have already been generated in this world. Select one to teleport to its nearest instance.");
-		ImGui::SetNextItemWidth(-112.f);
+		// Leaves exactly the button's room, so the button never runs past the panel's edge.
+		const auto& style = ImGui::GetStyle();
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("Scanning...").x - style.FramePadding.x * 2 - style.ItemSpacing.x);
 		ImGui::InputTextWithHint("##GeneratedLocationSearch", "Search name or prefab...", &location_browser.search);
 		ImGui::SameLine();
 		bool loading{};
@@ -322,7 +306,7 @@ namespace big
 			}
 			ImGui::EndChild();
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 
 	void view::draw_overlay()
@@ -347,20 +331,13 @@ namespace big
 		const float max_stamina = local.get_max_stamina();
 		const float max_eitr    = local.get_max_eitr();
 
-		ImGui::SetNextWindowPos(ImVec2(18.f, 18.f), ImGuiCond_Always);
-		ImGui::SetNextWindowBgAlpha(0.78f);
-		constexpr auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-		if (ImGui::Begin("Valheim Info##PlayerOverlay", nullptr, flags))
-		{
-			ImGui::TextUnformatted("PLAYER STATUS");
-			ImGui::Separator();
-			ImGui::Text("Health  %.0f / %.0f", health, max_health);
-			ImGui::Text("Stamina %.0f / %.0f", stamina, max_stamina);
-			ImGui::Text("Eitr    %.0f / %.0f", eitr, max_eitr);
-			ImGui::Separator();
-			ImGui::Text("Position  %.1f, %.1f, %.1f", position.x, position.y, position.z);
-		}
-		ImGui::End();
+		const astra::overlay_row rows[] = {
+		    {"Health", std::format("{:.0f} / {:.0f}", health, max_health)},
+		    {"Stamina", std::format("{:.0f} / {:.0f}", stamina, max_stamina)},
+		    {"Eitr", std::format("{:.0f} / {:.0f}", eitr, max_eitr)},
+		    {"Position", std::format("{:.1f}, {:.1f}, {:.1f}", position.x, position.y, position.z)},
+		};
+		canvas::draw_overlay("Player status", rows);
 	}
 
 	void view::player_submenu()

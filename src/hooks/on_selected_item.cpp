@@ -2,7 +2,7 @@
 #include "features/features.hpp"
 #include "hooking.hpp"
 #include "menu_settings.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include <script_mgr.hpp>
 #include "unity/equipment_slots.hpp"
 #include "unity/item_drop.hpp"

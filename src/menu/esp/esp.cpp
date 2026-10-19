@@ -259,7 +259,7 @@ namespace big
 			return;
 		}
 
-		if (ImGui::Begin("ESP Colors", &s_show_esp_colors, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
+		if (canvas::begin_panel("ESP Colors", &s_show_esp_colors, {.size = {0.f, 0.f}, .collapsible = false, .fit_content = true}))
 		{
 			auto character_color = features::_esp_character_color.get_state();
 			if (ImGui::ColorEdit4("Creatures and players", &character_color.x, ImGuiColorEditFlags_NoInputs))
@@ -273,6 +273,6 @@ namespace big
 			}
 			ImGui::TextDisabled("Colors are saved with the trainer settings.");
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 }

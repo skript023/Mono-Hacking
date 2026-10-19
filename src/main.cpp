@@ -11,7 +11,7 @@
 #include "mono/mono.hpp"
 #include "logger/logger.hpp"
 #include "plugins/plugins.hpp"
-#include "settings/settings.hpp"
+#include <astra/host/settings.hpp>
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
 #include "worker/entity_worker.hpp"
@@ -22,7 +22,7 @@
 #include "unity/world_time.hpp"
 #include "javascript/javascript_manager.hpp"
 
-#include "services/notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 DWORD APIENTRY main_thread(LPVOID)
 {
@@ -163,6 +163,12 @@ DWORD APIENTRY main_thread(LPVOID)
 	if (!render_vulkan::stop_capture())
 	{
 		LOG(WARNING) << "DLL retained because Vulkan hooks are still active.";
+		return 0;
+	}
+
+	if (!detour_base::hooks().empty())
+	{
+		LOG(WARNING) << "DLL retained because another program still calls into its hooks. Restart the game before injecting again.";
 		return 0;
 	}
 

@@ -138,6 +138,9 @@ namespace big
 		void disable();
 
 	private:
+		// Deletes every hook that came off; a hook still in place stays alive for whoever calls into it.
+		static void delete_disabled_hooks();
+
 		bool m_enabled{};
 
 

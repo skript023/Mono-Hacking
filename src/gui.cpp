@@ -11,13 +11,15 @@
 
 #include <imgui.h>
 #include "astra/host/canvas.hpp"
+#include <astra/key_settings.hpp>
+#include <astra/banners.hpp>
 #include "javascript/bindings/gui_binding.hpp"
 
 #include "menu/view.hpp"
 #include "menu/esp/esp.h"
 
 //#include <input/input_service.hpp>
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "unity/animal_tools.hpp"
 #include "unity/equipment_slots.hpp"
 #include "unity/item_spawner.hpp"
@@ -179,7 +181,7 @@ namespace big
 
 	void gui::script_init()
 	{
-		notification::success("Welcome", std::format("{} Trainer Successfully Injected. Press insert to open", GAME_NAME));
+		notification::success("Welcome", std::format("Successfully Injected. Press {} to open", astra::menu_key_name(static_cast<int>(g_settings.window.open_key))));
 	}
 
 	void gui::wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -267,10 +269,8 @@ namespace big
 			}
 		};
 
-		load_banner("Quantum Green", quantum_green, sizeof(quantum_green));
-		load_banner("Ellohim", ellohim, sizeof(ellohim));
-		load_banner("Ellohim Green", ellohim_green, sizeof(ellohim_green));
-		load_banner("Astra Standard", astra_standard, sizeof(astra_standard));
+		for (const auto& banner : astra::banners())
+			load_banner(std::string(banner.name), banner.image.data(), static_cast<int>(banner.image.size()));
 
 		load(toggle_texture, sizeof(toggle_texture), m_toggle, m_toggle_size);
 

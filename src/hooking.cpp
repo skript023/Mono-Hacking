@@ -9,7 +9,6 @@
 #include "graphic/graphic_manager.hpp"
 
 #include <ellohim/logger.hpp>
-#include <imgui.h>
 
 namespace big
 {
@@ -83,7 +82,6 @@ namespace big
 
 		detour_hook::add<hooks::set_cursor_pos>("SetCursorPos", memory::module("user32.dll").get_export("SetCursorPos").as<void*>());
 		detour_hook::add<hooks::clip_cursor>("ClipCursor", memory::module("user32.dll").get_export("ClipCursor").as<void*>());
-		LOG(INFO) << "Mouse in pointer mode: " << (IsMouseInPointerEnabled() ? "on" : "off");
 		detour_hook::add<hooks::convert_thread_to_fiber>("ConvertThreadToFiber",
 		    memory::module("kernel32.dll").get_export("ConvertThreadToFiber").as<void*>());
 
@@ -224,12 +222,28 @@ namespace big
 			disable();
 		}
 
-		while (!detour_base::hooks().empty())
-		{
-			delete detour_base::hooks().back();
-		}
+		delete_disabled_hooks();
 
 		g_hooking = nullptr;
+	}
+
+	void hooking::delete_disabled_hooks()
+	{
+		// A hook stays enabled when another program, such as the Discord overlay, has hooked the same function on top
+		// of it: that program still calls the detour, so the detour and its trampoline must stay alive. With g_running
+		// false the detour only passes the call on, and main keeps the DLL loaded while any hook is left.
+		std::vector<detour_base*> disabled;
+		for (auto* hook : detour_base::hooks())
+		{
+			if (!hook->is_enabled())
+			{
+				disabled.push_back(hook);
+			}
+		}
+		for (auto* hook : disabled)
+		{
+			delete hook;
+		}
 	}
 
 	void hooking::enable()
@@ -260,11 +274,14 @@ namespace big
 		SetWindowLongPtrW(g_pointers->m_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_og_wndproc));
 
 		detour_base::disable_all();
-
-		while (!detour_base::hooks().empty())
+		for (auto* hook : detour_base::hooks())
 		{
-			delete detour_base::hooks().back();
+			if (hook->is_enabled())
+			{
+				LOG(WARNING) << "Hook '" << hook->name() << "' is covered by another program's hook; it stays in place.";
+			}
 		}
+		delete_disabled_hooks();
 	}
 
 	void* hooks::convert_thread_to_fiber(void* param)
@@ -277,47 +294,15 @@ namespace big
 		return detour_base::get_original<hooks::convert_thread_to_fiber>()(param);
 	}
 
-	// Astra holds back the keyboard whenever ImGui holds a widget, such as a checkbox under a pressed button.
-	// The game keeps its keys unless a menu text field is typing, and always gets releases so no key sticks.
-	static bool game_keeps_message(UINT msg, LPARAM lparam)
-	{
-		const auto& io = ImGui::GetIO();
-		if (msg >= WM_KEYFIRST && msg <= WM_KEYLAST)
-			return !io.WantTextInput || msg == WM_KEYUP || msg == WM_SYSKEYUP;
-		if (msg != WM_INPUT)
-			return false;
-
-		RAWINPUT raw{};
-		UINT size = sizeof(raw);
-		if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lparam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER)) == static_cast<UINT>(-1))
-			return false;
-
-		if (raw.header.dwType == RIM_TYPEMOUSE)
-			return !io.WantCaptureMouse;
-		if (raw.header.dwType == RIM_TYPEKEYBOARD)
-			return !io.WantTextInput || (raw.data.keyboard.Flags & RI_KEY_BREAK);
-		return false;
-	}
-
 	LRESULT hooks::wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
 		if (g_running)
 		{
 			std::lock_guard lock(render_mutex);
 			g_renderer->wndproc(hwnd, msg, wparam, lparam);
-			// Unity takes the wheel from pointer messages, which Astra does not filter. DefWindowProc turns
-			// them into WM_MOUSEWHEEL, so the menu still scrolls.
-			if ((msg == WM_POINTERWHEEL || msg == WM_POINTERHWHEEL) && canvas::uses_mouse() && ImGui::GetIO().WantCaptureMouse)
+			if (auto result = canvas::block_game_message(hwnd, msg, wparam, lparam))
 			{
-				return DefWindowProcW(hwnd, msg, wparam, lparam);
-			}
-			if (canvas::captures_message(msg) && !game_keeps_message(msg, lparam))
-			{
-				if (msg == WM_INPUT)
-				{
-					return DefWindowProcW(hwnd, msg, wparam, lparam);
-				}
-				return 0;
+				return *result;
 			}
 		}
 
@@ -338,12 +323,15 @@ namespace big
 	// SetCursorPos alone leaves it stuck there.
 	static std::mutex g_cursor_clip_mutex;
 	static std::optional<RECT> g_game_cursor_clip;
+	static bool g_game_cursor_clip_seen = false;
 	static bool g_cursor_clip_released = false;
+	static std::optional<POINT> g_menu_cursor;
 
 	BOOL hooks::clip_cursor(const RECT* rect)
 	{
 		std::lock_guard lock(g_cursor_clip_mutex);
 		g_game_cursor_clip = rect ? std::optional<RECT>(*rect) : std::nullopt;
+		g_game_cursor_clip_seen = true;
 		if (g_cursor_clip_released)
 		{
 			return TRUE;
@@ -361,7 +349,27 @@ namespace big
 		}
 
 		g_cursor_clip_released = menu_uses_mouse;
-		const RECT* clip       = !menu_uses_mouse && g_game_cursor_clip ? &*g_game_cursor_clip : nullptr;
-		detour_base::get_original<hooks::clip_cursor>()(clip);
+		if (!menu_uses_mouse)
+		{
+			if (POINT cursor; GetCursorPos(&cursor))
+				g_menu_cursor = cursor;
+			detour_base::get_original<hooks::clip_cursor>()(g_game_cursor_clip ? &*g_game_cursor_clip : nullptr);
+			return;
+		}
+
+		// A clip Unity set before injection never passed through the hook; lifting it unrecorded would leave the
+		// hidden cursor free to drift after the menu closes.
+		if (RECT clip{}; !g_game_cursor_clip_seen && GetClipCursor(&clip))
+		{
+			const int x = GetSystemMetrics(SM_XVIRTUALSCREEN), y = GetSystemMetrics(SM_YVIRTUALSCREEN);
+			const RECT desktop{x, y, x + GetSystemMetrics(SM_CXVIRTUALSCREEN), y + GetSystemMetrics(SM_CYVIRTUALSCREEN)};
+			if (!EqualRect(&clip, &desktop))
+				g_game_cursor_clip = clip;
+			g_game_cursor_clip_seen = true;
+		}
+		detour_base::get_original<hooks::clip_cursor>()(nullptr);
+		// As in RDR2, the menu cursor comes back where it was left, not where the clip pulled it.
+		if (g_menu_cursor)
+			detour_base::get_original<hooks::set_cursor_pos>()(g_menu_cursor->x, g_menu_cursor->y);
 	}
 }

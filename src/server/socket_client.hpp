@@ -8,7 +8,7 @@
 #include <atomic>
 #include "enums/connection_status.hpp"
 #include "hooking.hpp"
-#include "services/notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include <nlohmann/json.hpp>
 
 namespace big

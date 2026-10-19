@@ -1,7 +1,7 @@
 #include "../view.hpp"
 #include "unity/base_tools.hpp"
 #include "unity/ship_tools.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "task_mgr.hpp"
 #include <cmath>
 
@@ -290,12 +290,7 @@ namespace big
 			return;
 		}
 		auto state        = base_tools::get_snapshot();
-		auto* viewport    = ImGui::GetMainViewport();
-		const float width = std::min(440.f, viewport->WorkSize.x);
-		ImGui::SetNextWindowPos({viewport->WorkPos.x + viewport->WorkSize.x - width - 16.f, viewport->WorkPos.y + 32.f}, ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize({width, std::min(520.f, viewport->WorkSize.y)}, ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSizeConstraints({std::min(260.f, width), 180.f}, viewport->WorkSize);
-		if (ImGui::Begin("Base Inspector", nullptr, ImGuiWindowFlags_NoCollapse))
+		if (canvas::begin_panel("Base Inspector", nullptr, {.size = {440.f, 520.f}, .min_size = {260.f, 180.f}, .collapsible = false}))
 		{
 			ImGui::PushTextWrapPos(0.f);
 			const char* titles[] = {"Production", "Damaged Buildings", "Plants", "Comfort"};
@@ -331,6 +326,6 @@ namespace big
 			}
 			ImGui::PopTextWrapPos();
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 }

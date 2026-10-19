@@ -5,8 +5,9 @@
 #include "unity/localization.hpp"
 #include "unity/player.hpp"
 #include "utility/unity.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "astra/host/canvas.hpp"
+#include <astra/components.hpp>
 #include "menu_settings.hpp"
 #include "task_mgr.hpp"
 
@@ -1154,15 +1155,11 @@ namespace big
 			return;
 		}
 
-		auto* viewport = ImGui::GetMainViewport();
-		ImGui::SetNextWindowSize({500.f, 520.f}, ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowPos({viewport->WorkPos.x + 40.f, viewport->WorkPos.y + 40.f}, ImGuiCond_FirstUseEver);
-
-		if (ImGui::Begin("Valheim Item & Entity Spawner", &s_standalone_open))
+		if (canvas::begin_panel("Valheim Item & Entity Spawner", &s_standalone_open, {.size = {500.f, 520.f}}))
 		{
 			draw_menu_ui();
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 
 	void item_spawner::draw_menu_ui_impl()
@@ -1329,7 +1326,9 @@ namespace big
 			const auto* cur = selected;
 			s_spawn_variant = std::clamp(s_spawn_variant, 0, std::max(1, cur->variant_count) - 1);
 			ImGui::Spacing();
-			ImGui::TextColored(ImVec4(0.4f, 0.9f, 1.f, 1.f),
+			auto accent = canvas::current_theme().accent;
+			accent.w    = 1.f;
+			ImGui::TextColored(accent,
 			    "Selected: %s (%s)",
 			    cur->display_name.c_str(),
 			    cur->prefab_name.c_str());
@@ -1352,8 +1351,7 @@ namespace big
 				notification::success("Item Spawner", "Prefab ID copied to clipboard.");
 			}
 
-			ImGui::SetNextItemWidth(180.f);
-			ImGui::SliderInt("Quantity", &s_spawn_amount, 1, 10000);
+			astra::slider("Quantity", &s_spawn_amount, 1, 10000);
 			if (ImGui::SmallButton("10"))
 			{
 				s_spawn_amount = 10;
@@ -1376,37 +1374,32 @@ namespace big
 
 			if (cur->max_quality > 1)
 			{
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(140.f);
-				ImGui::SliderInt("Quality Level", &s_spawn_quality, 1, 99);
+				astra::slider("Quality Level", &s_spawn_quality, 1, 99);
 			}
 			if (cur->variant_count > 1)
 			{
-				ImGui::SetNextItemWidth(180.f);
-				ImGui::SliderInt("Variant", &s_spawn_variant, 0, cur->variant_count - 1);
-				ImGui::SameLine();
+				astra::slider("Variant", &s_spawn_variant, 0, cur->variant_count - 1);
 			}
-			ImGui::SetNextItemWidth(180.f);
 			int durability_percent = static_cast<int>(std::lround(s_spawn_durability * 100.f));
-			if (ImGui::SliderInt("Durability %", &durability_percent, 0, 100))
+			if (astra::slider("Durability", &durability_percent, 0, 100, "%"))
 			{
 				s_spawn_durability = durability_percent / 100.f;
 			}
-			ImGui::Checkbox("Auto equip when possible", &s_auto_equip);
+			astra::checkbox("Auto equip when possible", &s_auto_equip);
 			const char* spawn_placements[] = {"In front", "At feet", "Along crosshair direction"};
-			ImGui::Combo("World spawn position", &s_spawn_placement, spawn_placements, IM_ARRAYSIZE(spawn_placements));
+			astra::choice("World spawn position", &s_spawn_placement, spawn_placements);
 
 			ImGui::Spacing();
-			if (ImGui::Button("Give to Inventory", ImVec2(180, 32)))
+			if (ImGui::Button("Give to Inventory", ImVec2(180, 0)))
 			{
 				spawn_to_inventory(cur->prefab_name, s_spawn_amount, s_spawn_quality, s_spawn_variant, s_spawn_durability, s_auto_equip);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Spawn in World", ImVec2(160, 32)))
+			if (ImGui::Button("Spawn in World", ImVec2(160, 0)))
 			{
 				spawn_in_world(cur->prefab_name, s_spawn_amount, s_spawn_quality, s_spawn_variant, s_spawn_durability, s_spawn_placement);
 			}
-			if (!s_last_spawned_prefab.empty() && ImGui::Button("Spawn Again", ImVec2(180, 28)))
+			if (!s_last_spawned_prefab.empty() && ImGui::Button("Spawn Again", ImVec2(180, 0)))
 			{
 				if (s_last_spawn_to_world)
 				{

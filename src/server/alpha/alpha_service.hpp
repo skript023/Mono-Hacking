@@ -3,7 +3,7 @@
 #include "server/socket_client.hpp"
 #include "server/auth_client.hpp"
 #include "server/interfaces/message.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 namespace big
 {

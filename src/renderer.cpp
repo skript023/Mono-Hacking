@@ -140,11 +140,8 @@ namespace big
 		item_icons::begin_frame();
 		auto& io = ImGui::GetIO();
 		hooks::sync_cursor_clip(canvas::uses_mouse());
-		io.MouseDrawCursor = canvas::uses_mouse();
-		if (canvas::uses_mouse())
-			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-		else
-			io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+		canvas::prepare_imgui_mouse();
+		canvas::apply_panel_theme();
 		ImGui_ImplWin32_NewFrame();
 		if (framebuffer_size.x > 0.f && framebuffer_size.y > 0.f)
 		{
@@ -153,6 +150,7 @@ namespace big
 			io.DisplayFramebufferScale = {framebuffer_size.x / io.DisplaySize.x, framebuffer_size.y / io.DisplaySize.y};
 		}
 		ImGui::NewFrame();
+		canvas::keep_windows_off_menu();
 		for (const auto& cb : g_gui.m_dx_callbacks | std::views::values)
 			cb();
 		ImGui::Render();
@@ -184,19 +182,6 @@ namespace big
 	void renderer::wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
 		std::lock_guard lock(render_mutex);
-		if (msg == WM_KEYUP && wparam == VK_INSERT)
-		{
-			//Persist and restore the cursor position between menu instances.
-			static POINT cursor_coords{};
-			if (canvas::is_opened())
-			{
-				GetCursorPos(&cursor_coords);
-			}
-			else if (cursor_coords.x + cursor_coords.y != 0)
-			{
-				SetCursorPos(cursor_coords.x, cursor_coords.y);
-			}
-		}
 		if (msg == WM_KEYUP && wparam == VK_END)
 		{
 			g_running = false;

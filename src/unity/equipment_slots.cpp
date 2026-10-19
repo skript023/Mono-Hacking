@@ -1,12 +1,13 @@
 #include "equipment_slots.hpp"
 #include "hooking.hpp"
 #include "menu_settings.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "unity/item_icons.hpp"
 #include "unity/localization.hpp"
 #include "utility/unity.hpp"
 
 #include <algorithm>
+#include <astra/host/canvas.hpp>
 #include <format>
 #include <unordered_set>
 
@@ -1977,44 +1978,30 @@ namespace big
 			return;
 		}
 
-		ImGui::SetNextWindowSize(ImVec2(760, 600), ImGuiCond_FirstUseEver);
-		constexpr int palette_color_count = 10;
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.13f, 0.14f, 0.13f, 0.97f));
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.085f, 0.095f, 0.085f, 0.96f));
-		ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.11f, 0.12f, 0.11f, 0.99f));
-		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.38f, 0.36f, 0.29f, 0.85f));
-		ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.09f, 0.10f, 0.09f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.16f, 0.17f, 0.14f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.17f, 0.18f, 0.16f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.19f, 0.20f, 0.17f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.26f, 0.27f, 0.21f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.34f, 0.31f, 0.22f, 1.00f));
-		if (!ImGui::Begin("Equipment & Quick Slots", &g_settings.self.equipment_slots_window, ImGuiWindowFlags_NoCollapse))
+		if (!canvas::begin_panel("Equipment & Quick Slots", &g_settings.self.equipment_slots_window, {.size = {760.f, 600.f}, .collapsible = false}))
 		{
-			ImGui::End();
-			ImGui::PopStyleColor(palette_color_count);
+			canvas::end_panel();
 			return;
 		}
 
-		ImGui::TextColored(ImVec4(0.88f, 0.76f, 0.51f, 1.f), "Equipment & quick slots");
+		const auto theme = canvas::current_theme();
+		const ImVec4 accent{theme.accent.x, theme.accent.y, theme.accent.z, 1.f};
+		ImGui::TextColored(accent, "Equipment & quick slots");
 		ImGui::SameLine();
 		ImGui::TextDisabled("Gear, food, ammunition, and quick access");
 		ImGui::Spacing();
 
-		if (ImGui::Button("Auto-Fill", ImVec2(110.f, 30.f)))
+		if (ImGui::Button("Auto-Fill", ImVec2(110.f, 0.f)))
 		{
 			mgr.auto_fill_from_inventory();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Return All", ImVec2(110.f, 30.f)))
+		if (ImGui::Button("Return All", ImVec2(110.f, 0.f)))
 		{
 			mgr.deposit_all_to_inventory();
 		}
 		ImGui::SameLine();
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.36f, 0.30f, 0.19f, 1.f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.45f, 0.37f, 0.22f, 1.f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.53f, 0.42f, 0.24f, 1.f));
-		if (ImGui::Button("Save Loadout", ImVec2(125.f, 30.f)))
+		if (ImGui::Button("Save Loadout", ImVec2(125.f, 0.f)))
 		{
 			if (mgr.save_to_player())
 			{
@@ -2025,7 +2012,6 @@ namespace big
 				notification::warning("Equipment Slots", "Could not save the loadout. Join a world and try again.");
 			}
 		}
-		ImGui::PopStyleColor(3);
 		ImGui::SameLine();
 		ImGui::Checkbox("Hotkeys", &g_settings.self.equipment_slots_hotkeys);
 		ImGui::Separator();
@@ -2040,65 +2026,39 @@ namespace big
 			auto item     = mgr.get_item_at(c, r);
 			std::string title;
 			std::string hotkey;
-			ImVec4 accent_color(0.85f, 0.85f, 0.85f, 1.0f);
 			switch (kind)
 			{
-			case slot_kind::helmet:
-				title        = "HELM";
-				accent_color = ImVec4(0.88f, 0.72f, 0.35f, 1.0f);
-				break;
-			case slot_kind::cape:
-				title        = "CAPE";
-				accent_color = ImVec4(0.88f, 0.72f, 0.35f, 1.0f);
-				break;
-			case slot_kind::chest:
-				title        = "CHEST";
-				accent_color = ImVec4(0.88f, 0.72f, 0.35f, 1.0f);
-				break;
-			case slot_kind::legs:
-				title        = "LEGS";
-				accent_color = ImVec4(0.88f, 0.72f, 0.35f, 1.0f);
-				break;
-			case slot_kind::trinket:
-				title        = "TRINKET";
-				accent_color = ImVec4(0.88f, 0.72f, 0.35f, 1.0f);
-				break;
-			case slot_kind::utility:
-				title        = std::format("UTIL {}", num);
-				accent_color = ImVec4(0.35f, 0.72f, 0.78f, 1.0f);
-				break;
+			case slot_kind::helmet: title = "HELM"; break;
+			case slot_kind::cape: title = "CAPE"; break;
+			case slot_kind::chest: title = "CHEST"; break;
+			case slot_kind::legs: title = "LEGS"; break;
+			case slot_kind::trinket: title = "TRINKET"; break;
+			case slot_kind::utility: title = std::format("UTIL {}", num); break;
 			case slot_kind::food:
-				title        = std::format("FOOD {}", num);
-				hotkey       = std::format("Shift+{}", num);
-				accent_color = ImVec4(0.45f, 0.73f, 0.34f, 1.0f);
+				title  = std::format("FOOD {}", num);
+				hotkey = std::format("Shift+{}", num);
 				break;
 			case slot_kind::ammo:
-				title        = std::format("AMMO {}", num);
-				hotkey       = std::format("Alt+{}", num == 1 ? "R" : num == 2 ? "T" : "Z");
-				accent_color = ImVec4(0.85f, 0.43f, 0.20f, 1.0f);
+				title  = std::format("AMMO {}", num);
+				hotkey = std::format("Alt+{}", num == 1 ? "R" : num == 2 ? "T" : "Z");
 				break;
-			case slot_kind::key:
-				title        = std::format("KEY {}", num);
-				accent_color = ImVec4(0.85f, 0.68f, 0.21f, 1.0f);
-				break;
+			case slot_kind::key: title = std::format("KEY {}", num); break;
 			case slot_kind::quick:
-				title        = std::format("QUICK {}", num);
-				hotkey       = std::format("Alt+{}", num);
-				accent_color = ImVec4(0.62f, 0.47f, 0.84f, 1.0f);
+				title  = std::format("QUICK {}", num);
+				hotkey = std::format("Alt+{}", num);
 				break;
 			default: break;
 			}
 
 			ImGui::PushID(r * grid_width + c);
 			ImGui::BeginGroup();
-			ImGui::TextColored(accent_color, "%s", title.c_str());
+			ImGui::TextUnformatted(title.c_str());
+			// The border marks the slot's state in the menu theme: equipped, holding an item, or empty.
 			const bool equipped = item && is_item_equipped(item);
-			const ImVec4 border = equipped ? ImVec4(0.92f, 0.78f, 0.38f, 1.0f) :
-			    item ? ImVec4(accent_color.x, accent_color.y, accent_color.z, 0.85f) :
-			           ImVec4(accent_color.x * 0.45f, accent_color.y * 0.45f, accent_color.z * 0.45f, 0.65f);
-			const ImVec4 button = ImVec4(0.16f, 0.17f, 0.15f, 1.00f);
+			const ImVec4 border = equipped ? accent :
+			    item ? ImVec4(theme.muted.x, theme.muted.y, theme.muted.z, 0.85f) :
+			           ImVec4(theme.muted.x, theme.muted.y, theme.muted.z, 0.35f);
 			ImGui::PushStyleColor(ImGuiCol_Border, border);
-			ImGui::PushStyleColor(ImGuiCol_Button, button);
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);
 			bool clicked = false;
 			if (item)
@@ -2126,14 +2086,14 @@ namespace big
 			const bool hovered       = ImGui::IsItemHovered();
 			const bool right_clicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
 			ImGui::PopStyleVar();
-			ImGui::PopStyleColor(2);
+			ImGui::PopStyleColor();
 			if (!hotkey.empty())
 			{
-				ImGui::TextColored(ImVec4(0.88f, 0.78f, 0.52f, 1.f), "%s", hotkey.c_str());
+				ImGui::TextDisabled("%s", hotkey.c_str());
 			}
 			else if (equipped)
 			{
-				ImGui::TextColored(ImVec4(0.45f, 0.73f, 0.34f, 1.f), "Equipped");
+				ImGui::TextColored(accent, "Equipped");
 			}
 			else if (item)
 			{
@@ -2168,7 +2128,7 @@ namespace big
 				}
 				if (is_item_equipped(item))
 				{
-					ImGui::TextColored(ImVec4(0.43f, 0.82f, 0.38f, 1.f), "Equipped");
+					ImGui::TextColored(accent, "Equipped");
 				}
 				ImGui::Separator();
 				ImGui::TextDisabled("Left click: use or equip");
@@ -2197,9 +2157,9 @@ namespace big
 			ImGui::PopID();
 		};
 
-		auto draw_section = [&](const char* title, const char* subtitle, ImVec4 header_color, const std::vector<iVector2>& slots, float width = 0.f) {
+		auto draw_section = [&](const char* title, const char* subtitle, const std::vector<iVector2>& slots, float width = 0.f) {
 			ImGui::BeginChild(title, ImVec2(width, 155.f), true);
-			ImGui::TextColored(header_color, "%s", title);
+			ImGui::TextUnformatted(title);
 			if (subtitle && subtitle[0] != '\0')
 			{
 				ImGui::SameLine();
@@ -2219,17 +2179,17 @@ namespace big
 			ImGui::EndChild();
 		};
 
-		draw_section("Armor & Accessories", "5 pieces", ImVec4(0.88f, 0.72f, 0.35f, 1.f), {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 2}}, 395.f);
+		draw_section("Armor & Accessories", "5 pieces", {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 2}}, 395.f);
 		ImGui::SameLine(0.f, 10.f);
-		draw_section("Utility Trinkets", "Multi-Utility", ImVec4(0.35f, 0.72f, 0.78f, 1.f), {{1, 0}, {2, 0}, {1, 1}, {2, 1}}, 0.f);
+		draw_section("Utility Trinkets", "Multi-Utility", {{1, 0}, {2, 0}, {1, 1}, {2, 1}}, 0.f);
 
-		draw_section("Food Buffs", "Shift+1..3", ImVec4(0.45f, 0.73f, 0.34f, 1.f), {{6, 0}, {6, 1}, {6, 2}}, 245.f);
+		draw_section("Food Buffs", "Shift+1..3", {{6, 0}, {6, 1}, {6, 2}}, 245.f);
 		ImGui::SameLine(0.f, 10.f);
-		draw_section("Ammunition", "Alt+R/T/Z", ImVec4(0.85f, 0.43f, 0.20f, 1.f), {{7, 0}, {7, 1}, {7, 2}}, 245.f);
+		draw_section("Ammunition", "Alt+R/T/Z", {{7, 0}, {7, 1}, {7, 2}}, 245.f);
 		ImGui::SameLine(0.f, 10.f);
-		draw_section("Keys & Tools", "2 slots", ImVec4(0.85f, 0.68f, 0.21f, 1.f), {{5, 0}, {5, 1}}, 0.f);
+		draw_section("Keys & Tools", "2 slots", {{5, 0}, {5, 1}}, 0.f);
 
-		draw_section("Quick Access", "Hotkeys Alt+1 through Alt+6", ImVec4(0.62f, 0.47f, 0.84f, 1.f), {{2, 4}, {3, 4}, {4, 4}, {5, 4}, {6, 4}, {7, 4}}, 0.f);
+		draw_section("Quick Access", "Hotkeys Alt+1 through Alt+6", {{2, 4}, {3, 4}, {4, 4}, {5, 4}, {6, 4}, {7, 4}}, 0.f);
 
 		// Item Picker Popup
 		if (mgr.m_show_picker && mgr.m_selected_slot_x >= 0 && mgr.m_selected_slot_y >= 0)
@@ -2297,7 +2257,6 @@ namespace big
 			}
 		}
 
-		ImGui::End();
-		ImGui::PopStyleColor(palette_color_count);
+		canvas::end_panel();
 	}
 }

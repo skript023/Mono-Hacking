@@ -10,8 +10,75 @@
 
 namespace big
 {
-	static MonoObject* animation_controller = nullptr;
-	static float base_animation_speed       = 1.f;
+	static void update_attack_speed(MonoObject* player, bool enabled)
+	{
+		static auto animator_field = mono::get_field("Character", "m_animator", "assembly_valheim");
+		static auto get_speed      = mono::get_method("Animator", "get_speed", 0, "UnityEngine.AnimationModule", "UnityEngine");
+		static auto set_speed = mono::get_method_overload("Animator", "set_speed", 1, "System.Void", "System.Single", "UnityEngine.AnimationModule", "UnityEngine");
+		static auto in_attack = mono::get_method("Humanoid", "InAttack", 0, "assembly_valheim");
+		static MonoObject* scaled_animator = nullptr;
+		static float scaled_speed          = 1.f;
+		static float game_speed            = 1.f;
+
+		if (!animator_field || !get_speed || !set_speed || !in_attack)
+		{
+			return;
+		}
+
+		const float multiplier = std::clamp(g_settings.self.attack_animation_speed, 0.5f, 5.f);
+		const bool scaling     = enabled && multiplier != 1.f;
+		MonoObject* animator   = nullptr;
+		mono::get_field_value(player, animator_field, &animator);
+		if (animator != scaled_animator)
+		{
+			scaled_animator = nullptr;
+		}
+		if (!animator || (!scaling && !scaled_animator))
+		{
+			return;
+		}
+
+		MonoObject* exception = nullptr;
+		auto boxed_speed      = mono::invoke_method(get_speed, animator, nullptr, &exception);
+		auto speed_value      = boxed_speed ? mono::object_unbox(boxed_speed) : nullptr;
+		if (exception || !speed_value)
+		{
+			return;
+		}
+		const float current = *reinterpret_cast<float*>(speed_value);
+		const float vanilla = scaled_animator && current == scaled_speed ? game_speed : current;
+
+		float target = vanilla;
+		if (scaling && vanilla >= 0.01f)
+		{
+			auto attacking       = mono::invoke_method(in_attack, player, nullptr, &exception);
+			auto attacking_value = attacking ? mono::object_unbox(attacking) : nullptr;
+			if (!exception && attacking_value && *reinterpret_cast<bool*>(attacking_value))
+			{
+				target = vanilla * multiplier;
+			}
+		}
+
+		if (target != current)
+		{
+			void* args[] = {&target};
+			mono::invoke_method(set_speed, animator, args, &exception);
+			if (exception)
+			{
+				return;
+			}
+		}
+		if (target != vanilla)
+		{
+			scaled_animator = animator;
+			scaled_speed    = target;
+			game_speed      = vanilla;
+		}
+		else if (vanilla >= 0.01f)
+		{
+			scaled_animator = nullptr;
+		}
+	}
 
 	static void update_noclip(MonoObject* player)
 	{
@@ -145,36 +212,11 @@ namespace big
 		{
 			update_noclip(local_player);
 			update_build_overlap(local_player, g_running);
+			update_attack_speed(local_player, g_running);
 		}
 
 		if (g_running && local_player && player == local_player)
 		{
-			static auto animator_field = mono::get_field("Character", "m_animator", "assembly_valheim");
-			static auto get_animator_speed = mono::get_method("Animator", "get_speed", 0, "UnityEngine.AnimationModule", "UnityEngine");
-			static auto set_animator_speed = mono::get_method_overload("Animator", "set_speed", 1, "System.Void", "System.Single", "UnityEngine.AnimationModule", "UnityEngine");
-			static auto is_attacking = mono::get_method("Humanoid", "InAttack", 0, "assembly_valheim");
-			MonoObject* animator     = nullptr;
-			if (animator_field)
-			{
-				mono::get_field_value(local_player, animator_field, &animator);
-			}
-			if (animator && animator != animation_controller && get_animator_speed)
-			{
-				animation_controller = animator;
-				auto speed           = mono::invoke_method(get_animator_speed, animator, nullptr);
-				if (speed)
-				{
-					base_animation_speed = *reinterpret_cast<float*>(mono::object_unbox(speed));
-				}
-			}
-			if (animator && get_animator_speed && set_animator_speed && is_attacking)
-			{
-				auto attacking       = mono::invoke_method(is_attacking, local_player, nullptr);
-				const bool in_attack = attacking && *reinterpret_cast<bool*>(mono::object_unbox(attacking));
-				const float speed = in_attack ? base_animation_speed * std::clamp(g_settings.self.attack_animation_speed, 0.5f, 5.f) : base_animation_speed;
-				void* speed_args[] = {const_cast<float*>(&speed)};
-				mono::invoke_method(set_animator_speed, animator, speed_args);
-			}
 			equipment_manager::get().tick(player);
 
 			if (last_pickup_player != local_player || last_pickup_range != g_settings.self.pickup_range)
@@ -197,18 +239,6 @@ namespace big
 		}
 		else if (local_player && player == local_player)
 		{
-			static auto animator_field = mono::get_field("Character", "m_animator", "assembly_valheim");
-			static auto set_animator_speed = mono::get_method_overload("Animator", "set_speed", 1, "System.Void", "System.Single", "UnityEngine.AnimationModule", "UnityEngine");
-			MonoObject* animator = nullptr;
-			if (animator_field)
-			{
-				mono::get_field_value(local_player, animator_field, &animator);
-			}
-			if (animator && animator == animation_controller && set_animator_speed)
-			{
-				void* speed_args[] = {&base_animation_speed};
-				mono::invoke_method(set_animator_speed, animator, speed_args);
-			}
 			mono::set_field_value<"Character", "m_swimSpeed">(local_player, base_swim_speed);
 			mono::set_field_value<"Character", "m_jumpForce">(local_player, base_jump_force);
 			mono::set_field_value<"Player", "m_autoPickupRange">(local_player, base_pickup_range);

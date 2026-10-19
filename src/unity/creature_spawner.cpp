@@ -5,12 +5,14 @@
 #include "tameable.hpp"
 #include "utility/unity.hpp"
 #include "task_mgr.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 #include <algorithm>
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <astra/components.hpp>
+#include <astra/host/canvas.hpp>
 #include <format>
 #include <imgui.h>
 #include <unordered_set>
@@ -346,10 +348,9 @@ namespace big
 			return;
 		}
 
-		ImGui::SetNextWindowSize({620.f, 500.f}, ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Creature Spawner", &s_window_open))
+		if (!canvas::begin_panel("Creature Spawner", &s_window_open, {.size = {620.f, 500.f}}))
 		{
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 		ImGui::InputTextWithHint("##CreatureSearch", "Search creature prefab", s_search, sizeof(s_search));
@@ -390,21 +391,21 @@ namespace big
 		ImGui::EndChild();
 		if (s_selected >= 0 && s_selected < static_cast<int>(catalog.size()))
 		{
-			ImGui::SliderInt("Count", &s_count, 1, 50);
-			ImGui::SliderInt("Level", &s_level, 1, 1000);
-			ImGui::SliderFloat("Spawn distance", &s_distance, 1.f, 50.f, "%.0f m");
+			astra::slider("Count", &s_count, 1, 50);
+			astra::slider("Level", &s_level, 1, 1000);
+			astra::slider("Spawn distance", &s_distance, 1.f, 50.f, 0, " m");
 			const char* placements[] = {"By distance", "Around player", "At crosshair"};
-			ImGui::Combo("Placement", &s_placement, placements, IM_ARRAYSIZE(placements));
+			astra::choice("Placement", &s_placement, placements);
 			ImGui::Checkbox("Spawn tamed", &s_tamed);
 			if (s_tamed)
 			{
 				ImGui::InputTextWithHint("Pet name", "Optional name for spawned pets", s_pet_name, sizeof(s_pet_name));
 			}
-			if (ImGui::Button("Spawn Creatures", {-1.f, 32.f}))
+			if (ImGui::Button("Spawn Creatures", {-1.f, 0.f}))
 			{
 				spawn(catalog[s_selected].prefab, s_count, s_level, s_distance, s_placement, s_tamed, s_pet_name);
 			}
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 }

@@ -1,6 +1,6 @@
 #include "prefab_spawner.hpp"
 
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "item_spawner.hpp"
 #include "task_mgr.hpp"
 #include "utility/unity.hpp"
@@ -11,6 +11,8 @@
 #include <atomic>
 #include <cctype>
 #include <format>
+#include <astra/components.hpp>
+#include <astra/host/canvas.hpp>
 #include <imgui.h>
 #include <mutex>
 #include <unordered_set>
@@ -503,10 +505,9 @@ namespace big
 		{
 			return;
 		}
-		ImGui::SetNextWindowSize({660.f, 540.f}, ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Prefab Spawner", &s_open))
+		if (!canvas::begin_panel("Prefab Spawner", &s_open, {.size = {660.f, 540.f}}))
 		{
-			ImGui::End();
+			canvas::end_panel();
 			return;
 		}
 		ImGui::TextDisabled("Runtime catalog  /  %zu prefabs", get_prefabs().size());
@@ -515,9 +516,7 @@ namespace big
 		{
 			scan_prefabs();
 		}
-		ImGui::SetNextItemWidth(190.f);
-		ImGui::Combo("Category", &s_category, s_categories.data(), static_cast<int>(s_categories.size()));
-		ImGui::SameLine();
+		astra::choice("Category", &s_category, s_categories);
 		ImGui::SetNextItemWidth(-1.f);
 		ImGui::InputTextWithHint("##PrefabSearch", "Search runtime prefab", s_search, sizeof(s_search));
 		auto prefabs      = get_prefabs();
@@ -560,14 +559,14 @@ namespace big
 				}
 			}
 			ImGui::Text("Selected  %s", prefabs[s_selected].name.c_str());
-			if (prefabs[s_selected].category == "Building" && ImGui::Button("Find Matching Build Tool", {-1.f, 28.f}))
+			if (prefabs[s_selected].category == "Building" && ImGui::Button("Find Matching Build Tool", {-1.f, 0.f}))
 			{
 				find_matching_build_tool(prefabs[s_selected].name);
 			}
-			ImGui::SliderInt("Spawn count", &s_count, 1, 100);
+			astra::slider("Spawn count", &s_count, 1, 100);
 			ImGui::InputFloat3("Position XYZ", &s_position.x, "%.2f");
 			ImGui::InputFloat3("Rotation XYZ", &s_rotation.x, "%.1f deg");
-			if (ImGui::Button("Spawn Prefab", {-1.f, 32.f}))
+			if (ImGui::Button("Spawn Prefab", {-1.f, 0.f}))
 			{
 				spawn_prefab(prefabs[s_selected].name, s_count, s_position, s_rotation);
 			}
@@ -587,6 +586,6 @@ namespace big
 				ImGui::TextDisabled("%s", s_history.back().name.c_str());
 			}
 		}
-		ImGui::End();
+		canvas::end_panel();
 	}
 }
