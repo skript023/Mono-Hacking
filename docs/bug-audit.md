@@ -25,6 +25,10 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 | 12 | Speed fermenter dan tanaman bergantung pada jarak pemain | Rendah | `hooks/base_tools.cpp` |
 | 13 | Noclip macet setelah mati atau ganti world, dan melempar exception setiap frame | Sedang | `hooks/player_update.cpp` |
 | 14 | Infinite Durability mengisi durability 1000, bukan nilai maksimal item | Sedang | `hooks/durability.cpp` |
+| 15 | Makanan dan mead dari slot food tidak pernah berkurang | Tinggi | `unity/equipment_slots.cpp` |
+| 16 | `HaveEmptySlot` selalu true untuk semua inventory, loot peti kapal bisa hilang | Sedang | `hooks/have_empty_slot.cpp` |
+| 17 | Inventory Size menyembunyikan item saat dimatikan dan membuat item jatuh saat spawn tanpa mod | Sedang | `features/inventory.cpp` |
+| 18 | Hook kosong dan log yang tidak perlu | Rendah | beberapa file |
 
 Temuan performa ada di bagian [Performa](#performa).
 
@@ -185,6 +189,59 @@ tidak dipanggil.
   maksimalnya di atas 1000 (misalnya lewat Item Overrides) justru turun ke 1000.
 - Saran: jangan menulis apa pun dan cukup lewati pengurasan, atau isi dengan `GetMaxDurability` item itu.
 
+### 15. Makanan dan mead dari slot food tidak pernah berkurang
+
+- Lokasi: [equipment_slots.cpp:814](../src/unity/equipment_slots.cpp#L814).
+- Penyebab: hotkey slot food (Shift+1..3) memanggil `Humanoid.UseItem(player_inv, item, true)` dengan
+  inventory utama, padahal item ada di inventory equipment. `UseItem` lolos karena hook `ContainsItem` juga
+  mencari di inventory equipment. Lalu `Player.ConsumeItem` memanggil `EatFood` dan
+  `inventory.RemoveOneItem(item)` pada inventory utama, dan hasilnya diabaikan. `RemoveOneItem` gagal karena
+  item tidak ada di sana, dan method ini tidak di-hook.
+- Akibat: makanan dimakan dan mead diminum, tetapi stack di slot tidak berkurang. Ini duplikasi item.
+- Saran: kirim inventory equipment sebagai argumen pertama `UseItem`, atau hapus satu item dari inventory
+  equipment setelah `UseItem` berhasil.
+
+### 16. `HaveEmptySlot` selalu true untuk semua inventory
+
+- Lokasi: [have_empty_slot.cpp:6-14](../src/hooks/have_empty_slot.cpp#L6-L14).
+- Penyebab: hook berisi `if (true) return true;`, tanpa mengecek setting, `g_running`, atau inventory mana.
+- Akibat, berdasarkan pemanggil di game:
+  - `Piece.DropResources`: untuk piece yang loot-nya dimasukkan ke peti (`m_destroyedLootPrefab`, misalnya
+    kapal yang hancur), game membuat peti baru saat peti lama penuh. Dengan hook ini game terus mengisi peti
+    yang sama, dan item yang tidak muat hilang karena hasil `AddItem` diabaikan.
+  - `StoreGui.UpdateBuyButton`: tombol Buy tetap aktif walaupun inventory penuh. Pembelian tetap aman karena
+    koin baru dipotong kalau `AddItem` berhasil.
+- Saran: hapus hook ini, atau kaitkan dengan setting yang jelas dan batasi ke inventory pemain lokal.
+
+### 17. Inventory Size menyembunyikan item dan membuat item jatuh saat spawn tanpa mod
+
+- Lokasi: [inventory.cpp:78](../src/features/inventory.cpp#L78),
+  [inventory.cpp:111-128](../src/features/inventory.cpp#L111-L128), dan
+  [drop_item.cpp:43-46](../src/hooks/drop_item.cpp#L43-L46).
+- Penyebab:
+  - Saat dimatikan, lebar inventory dikembalikan ke 8 tanpa mengecek kolom yang masih berisi item. Tinggi
+    sudah dicek, lebar belum.
+  - `invrows` disimpan sebagai `clamp(rows, 4, 9)`, padahal tinggi sebenarnya bisa sampai 1000.
+  - Hook `drop_invalid_items` selalu memblokir `Humanoid.DropInvalidItems`.
+- Akibat:
+  - Item di kolom 9 ke atas jadi tidak terlihat dan tidak bisa dipakai setelah fitur dimatikan, tetapi tetap
+    ada dan tetap dihitung beratnya.
+  - `Player.OnSpawned` membaca `invrows`, memanggil `SetInventorySize`, lalu `DropInvalidItems`. Kalau karakter
+    di-spawn saat mod tidak aktif (main tanpa mod, atau inject setelah spawn), semua item di luar 8 kolom dan
+    `invrows` baris dijatuhkan ke tanah di lokasi spawn.
+- Saran: saat dimatikan, pindahkan item di luar grid vanilla ke slot kosong (atau tolak mematikan kalau tidak
+  muat), dan beri tahu pemain kalau inventory lebih besar dari 8x9 berisiko saat bermain tanpa mod.
+
+### 18. Hook kosong dan log yang tidak perlu
+
+- [hud_update_food.cpp:5-8](../src/hooks/hud_update_food.cpp#L5-L8): hook `Hud.UpdateFood` hanya memanggil
+  fungsi aslinya. Tidak ada efek, tetapi tetap menambah biaya detour setiap frame.
+- [have_empty_slot.cpp:10](../src/hooks/have_empty_slot.cpp#L10): `LOG(VERBOSE)` di setiap pemanggilan.
+- [start_attack.cpp:217](../src/hooks/start_attack.cpp#L217): `LOG(FATAL) << "No target found within FOV"`
+  ditulis setiap kali aimbot menembak tanpa target. Level FATAL di AsyncLogger tidak menghentikan game, jadi
+  ini hanya log berlebih, bukan crash.
+- Saran: hapus hook kosong, dan turunkan atau hapus log di jalur yang sering dipanggil.
+
 ## Performa
 
 Semua kode di bawah berjalan di thread game. Biaya tambahan per frame langsung mengurangi FPS, dan alokasi
@@ -200,6 +257,10 @@ objek managed menambah kerja GC Mono, yang menghentikan game sejenak saat berjal
 | P6 | Noclip membaca dan menulis collider tiap frame walaupun mati | Selalu | `hooks/player_update.cpp` |
 | P7 | `Hud.get_instance` dicari berdasarkan nama tiap frame | Selalu | `unity/hud.cpp` |
 | P8 | Ukuran layar dibaca lewat 2 panggilan Mono tiap frame | Selalu | `worker/main_worker.cpp` |
+| P9 | Inventory Size mengubah ukuran UI dan membuat 2 string setiap frame | Saat Inventory Size menyala | `features/inventory.cpp` |
+| P10 | Setiap item yang diambil dari slot equipment menyimpan ulang semua halaman | Setiap tembakan kalau ammo di slot equipment | `hooks/equipment_hooks.cpp` |
+| P11 | Override cuaca membuat string managed baru setiap frame | Saat cuaca dipaksa | `hooks/base_tools.cpp` |
+| P12 | Forsaken Power Always Ready mencari class dan field setiap frame | Saat fitur menyala | `hooks/update_guardian_power.cpp` |
 
 ### P1. `get_local_player()` tanpa cache
 
@@ -276,6 +337,40 @@ objek managed menambah kerja GC Mono, yang menghentikan game sejenak saat berjal
 - Biaya: 2 panggilan Mono dan 2 alokasi box per frame. Kecil, tetapi tidak perlu.
 - Saran: baca sekali per detik, misalnya di `slow_run`.
 
+### P9. Inventory Size bekerja penuh setiap frame
+
+- Lokasi: [inventory.cpp:88-109](../src/features/inventory.cpp#L88-L109).
+- Biaya: setiap frame, semua item di inventory dibaca untuk mencari baris terbawah,
+  `InventoryGui.SetInventorySize` dipanggil (mengubah `sizeDelta` RectTransform), class dan field
+  `InventoryGui.m_instance` dicari berdasarkan nama tanpa cache, dan `AddUniqueKeyValue` dipanggil dengan 2
+  string managed baru.
+- Saran: terapkan ukuran hanya saat setting berubah atau saat inventory berganti, bukan setiap frame.
+
+### P10. Item dari slot equipment memicu `save_to_player()` setiap kali diambil
+
+- Lokasi: [equipment_hooks.cpp:111-140](../src/hooks/equipment_hooks.cpp#L111-L140), memanggil
+  [equipment_slots.cpp:512](../src/unity/equipment_slots.cpp#L512).
+- Biaya: setiap `Inventory.RemoveItem(ItemData, int)` yang mengambil dari inventory equipment langsung
+  menyerialisasi semua halaman equipment (ZPackage, `Inventory.Save`, Base64, lalu `m_customData`). Di game,
+  method ini dipakai `Attack.UseAmmo`, jadi kalau ammo ditaruh di slot equipment, ini terjadi di setiap
+  tembakan. Hal yang sama berlaku saat memasukkan bahan bakar atau bijih satu per satu.
+- Saran: tandai sebagai kotor dan simpan sekali per beberapa detik, atau saat game menyimpan (`player_save`).
+
+### P11. Override cuaca membuat string managed baru setiap frame
+
+- Lokasi: [base_tools.cpp:49-56](../src/hooks/base_tools.cpp#L49-L56).
+- Biaya: `EnvMan.GetEnvironmentOverride` dipanggil setiap frame, dan selama cuaca dipaksa hook ini memanggil
+  `to_mono_string(cfg.weather)` setiap kali. Selain itu, semua hook produksi dan cuaca memanggil
+  `get_options()`, yang mengunci mutex dan menyalin seluruh struct opsi termasuk string.
+- Saran: simpan string managed cuaca sekali (dengan GC handle) dan buat ulang hanya saat pilihannya berubah.
+
+### P12. Forsaken Power Always Ready mencari class dan field setiap frame
+
+- Lokasi: [update_guardian_power.cpp:9-12](../src/hooks/update_guardian_power.cpp#L9-L12).
+- Biaya: `mono::get_class` dan `mono::get_field` dipanggil tanpa `static` di setiap `UpdateGuardianPower`,
+  dan `get_local_player()` dihitung sebelum setting dicek.
+- Saran: jadikan lookup `static`, dan cek setting lebih dulu.
+
 ## Sudah dicek dan aman
 
 - Setting build dan pickup range: default mod sama dengan default game.
@@ -287,4 +382,8 @@ objek managed menambah kerja GC Mono, yang menghentikan game sejenak saat berjal
 - Tick equipment slots: hanya membaca hotkey.
 - Polling `settings.json` oleh Astra: berjalan di thread terpisah sekali per detik, bukan di thread game.
 - Gambar ESP di layar: memakai data yang sudah disiapkan dan proyeksi matriks di C++, bukan panggilan Mono.
+- Semua target hook yang dicari berdasarkan nama dan jumlah parameter menunjuk ke overload yang benar
+  (dicek untuk 20 hook yang punya overload, termasuk `Inventory.RemoveItem`, `EquipItem`, dan `DropItem`).
+- Handler equip dan unequip di equipment slots: sudah mengecek pemain lokal di dalam `equipment_manager`.
+- Pembelian di trader saat inventory penuh: koin hanya dipotong kalau item berhasil masuk.
 - Hook damage, parry, dan block attack: hanya berjalan saat ada serangan, bukan setiap frame.
