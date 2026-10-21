@@ -114,6 +114,12 @@ namespace big
 		static bool can_get_achievements(bool cheated);
 		static bool achievements_is_cheated();
 		static bool inventory_any_cheated_item(MonoObject* inventory);
+		static bool set_key_value_is_cheat(MonoString* set_key_command);
+		static void global_key_add(MonoObject* zone_system, MonoString* key, bool can_save_to_server_option_keys);
+		static void character_drop_items(MonoObject* drops, Vector3 center_pos, float drop_area, bool cheated);
+		static bool inventory_cheated_damaging_item_equipped(MonoObject* inventory);
+		static void cooking_station_spawn_item(MonoObject* station, MonoString* name, int slot, Vector3 user_point, bool cheated);
+		static void game_register_kill(MonoObject* game, int64_t target, MonoString* name, int boss_order, int kill_modifiers, int level, bool cheats_used);
 		static void drop_invalid_items(MonoObject* humanoid);
 		static void hud_update_food(MonoObject* hud, MonoObject* player);
 		static bool humanoid_equip_item(MonoObject* humanoid, MonoObject* item, bool trigger_equip_effects);

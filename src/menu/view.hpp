@@ -13,6 +13,7 @@ namespace big
 			home();
 			player_submenu();
 			base_tools_submenu();
+			cheat_status_submenu();
 			//stats_submenu();
 			teleport_submenu();
 			//esp_submenu();
@@ -30,6 +31,8 @@ namespace big
 		static void toggle_generated_location_browser();
 		static void base_tools_submenu();
 		static void base_tools_panel();
+		static void cheat_status_submenu();
+		static void cheat_status_panel();
 
 	public:
 		//static void esp_submenu();
