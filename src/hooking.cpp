@@ -191,6 +191,29 @@ namespace big
 		{
 			detour_hook::add<hooks::inventory_any_cheated_item>("Inventory::AnyCheatedItem", any_cheated);
 		}
+		auto key_value_is_cheat = mono::get_compile_method("ServerOptionsGUI", "SetKeyAndValueIsCheat", 1, "assembly_valheim");
+		auto global_key_add     = mono::get_compile_method("ZoneSystem", "GlobalKeyAdd", 2, "assembly_valheim");
+		if (key_value_is_cheat && global_key_add)
+		{
+			detour_hook::add<hooks::set_key_value_is_cheat>("ServerOptionsGUI::SetKeyAndValueIsCheat", key_value_is_cheat);
+			detour_hook::add<hooks::global_key_add>("ZoneSystem::GlobalKeyAdd", global_key_add);
+		}
+		if (auto drop_items = mono::get_compile_method("CharacterDrop", "DropItems", 4, "assembly_valheim"))
+		{
+			detour_hook::add<hooks::character_drop_items>("CharacterDrop::DropItems", drop_items);
+		}
+		if (auto cheated_weapon = mono::get_compile_method("Inventory", "CheatedDamagingItemEquipped", 0, "assembly_valheim"))
+		{
+			detour_hook::add<hooks::inventory_cheated_damaging_item_equipped>("Inventory::CheatedDamagingItemEquipped", cheated_weapon);
+		}
+		if (auto spawn_item = mono::get_compile_method("CookingStation", "SpawnItem", 4, "assembly_valheim"))
+		{
+			detour_hook::add<hooks::cooking_station_spawn_item>("CookingStation::SpawnItem", spawn_item);
+		}
+		if (auto register_kill = mono::get_compile_method("Game", "RegisterKill", 6, "assembly_valheim"))
+		{
+			detour_hook::add<hooks::game_register_kill>("Game::RegisterKill", register_kill);
+		}
 		add_mono_hook<hooks::drop_invalid_items>("Humanoid::DropInvalidItems", "Humanoid", "DropInvalidItems", 0, "assembly_valheim");
 		add_mono_hook<hooks::humanoid_equip_item>("Humanoid::EquipItem", "Humanoid", "EquipItem", 2, "assembly_valheim");
 		add_mono_hook<hooks::humanoid_unequip_item>("Humanoid::UnequipItem", "Humanoid", "UnequipItem", 2, "assembly_valheim");

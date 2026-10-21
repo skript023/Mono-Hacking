@@ -23,12 +23,40 @@ namespace big
 	}
 	bool hooks::bypass_cheat_checks()
 	{
-		return true;
+		if (g_running)
+		{
+			return true;
+		}
+		return detour_base::get_original<bypass_cheat_checks>()();
 	}
 
 	bool hooks::inventory_any_cheated_item(MonoObject* inventory)
 	{
 		return false;
+	}
+
+	void hooks::character_drop_items(MonoObject* drops, Vector3 center_pos, float drop_area, bool cheated)
+	{
+		detour_base::get_original<character_drop_items>()(drops, center_pos, drop_area, cheated && !g_running);
+	}
+
+	bool hooks::inventory_cheated_damaging_item_equipped(MonoObject* inventory)
+	{
+		if (g_running)
+		{
+			return false;
+		}
+		return detour_base::get_original<inventory_cheated_damaging_item_equipped>()(inventory);
+	}
+
+	void hooks::cooking_station_spawn_item(MonoObject* station, MonoString* name, int slot, Vector3 user_point, bool cheated)
+	{
+		detour_base::get_original<cooking_station_spawn_item>()(station, name, slot, user_point, cheated && !g_running);
+	}
+
+	void hooks::game_register_kill(MonoObject* game, int64_t target, MonoString* name, int boss_order, int kill_modifiers, int level, bool cheats_used)
+	{
+		detour_base::get_original<game_register_kill>()(game, target, name, boss_order, kill_modifiers, level, cheats_used && !g_running);
 	}
 
 	MonoString* hooks::item_get_tooltip(MonoObject* item, int quality, bool crafting, float world_level, int stack_override, bool appending)

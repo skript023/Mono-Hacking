@@ -353,6 +353,7 @@ namespace big
 			sub->add_option<sub_option>("Building & Crafting", "Free crafting and building, recipe and piece unlocks, stability, ward bypass.", "SubmenuBuilding"_hash);
 			sub->add_option<sub_option>("World", nullptr, "SubmenuWorld"_hash);
 			sub->add_option<sub_option>("Base Tools", "Storage, production, repair, farming and environment.", "BaseTools"_hash);
+			sub->add_option<sub_option>("Cheat Status", "Check for cheat marks on your character, world and nearby items, and remove them.", "CheatStatus"_hash);
 			sub->add_option<sub_option>("Online Players", nullptr, SubmenuPlayerList);
 			sub->add_option<sub_option>("ESP", nullptr, "SubmenuESP"_hash);
 			sub->add_option<sub_option>("Aimbot", nullptr, "SubmenuAimbot"_hash);

@@ -68,6 +68,7 @@ namespace big
 		this->add_dx_callback(view::notifications, eRenderPriority::NOTIFICATIONS);
 		this->add_dx_callback(view::online_player_panel, eRenderPriority::INFO_OVERLAY);
 		this->add_dx_callback(view::base_tools_panel, eRenderPriority::INFO_OVERLAY + 1);
+		this->add_dx_callback(view::cheat_status_panel, eRenderPriority::INFO_OVERLAY + 1);
 		this->add_dx_callback(animal_tools::draw_overlay, eRenderPriority::INFO_OVERLAY + 2);
 		this->add_dx_callback(item_spawner::draw_standalone_window, eRenderPriority::INFO_OVERLAY + 3);
 		this->add_dx_callback(inventory_editor::draw_window, eRenderPriority::INFO_OVERLAY + 4);
