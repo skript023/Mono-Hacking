@@ -3,24 +3,26 @@
 #include "pointers.hpp"
 #include "renderer.hpp"
 #include "task_mgr.hpp"
+#include "thread_pool.hpp"
 #include "benchmark.hpp"
-#include "script_mgr.hpp"
-#include "fiber_pool.hpp"
 #include "file_manager.hpp"
 #include "render/render_vulkan.hpp"
 
 #include "mono/mono.hpp"
 #include "logger/logger.hpp"
 #include "plugins/plugins.hpp"
-#include "settings/settings.hpp"
+#include <astra/host/settings.hpp>
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
 #include "worker/entity_worker.hpp"
 #include "unity/hud.hpp"
+#include "unity/animal_tools.hpp"
+#include "unity/camera_tools.hpp"
 #include "unity/crafting_tools.hpp"
+#include "unity/world_time.hpp"
 #include "javascript/javascript_manager.hpp"
 
-#include "services/notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 
 DWORD APIENTRY main_thread(LPVOID)
 {
@@ -29,7 +31,9 @@ DWORD APIENTRY main_thread(LPVOID)
 	do
 	{
 		if (FindWindow(WINDOW_CLASS, WINDOW_NAME))
+		{
 			break;
+		}
 		std::this_thread::sleep_for(10ms);
 	} while (g_running);
 
@@ -67,9 +71,6 @@ DWORD APIENTRY main_thread(LPVOID)
 		auto renderer_instance = std::make_unique<renderer>();
 		LOG(INFO) << "Renderer initialized.";
 
-		auto fiber_pool_instance = std::make_unique<fiber_pool>(10);
-		LOG(INFO) << "Fiber pool initialized.";
-
 		auto thread_pool_instance = std::make_unique<thread_pool>();
 		LOG(INFO) << "Thread Pool initialized.";
 
@@ -86,11 +87,10 @@ DWORD APIENTRY main_thread(LPVOID)
 		LOG(INFO) << "Server initialized.";
 #endif
 
-		g_script_mgr.add_script(std::make_unique<script>(&main_worker::run));
-		g_script_mgr.add_script(std::make_unique<script>(&main_worker::slow_run));
-		task_mgr::add(&main_worker::run_routine);
-		g_script_mgr.add_script(std::make_unique<script>(&entity_worker::run));
-		LOG(INFO) << "Scripts registered.";
+		task_mgr::add(&main_worker::run);
+		task_mgr::add(&main_worker::slow_run);
+		task_mgr::add(&entity_worker::run);
+		LOG(INFO) << "Tasks registered.";
 
 		g_hooking->enable();
 		g_renderer->attach();
@@ -115,6 +115,9 @@ DWORD APIENTRY main_thread(LPVOID)
 		}
 
 		crafting_tools::shutdown();
+		animal_tools::shutdown();
+		world_time::shutdown();
+		camera_tools::shutdown();
 		unity::hud_manager::shutdown();
 		render_vulkan::detach();
 		g_hooking->disable();
@@ -122,9 +125,8 @@ DWORD APIENTRY main_thread(LPVOID)
 
 		std::this_thread::sleep_for(1000ms);
 
-		g_script_mgr.remove_all_scripts();
 		task_mgr::clear();
-		LOG(INFO) << "Scripts and routines unregistered.";
+		LOG(INFO) << "Tasks unregistered.";
 
 #ifdef PRODUCTION
 		server_instance.reset();
@@ -136,8 +138,6 @@ DWORD APIENTRY main_thread(LPVOID)
 		hooking_instance.reset();
 		LOG(INFO) << "Hooking uninitialized.";
 
-		fiber_pool_instance.reset();
-		LOG(INFO) << "Fiber pool uninitialized.";
 
 		g_thread_pool->destroy();
 		LOG(INFO) << "Destroyed thread pool.";
@@ -166,6 +166,12 @@ DWORD APIENTRY main_thread(LPVOID)
 		return 0;
 	}
 
+	if (!detour_base::hooks().empty())
+	{
+		LOG(WARNING) << "DLL retained because another program still calls into its hooks. Restart the game before injecting again.";
+		return 0;
+	}
+
 	// This DLL owns a static OpenSSL instance; all networking threads are gone.
 	OPENSSL_cleanup();
 	LOG(INFO) << "OpenSSL cleaned up. Releasing DLL.";
@@ -187,12 +193,10 @@ BOOL APIENTRY DllMain(HMODULE hmod, DWORD reason, PVOID)
 	case DLL_PROCESS_ATTACH:
 		DisableThreadLibraryCalls(hmod);
 
-		g_hmodule = hmod;
+		g_hmodule     = hmod;
 		g_main_thread = CreateThread(nullptr, 0, &main_thread, nullptr, 0, &g_main_thread_id);
 		break;
-	case DLL_PROCESS_DETACH:
-		g_running = false;
-		break;
+	case DLL_PROCESS_DETACH: g_running = false; break;
 	}
 
 	return true;

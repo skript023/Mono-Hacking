@@ -4,4 +4,5 @@
 namespace js::command
 {
 	void bind(qjs::Context& ctx);
+	void shutdown();
 }

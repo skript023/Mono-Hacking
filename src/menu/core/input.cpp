@@ -1,6 +1,6 @@
 #include "../view.hpp"
 #include "pointers.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "imgui.h"
 #include "input/input_service.hpp"
 #include "utility/unity.hpp"
@@ -18,7 +18,6 @@ namespace big
 		float screen_y = (float)g_pointers->m_resolution.y;
 
 		ImGui::SetNextWindowPos(ImVec2(screen_x * 0.25f, screen_y * 0.2f), ImGuiCond_Always);
-		ImGui::SetNextWindowBgAlpha(0.65f);
 		ImGui::SetNextWindowSize({screen_x * 0.5f, -1});
 
 		if (ImGui::Begin("Input", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
@@ -30,7 +29,7 @@ namespace big
 			ImGui::SetNextItemWidth((screen_x * 0.5f) - 30.f);
 			if (ImGui::InputText("##Input Here", g_input_service.m_input, IM_ARRAYSIZE(g_input_service.m_input), ImGuiInputTextFlags_EnterReturnsTrue))
 			{
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					g_input_service.execute();
 				});
 			}

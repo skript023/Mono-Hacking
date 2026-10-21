@@ -48,6 +48,14 @@ namespace big
 			logged_exceptions.insert(trace_hash);
 		}
 
+		// Advancing past an access violation skips an arbitrary memory operation
+		// without repairing its inputs. Preserve the original fault rather than
+		// continuing with corrupted managed state.
+		if (exception_code == EXCEPTION_ACCESS_VIOLATION)
+		{
+			return EXCEPTION_CONTINUE_SEARCH;
+		}
+
 
 		if (IsBadReadPtr(reinterpret_cast<void*>(exception_info->ContextRecord->Rip), 8))
 		{

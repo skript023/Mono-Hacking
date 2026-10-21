@@ -1,15 +1,18 @@
 #include "../view.hpp"
 #include "../submenu.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "utility/unity.hpp"
 #include "unity/self.hpp"
 #include "unity/localization.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "menu_settings.hpp"
 #include "input/input_service.hpp"
 #include <custom_teleport/custom_teleport_service.hpp>
+#include <algorithm>
+#include <cmath>
 #include <unordered_set>
 #include <mutex>
+#include <sstream>
 
 namespace big
 {
@@ -24,11 +27,13 @@ namespace big
 		{
 			std::lock_guard lock(s_pin_cache_mutex);
 			if (s_requested_pins.contains(token))
+			{
 				return;
+			}
 			s_requested_pins.insert(token);
 		}
 
-		g_fiber_pool->queue_job([token] {
+		async_run([token] {
 			auto loc = localization::get_instance().localize(token);
 			if (!loc.empty() && loc != token && !(loc.front() == '[' && loc.back() == ']'))
 			{
@@ -41,13 +46,17 @@ namespace big
 	static std::string resolve_pin_display_name(const std::string& raw_name, const std::string& default_prefix, int count)
 	{
 		if (raw_name.empty())
+		{
 			return default_prefix + " #" + std::to_string(count);
+		}
 
 		// 1. Thread-safe cached translation from Valheim Localization engine (resolved on game thread)
 		{
 			std::lock_guard lock(s_pin_cache_mutex);
 			if (auto it = s_localized_pin_cache.find(raw_name); it != s_localized_pin_cache.end())
+			{
 				return it->second;
+			}
 		}
 
 		// Queue localization job to game thread (fiber pool)
@@ -61,14 +70,15 @@ namespace big
 			{
 				std::lock_guard lock(s_pin_cache_mutex);
 				if (auto it = s_localized_pin_cache.find(token); it != s_localized_pin_cache.end())
+				{
 					return it->second;
+				}
 			}
 			queue_pin_localization(token);
 		}
 
 		// 2. Fallback: Known Valheim Bosses & Traders table
-		static const std::unordered_map<std::string, std::string> known_names = {
-		    // Bosses
+		static const std::unordered_map<std::string, std::string> known_names = {// Bosses
 		    {"$enemy_eikthyr", "Eikthyr"},
 		    {"$enemy_gdking", "The Elder"},
 		    {"$enemy_bonemass", "Bonemass"},
@@ -90,32 +100,42 @@ namespace big
 		    {"$location_mountaincave", "Frost Caves"}};
 
 		if (auto it = known_names.find(raw_name); it != known_names.end())
+		{
 			return it->second;
+		}
 
 		// 3. Fallback: Clean string formatting (strip prefix and Title Case)
 		if (raw_name.starts_with("$"))
 		{
 			std::string stripped = raw_name.substr(1);
 			if (stripped.starts_with("enemy_"))
+			{
 				stripped = stripped.substr(6);
+			}
 			else if (stripped.starts_with("location_"))
+			{
 				stripped = stripped.substr(9);
+			}
 			else if (stripped.starts_with("item_"))
+			{
 				stripped = stripped.substr(5);
+			}
 			else if (stripped.starts_with("piece_"))
+			{
 				stripped = stripped.substr(6);
+			}
 
 			bool capitalize_next = true;
 			for (char& c : stripped)
 			{
 				if (c == '_')
 				{
-					c = ' ';
+					c               = ' ';
 					capitalize_next = true;
 				}
 				else if (capitalize_next && c >= 'a' && c <= 'z')
 				{
-					c = (char)std::toupper((unsigned char)c);
+					c               = (char)std::toupper((unsigned char)c);
 					capitalize_next = false;
 				}
 				else
@@ -132,8 +152,39 @@ namespace big
 	void view::teleport_submenu()
 	{
 		canvas::add_tab<regular_submenu>("Teleport", SubmenuTeleport, [](regular_submenu* sub) {
+			sub->add_option<reguler_option>("Teleport to Crosshair", "Teleport to the point under your crosshair, or 30m forward if nothing is hit.", [] {
+				async_run([] {
+					if (unity::teleport_to_crosshair())
+					{
+						notification::success("Teleport", "Teleported to the crosshair destination.");
+					}
+					else
+					{
+						notification::warning("Teleport", "Player or camera direction is unavailable.");
+					}
+				});
+			});
+
+			sub->add_option<reguler_option>("Teleport to XYZ", "Enter world X, Y, and Z coordinates separated by commas or spaces.", [] {
+				g_input_service.show("Coordinates: X Y Z", [](const std::string& input) {
+					std::string normalized = input;
+					std::replace(normalized.begin(), normalized.end(), ',', ' ');
+					std::istringstream stream(normalized);
+					Vector3 destination{};
+					if (!(stream >> destination.x >> destination.y >> destination.z) || !std::isfinite(destination.x)
+					    || !std::isfinite(destination.y) || !std::isfinite(destination.z))
+					{
+						notification::warning("Teleport", "Enter three valid coordinates: X Y Z.");
+						return;
+					}
+					async_run([destination] {
+						unity::teleport_to_world_point(destination);
+					});
+				});
+			});
+
 			sub->add_option<reguler_option>("Teleport to Last Ping", "Teleports to the most recent map ping.", [] {
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					auto ping = unity::get_last_ping();
 					if (ping.has_value())
 					{
@@ -148,7 +199,7 @@ namespace big
 			});
 
 			sub->add_option<reguler_option>("Teleport to Death Marker", "Teleports to your last death/tombstone location.", [] {
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					auto death = unity::get_death_pin();
 					if (death.has_value())
 					{
@@ -163,7 +214,7 @@ namespace big
 			});
 
 			sub->add_option<reguler_option>("Teleport to Bed / Spawn", "Teleports to your bed or spawn point.", [] {
-				g_fiber_pool->queue_job([] {
+				async_run([] {
 					auto spawn = unity::get_spawn_pin();
 					if (spawn.has_value())
 					{
@@ -181,7 +232,12 @@ namespace big
 			sub->add_option<sub_option>("Map Waypoints", "Teleport to custom pins/waypoints on the map.", SubmenuWaypoints);
 			sub->add_option<sub_option>("Custom Teleport", nullptr, SubmenuCustomTeleport);
 
-			sub->add_option<bool_option<bool>>("Ctrl + Middle Click Map Teleport", "Hold Ctrl and Middle Click anywhere on the map to teleport there.", &g_settings.self.map_click_teleport);
+			sub->add_option<bool_option<bool>>("Ctrl + Middle Click Map Teleport",
+			    "Hold Ctrl and Middle Click anywhere on the map to teleport there.",
+			    &g_settings.self.map_click_teleport);
+			sub->add_option<bool_option<bool>>("Allow Teleporting with Any Items",
+			    "Teleport through portals with ores and metals.",
+			    &g_settings.self.is_teleportable);
 		});
 
 		canvas::add_submenu<regular_submenu>("Objectives", SubmenuObjectives, [](regular_submenu* sub) {
@@ -195,7 +251,12 @@ namespace big
 				{
 					std::string lower = pin.name;
 					std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-					if (lower.find("haldor") != std::string::npos || lower.find("hildir") != std::string::npos || lower.find("witch") != std::string::npos || lower.find("bog") != std::string::npos || lower.find("trader") != std::string::npos || lower.find("boss") != std::string::npos || lower.find("eikthyr") != std::string::npos || lower.find("elder") != std::string::npos || lower.find("bonemass") != std::string::npos || lower.find("moder") != std::string::npos || lower.find("yagluth") != std::string::npos || lower.find("queen") != std::string::npos || lower.find("fader") != std::string::npos)
+					if (lower.find("haldor") != std::string::npos || lower.find("hildir") != std::string::npos || lower.find("witch") != std::string::npos
+					    || lower.find("bog") != std::string::npos || lower.find("trader") != std::string::npos || lower.find("boss") != std::string::npos
+					    || lower.find("eikthyr") != std::string::npos || lower.find("elder") != std::string::npos
+					    || lower.find("bonemass") != std::string::npos || lower.find("moder") != std::string::npos
+					    || lower.find("yagluth") != std::string::npos || lower.find("queen") != std::string::npos
+					    || lower.find("fader") != std::string::npos)
 					{
 						is_objective = true;
 					}
@@ -206,15 +267,21 @@ namespace big
 					count++;
 					std::string default_label = "Objective";
 					if (pin.type == 9)
+					{
 						default_label = "Boss";
+					}
 					else if (pin.type == 8)
+					{
 						default_label = "Trader / Location";
+					}
 					else if (pin.type >= 14)
+					{
 						default_label = "Hildir Quest";
+					}
 
 					std::string display_name = resolve_pin_display_name(pin.name, default_label, count);
 					sub->add_option<reguler_option>(display_name.c_str(), nullptr, [pos = pin.pos, display_name] {
-						g_fiber_pool->queue_job([pos] {
+						async_run([pos] {
 							unity::teleport_to_world_point(pos);
 						});
 						notification::success("Teleport", "Teleported to " + display_name);
@@ -240,7 +307,7 @@ namespace big
 					count++;
 					std::string display_name = resolve_pin_display_name(pin.name, "Waypoint", count);
 					sub->add_option<reguler_option>(display_name.c_str(), nullptr, [pos = pin.pos, display_name] {
-						g_fiber_pool->queue_job([pos] {
+						async_run([pos] {
 							unity::teleport_to_world_point(pos);
 						});
 						notification::success("Teleport", "Teleported to " + display_name);
@@ -264,15 +331,17 @@ namespace big
 					auto player = self::get_player();
 
 					if (!player)
+					{
 						return;
+					}
 
-					auto coords = player.get_position();
+					auto coords  = player.get_position();
 					auto rotator = player.get_rotation();
 
-					new_location.name = input;
-					new_location.x = coords.x;
-					new_location.y = coords.y;
-					new_location.z = coords.z;
+					new_location.name  = input;
+					new_location.x     = coords.x;
+					new_location.y     = coords.y;
+					new_location.z     = coords.z;
 					new_location.rot_x = rotator.x;
 					new_location.rot_y = rotator.y;
 					new_location.rot_z = rotator.z;
@@ -299,15 +368,17 @@ namespace big
 							auto player = self::get_player();
 
 							if (!player)
+							{
 								return;
+							}
 
-							auto coords = player.get_position();
+							auto coords  = player.get_position();
 							auto rotator = player.get_rotation();
 
-							new_location.name = input;
-							new_location.x = coords.x;
-							new_location.y = coords.y;
-							new_location.z = coords.z;
+							new_location.name  = input;
+							new_location.x     = coords.x;
+							new_location.y     = coords.y;
+							new_location.z     = coords.z;
 							new_location.rot_x = rotator.x;
 							new_location.rot_y = rotator.y;
 							new_location.rot_z = rotator.z;
@@ -320,13 +391,17 @@ namespace big
 					for (const auto& location : current_list)
 					{
 						sub->add_option<reguler_option>(location.name.c_str(), nullptr, [=] {
-							g_fiber_pool->queue_job([=] {
+							async_run([=] {
 								auto player = self::get_player();
 
 								if (!player)
+								{
 									return;
+								}
 
-								player.teleport_to(Vector3(location.x, location.y + 3.f, location.z), Vector4(location.rot_x, location.rot_y, location.rot_z, location.rot_w), true);
+								player.teleport_to(Vector3(location.x, location.y + 3.f, location.z),
+								    Vector4(location.rot_x, location.rot_y, location.rot_z, location.rot_w),
+								    true);
 							});
 						});
 					}

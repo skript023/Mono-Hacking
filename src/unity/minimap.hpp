@@ -32,6 +32,7 @@ namespace big
 		void explore_all();
 		void reset();
 		bool discover_location(const Vector3& pos, int pin_type, std::string_view pin_name, bool show_map = false);
+		bool add_pin(const Vector3& pos, int pin_type, std::string_view pin_name);
 		bool is_open();
 
 		bool operator==(const minimap& other) const

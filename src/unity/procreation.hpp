@@ -20,6 +20,7 @@ namespace big
 		bool is_pregnant();
 		int get_love_points();
 		int get_required_love_points();
+		bool accelerate_timing(float multiplier);
 
 		bool operator==(const procreation& other) const
 		{

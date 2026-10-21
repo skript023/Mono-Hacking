@@ -1,6 +1,7 @@
 #pragma once
 #include "class/enums.hpp"
 #include "class/triple_buffer.hpp"
+#include "task.hpp"
 
 namespace big
 {
@@ -27,6 +28,6 @@ namespace big
 	class entity_worker
 	{
 	public:
-		static void run();
+		static task<void> run();
 	};
 }

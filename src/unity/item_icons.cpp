@@ -1,5 +1,5 @@
 #include "item_icons.hpp"
-#include "fiber_pool.hpp"
+#include "task_mgr.hpp"
 #include "mono/mono.hpp"
 #include "renderer.hpp"
 #include "utility/unity.hpp"
@@ -168,11 +168,11 @@ namespace big
 			cache.clear();
 			reset_requested = false;
 		}
-		if (!job_pending && g_fiber_pool && g_running && std::any_of(cache.begin(), cache.end(), [](const auto& item) {
+		if (!job_pending && g_running && std::any_of(cache.begin(), cache.end(), [](const auto& item) {
 			    return item.second.status == state::queued;
 		    }))
 		{
-			g_fiber_pool->queue_job([this] {
+			async_run([this] {
 				load_next_impl();
 			});
 			job_pending = true;

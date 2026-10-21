@@ -5,7 +5,7 @@ namespace big
 {
 	bool_command _infinite_stamina("infinite_stamina", "Infinite Stamina", "Stamina Always Maximum", false);
 
-	void hooks::rpc_use_stamina(MonoObject* player, long sender, float v)
+	void hooks::rpc_use_stamina(MonoObject* player, int64_t sender, float v)
 	{
 		if (_infinite_stamina.get_state())
 		{

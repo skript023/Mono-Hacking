@@ -1,8 +1,9 @@
 #include "sigscanner_binding.hpp"
-#include "thread_pool.hpp"
+
 #include "memory/module.hpp"
 #include "memory/pattern.hpp"
 #include "memory/pattern_batch.hpp"
+#include "thread_pool.hpp"
 
 namespace js::sig
 {
@@ -16,13 +17,14 @@ namespace js::sig
 		size_t index = reinterpret_cast<size_t>(user);
 
 		std::lock_guard<std::mutex> lock(g_event_mutex);
-		g_events.push({index,
-		    ptr.as<uint64_t>()});
+		g_events.push({index, ptr.as<uint64_t>()});
 	}
 	static void dispatch_js_events()
 	{
 		if (!g_ctx)
+		{
 			return;
+		}
 
 		std::queue<scan_event> local;
 
@@ -31,25 +33,15 @@ namespace js::sig
 			std::swap(local, g_events);
 		}
 
-		JSContext* ctx = g_ctx->ctx;
-
 		while (!local.empty())
 		{
 			const auto& ev = local.front();
-			const auto& e = g_entries[ev.index];
+			const auto& e  = g_entries[ev.index];
 
-			if (JS_IsFunction(ctx, e.fn))
+			if (e.fn && e.fn->isFunction())
 			{
-				JSValue arg = JS_NewFloat64(ctx, ev.address);
-
-				JS_Call(
-				    ctx,
-				    e.fn,
-				    JS_UNDEFINED,
-				    1,
-				    &arg);
-
-				JS_FreeValue(ctx, arg);
+				auto address = g_ctx->newValue(static_cast<double>(ev.address));
+				e.fn->call(std::vector<qjs::Value>{std::move(address)});
 			}
 
 			local.pop();
@@ -65,20 +57,21 @@ namespace js::sig
 
 		pattern_batch.add("add", [&](std::string name, std::string sig, qjs::Value cb) {
 			if (!cb.isFunction())
+			{
 				throw std::runtime_error("callback must be function");
+			}
 
 			js_scan_entry e;
 			e.name = std::move(name);
-			e.sig = std::move(sig);
-			e.fn = JS_DupValue(ctx.ctx, cb.v);
+			e.sig  = std::move(sig);
+			e.fn.emplace(cb);
 
 			size_t index = g_entries.size();
 			g_entries.push_back(e);
 
 			batch.add(e.name, memory::pattern(e.sig), [index](memory::handle h) {
 				std::lock_guard<std::mutex> lock(g_event_mutex);
-				g_events.push({index,
-				    h.as<uint64_t>()});
+				g_events.push({index, h.as<uint64_t>()});
 			});
 		});
 
@@ -93,14 +86,20 @@ namespace js::sig
 
 			// pastikan string
 			if (!name.isString())
+			{
 				throw std::runtime_error("run(name): name must be string or null");
+			}
 
 			std::string mod = name.as<std::string>();
 
 			if (mod.empty())
+			{
 				batch.run(memory::module(nullptr));
+			}
 			else
+			{
 				batch.run(memory::module(mod));
+			}
 
 			dispatch_js_events();
 		});
@@ -121,5 +120,13 @@ namespace js::sig
 	{
 		static memory::pattern_batch main("js");
 		bind_main_batch(ctx, main);
+	}
+
+	void shutdown()
+	{
+		g_ctx = nullptr;
+		g_entries.clear();
+		std::lock_guard<std::mutex> lock(g_event_mutex);
+		g_events = {};
 	}
 }

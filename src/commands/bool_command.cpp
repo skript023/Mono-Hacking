@@ -1,5 +1,4 @@
 #include "bool_command.hpp"
-#include "fiber_pool.hpp" // TODO: game import in core
 #include "commands.hpp"
 
 namespace big

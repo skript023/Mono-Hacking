@@ -2,6 +2,7 @@
 #include "commands/float_command.hpp"
 #include "commands/number_command.hpp"
 #include "commands/looped_command.hpp"
+#include "commands/color_command.hpp"
 
 namespace big::features
 {
@@ -16,6 +17,14 @@ namespace big::features
 	inline bool_command _draw_team("draw_team", "ESP Team", "ESP must be enabled", false);
 	inline bool_command _draw_fov("draw_fov", "Draw FOV", "Draw max aim angle", true);
 	inline bool_command _draw_anim("draw_anim", "Draw Animation", "Draw animation", false);
+	inline bool_command _esp_dropped_items("esp_dropped_items", "ESP Dropped Items", "Show dropped items and their quantities", false);
+	inline bool_command _esp_item_stack("esp_item_stack", "ESP Item Stack Counts", "Show dropped item stack sizes", true);
+	inline bool_command _esp_distance("esp_distance", "ESP Distance", "Show entity distance in labels", true);
+	inline bool_command _esp_target_marker("esp_target_marker", "ESP Target Marker", "Mark the visible creature or player closest to screen center", false);
+	inline bool_command _prevent_skill_loss("prevent_skill_loss", "Prevent Skill Loss", "Ignore experience loss when skills are reduced", false);
+	inline bool_command _freeze_skills("freeze_skills", "Freeze Skills", "Block all skill level changes", false);
+	inline color_command _esp_character_color("esp_character_color", "ESP Creature Color", "Saved RGB color for creatures and players", ImVec4(0.92f, 0.92f, 0.86f, 1.f));
+	inline color_command _esp_item_color("esp_item_color", "ESP Item Color", "Saved RGB color for dropped items", ImVec4(0.78f, 0.68f, 0.48f, 1.f));
 
 	inline bool_command _aimbot_enabled("aimbot", "Silent Aimbot", "Silent Aimbot", false);
 	inline bool_command _teleport_projectile("tp", "Teleport Projectile", "Teleport projectile to target", false);

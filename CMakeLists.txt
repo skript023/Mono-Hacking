@@ -56,7 +56,7 @@ include(scripts/vulkan.cmake)
 
 # Valheim
 message(STATUS "Valheim")
-file(GLOB_RECURSE SRC_MAIN
+file(GLOB_RECURSE SRC_MAIN CONFIGURE_DEPENDS
     "${SRC_DIR}/**.hpp"
     "${SRC_DIR}/**.h"
     "${SRC_DIR}/**.cpp"
@@ -72,7 +72,17 @@ else ()
 endif ()
 
 add_library(Valheim MODULE "${SRC_MAIN}")
+if (MSVC)
+    enable_language(ASM_MASM)
+    target_sources(Valheim PRIVATE "${SRC_DIR}/services/javascript/bindings/trampoline_stub.asm")
+else()
+    enable_language(ASM)
+    target_sources(Valheim PRIVATE "${SRC_DIR}/services/javascript/bindings/trampoline_stub.S")
+endif()
 target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/canvas.cpp")
+target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/notification.cpp")
+target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/settings.cpp")
+target_sources(Valheim PRIVATE "${astra_SOURCE_DIR}/host/hotkeys.cpp")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET Valheim PROPERTY CXX_STANDARD 23) # 23 Because std::format is not avalible in std:c++20 for some reason. Maybe it's because i use v142 toolset.
@@ -95,7 +105,7 @@ target_include_directories(Valheim PRIVATE
 )
 
 target_precompile_headers(Valheim PRIVATE "${SRC_DIR}/common.hpp")
-target_link_libraries(Valheim PRIVATE EllohimHook astra::ui Vulkan::Headers quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
+target_link_libraries(Valheim PRIVATE EllohimHook astra::ui astra::banners Vulkan::Headers quickjs imgui AsyncLogger dbghelp discord winhttp iphlpapi ${ZLIB_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto Crypt32 $<IF:$<BOOL:${CROSSCOMPILE}>,d3dcompiler_47,d3dcompiler> $<IF:$<BOOL:${CROSSCOMPILE}>,xinput1_4,xinput>)
 
 # Warnings as errors
 #set_property(TARGET Valheim PROPERTY COMPILE_WARNING_AS_ERROR ON)

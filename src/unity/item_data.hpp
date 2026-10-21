@@ -31,6 +31,9 @@ namespace big
 		int64_t get_crafter_id();
 		void set_crafter_name(const std::string& name);
 		std::string get_crafter_name();
+		bool get_stat_override(const std::string& name, float& value);
+		void set_stat_override(const std::string& name, float value);
+		void remove_stat_override(const std::string& name);
 
 		operator bool() const
 		{

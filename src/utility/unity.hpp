@@ -11,20 +11,26 @@ namespace big::unity
 		// 1. Cari Class Player
 		MonoClass* player_class = mono::get_class("Player", "assembly_valheim");
 		if (player_class == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 2. Cari Static Field m_localPlayer
 		MonoClassField* local_player_field = mono::get_field(player_class, "m_localPlayer");
 		if (local_player_field == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 3. Dapatkan Base Address Static Field Data
 		void* static_field_data_addr = mono::get_static_field_data(player_class);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
-		uint32_t offset = mono::get_field_offset(local_player_field);
+		uint32_t offset             = mono::get_field_offset(local_player_field);
 		void* local_player_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
@@ -38,20 +44,26 @@ namespace big::unity
 		// 1. Cari Class Player
 		MonoClass* zone_system = mono::get_class("ZoneSystem", "assembly_valheim");
 		if (zone_system == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 2. Cari Static Field m_localPlayer
 		MonoClassField* zone_system_instance = mono::get_field(zone_system, "m_instance");
 		if (zone_system_instance == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 3. Dapatkan Base Address Static Field Data
 		void* static_field_data_addr = mono::get_static_field_data(zone_system);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
-		uint32_t offset = mono::get_field_offset(zone_system_instance);
+		uint32_t offset            = mono::get_field_offset(zone_system_instance);
 		void* zone_system_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
@@ -65,20 +77,26 @@ namespace big::unity
 		// 1. Cari Class Player
 		MonoClass* env_man = mono::get_class("EnvMan", "assembly_valheim");
 		if (env_man == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 2. Cari Static Field m_localPlayer
 		MonoClassField* env_man_instance = mono::get_field(env_man, "s_instance");
 		if (env_man_instance == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 3. Dapatkan Base Address Static Field Data
 		void* static_field_data_addr = mono::get_static_field_data(env_man);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
-		uint32_t offset = mono::get_field_offset(env_man_instance);
+		uint32_t offset        = mono::get_field_offset(env_man_instance);
 		void* env_man_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
@@ -92,20 +110,26 @@ namespace big::unity
 		// 1. Cari Class Player
 		MonoClass* item_drop = mono::get_class("ItemDrop", "assembly_valheim");
 		if (item_drop == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 2. Cari Static Field m_localPlayer
 		MonoClassField* item_drop_instance = mono::get_field(item_drop, "s_instances");
 		if (item_drop_instance == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 3. Dapatkan Base Address Static Field Data
 		void* static_field_data_addr = mono::get_static_field_data(item_drop);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
-		uint32_t offset = mono::get_field_offset(item_drop_instance);
+		uint32_t offset          = mono::get_field_offset(item_drop_instance);
 		void* item_drop_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
@@ -119,21 +143,27 @@ namespace big::unity
 		// 1. Cari Class Player
 		MonoClass* klass = mono::get_class("Localization", "assembly_guiutils");
 		if (klass == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 2. Cari Static Field m_localPlayer
 		MonoClassField* field = mono::get_field(klass, "m_instance");
 		if (field == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 3. Dapatkan Base Address Static Field Data
 		void* static_field_data_addr = mono::get_static_field_data(klass);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
 		uint32_t offset = mono::get_field_offset(field);
-		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+		void* ptr_addr  = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
 		MonoObject* ptr_instance = *(MonoObject**)ptr_addr;
@@ -148,23 +178,31 @@ namespace big::unity
 		{
 			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
 			if (obj)
+			{
 				return obj;
+			}
 		}
 
 		MonoClass* klass = mono::get_class("ObjectDB", "assembly_valheim");
 		if (klass == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = mono::get_field(klass, "m_instance");
 		if (field == nullptr)
+		{
 			return nullptr;
+		}
 
 		void* static_field_data_addr = mono::get_static_field_data(klass);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		uint32_t offset = mono::get_field_offset(field);
-		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+		void* ptr_addr  = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		return *(MonoObject**)ptr_addr;
 	}
@@ -176,27 +214,57 @@ namespace big::unity
 		{
 			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
 			if (obj)
+			{
 				return obj;
+			}
 		}
 
 		MonoClass* klass = mono::get_class("ZNetScene", "assembly_valheim");
 		if (klass == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = mono::get_field(klass, "s_instance");
 		if (field == nullptr)
+		{
 			field = mono::get_field(klass, "m_instance");
+		}
 		if (field == nullptr)
+		{
 			return nullptr;
+		}
 
 		void* static_field_data_addr = mono::get_static_field_data(klass);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		uint32_t offset = mono::get_field_offset(field);
-		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+		void* ptr_addr  = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		return *(MonoObject**)ptr_addr;
+	}
+
+	// ZNetScene has GetPrefab(int) and GetPrefab(string). get_method() takes the first match by
+	// name + arg count, which is the int overload, so the string overload has to be picked explicitly.
+	inline MonoObject* get_znet_prefab(const std::string& name)
+	{
+		auto znet = get_znet_scene();
+		if (!znet)
+		{
+			return nullptr;
+		}
+
+		static MonoMethod* get_prefab = mono::get_method_overload("ZNetScene", "GetPrefab", 1, "GameObject", "String", "assembly_valheim");
+		if (!get_prefab)
+		{
+			return nullptr;
+		}
+
+		void* args[1] = {mono::to_mono_string(name)};
+		return mono::invoke_method(get_prefab, znet, args);
 	}
 
 	inline MonoObject* get_rand_event_system()
@@ -206,25 +274,35 @@ namespace big::unity
 		{
 			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
 			if (obj)
+			{
 				return obj;
+			}
 		}
 
 		MonoClass* klass = mono::get_class("RandEventSystem", "assembly_valheim");
 		if (klass == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = mono::get_field(klass, "m_instance");
 		if (field == nullptr)
+		{
 			field = mono::get_field(klass, "s_instance");
+		}
 		if (field == nullptr)
+		{
 			return nullptr;
+		}
 
 		void* static_field_data_addr = mono::get_static_field_data(klass);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		uint32_t offset = mono::get_field_offset(field);
-		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+		void* ptr_addr  = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		return *(MonoObject**)ptr_addr;
 	}
@@ -236,27 +314,89 @@ namespace big::unity
 		{
 			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
 			if (obj)
+			{
 				return obj;
+			}
 		}
 
 		MonoClass* klass = mono::get_class("StoreGui", "assembly_valheim");
 		if (klass == nullptr)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = mono::get_field(klass, "m_instance");
 		if (field == nullptr)
+		{
 			field = mono::get_field(klass, "s_instance");
+		}
 		if (field == nullptr)
+		{
 			return nullptr;
+		}
 
 		void* static_field_data_addr = mono::get_static_field_data(klass);
 		if (static_field_data_addr == nullptr)
+		{
 			return nullptr;
+		}
 
 		uint32_t offset = mono::get_field_offset(field);
-		void* ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
+		void* ptr_addr  = (void*)((uintptr_t)static_field_data_addr + offset);
 
 		return *(MonoObject**)ptr_addr;
+	}
+
+	inline MonoObject* get_inventory_gui()
+	{
+		static MonoMethod* get_inst = mono::get_method("InventoryGui", "get_instance", 0, "assembly_valheim");
+		if (get_inst)
+		{
+			auto obj = mono::invoke_method(get_inst, nullptr, nullptr);
+			if (obj)
+			{
+				return obj;
+			}
+		}
+
+		MonoClass* klass = mono::get_class("InventoryGui", "assembly_valheim");
+		if (klass == nullptr)
+		{
+			return nullptr;
+		}
+
+		MonoClassField* field = mono::get_field(klass, "m_instance");
+		if (field == nullptr)
+		{
+			return nullptr;
+		}
+
+		void* static_field_data_addr = mono::get_static_field_data(klass);
+		if (static_field_data_addr == nullptr)
+		{
+			return nullptr;
+		}
+
+		uint32_t offset = mono::get_field_offset(field);
+		void* ptr_addr  = (void*)((uintptr_t)static_field_data_addr + offset);
+
+		return *(MonoObject**)ptr_addr;
+	}
+
+	inline bool is_inventory_gui_visible()
+	{
+		auto gui = get_inventory_gui();
+		if (!gui)
+		{
+			return false;
+		}
+		static MonoMethod* is_vis = mono::get_method("InventoryGui", "IsVisible", 0, "assembly_valheim");
+		if (is_vis)
+		{
+			auto res = mono::invoke_method(is_vis, nullptr, nullptr);
+			return res ? *reinterpret_cast<bool*>(mono::object_unbox(res)) : false;
+		}
+		return false;
 	}
 
 	template<typename T>
@@ -273,21 +413,40 @@ namespace big::unity
 	{
 		auto player = get_local_player();
 		if (!player)
+		{
 			return;
-		static auto method = mono::get_method("Player", "Message", 4, "assembly_valheim");
+		}
+		static auto method = mono::get_method("Player", "Message", 5, "assembly_valheim");
 		if (!method)
+		{
+			method = mono::get_method("Player", "Message", 4, "assembly_valheim");
+		}
+		if (!method)
+		{
 			return;
-		auto ms = mono::to_mono_string(msg);
-		int val = 0;
-		void* args[4] = {&type, ms, &val, nullptr};
-		mono::invoke_method(method, player, args);
+		}
+		auto ms      = mono::to_mono_string(msg);
+		int val      = 0;
+		bool log_msg = false;
+		if (mono::get_param_count(method) == 5)
+		{
+			void* args[5] = {&type, ms, &val, nullptr, &log_msg};
+			mono::invoke_method(method, player, args);
+		}
+		else
+		{
+			void* args[4] = {&type, ms, &val, nullptr};
+			mono::invoke_method(method, player, args);
+		}
 	}
 
 	inline std::vector<MonoObject*> list_to_vector(MonoObject* list)
 	{
 		std::vector<MonoObject*> out;
 		if (!list)
+		{
 			return out;
+		}
 
 		MonoClass* klass = mono::object_get_class(list);
 
@@ -298,30 +457,40 @@ namespace big::unity
 		}
 
 		MonoMethod* getCount = mono::class_get_method_from_name(klass, "get_Count", 0);
-		MonoMethod* getItem = mono::class_get_method_from_name(klass, "get_Item", 1);
+		MonoMethod* getItem  = mono::class_get_method_from_name(klass, "get_Item", 1);
 
 		if (!getCount || !getItem)
+		{
 			return out;
+		}
 
 		MonoObject* ret = mono::invoke_method(getCount, list);
 		if (!ret)
+		{
 			return out;
+		}
 
-		int count = 0;
+		int count     = 0;
 		void* unboxed = mono::object_unbox(ret);
 		if (unboxed)
+		{
 			count = *(int*)unboxed;
+		}
 
 		if (count <= 0 || count > 100000)
+		{
 			return out;
+		}
 
 		out.reserve(count);
 		for (int i = 0; i < count; ++i)
 		{
-			void* args[1] = {&i};
+			void* args[1]    = {&i};
 			MonoObject* item = mono::invoke_method(getItem, list, args);
 			if (item)
+			{
 				out.push_back(item);
+			}
 		}
 
 		return out;
@@ -332,7 +501,9 @@ namespace big::unity
 		static MonoMethod* method = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 
 		if (!method || !player)
+		{
 			return nullptr;
+		}
 
 		auto transform = mono::invoke_method(method, player, nullptr);
 
@@ -344,11 +515,15 @@ namespace big::unity
 		static MonoMethod* method = mono::get_method("Character", "GetHeadPoint", 0, "assembly_valheim");
 
 		if (!method || !player)
+		{
 			return Vector3();
+		}
 
 		auto obj = mono::invoke_method(method, player, nullptr);
 		if (!obj)
+		{
 			return Vector3();
+		}
 
 		auto value = mono::object_unbox(obj);
 		return value ? *static_cast<Vector3*>(value) : Vector3{};
@@ -359,11 +534,15 @@ namespace big::unity
 		static MonoMethod* method = mono::get_method("Character", "GetTopPoint", 0, "assembly_valheim");
 
 		if (!method || !player)
+		{
 			return Vector3();
+		}
 
 		auto obj = mono::invoke_method(method, player, nullptr);
 		if (!obj)
+		{
 			return Vector3();
+		}
 
 		auto value = mono::object_unbox(obj);
 		return value ? *static_cast<Vector3*>(value) : Vector3{};
@@ -374,11 +553,15 @@ namespace big::unity
 		static MonoMethod* method = mono::get_method("Character", "GetVelocity", 0, "assembly_valheim");
 
 		if (!method || !player)
+		{
 			return Vector3();
+		}
 
 		auto obj = mono::invoke_method(method, player, nullptr);
 		if (!obj)
+		{
 			return Vector3();
+		}
 
 		auto value = mono::object_unbox(obj);
 		return value ? *static_cast<Vector3*>(value) : Vector3{};
@@ -390,17 +573,23 @@ namespace big::unity
 		static MonoMethod* get_position = mono::get_method("Transform", "get_position", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!method || !player || !get_position)
+		{
 			return Vector3();
+		}
 
 		auto transform = mono::invoke_method(method, player, nullptr);
 
 		if (!transform)
+		{
 			return Vector3();
+		}
 
 		auto obj = mono::invoke_method(get_position, transform, nullptr);
 
 		if (!obj)
+		{
 			return Vector3();
+		}
 
 		return *(Vector3*)mono::object_unbox(obj);
 	}
@@ -410,24 +599,30 @@ namespace big::unity
 		Vector4 rot{0.f, 0.f, 0.f, 1.f}; // default identity
 
 		if (!player)
+		{
 			return rot;
+		}
 
-		static MonoMethod* get_transform =
-		    mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		static MonoMethod* get_transform = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 
-		static MonoMethod* get_rotation_method =
-		    mono::get_method("Transform", "get_rotation", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static MonoMethod* get_rotation_method = mono::get_method("Transform", "get_rotation", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_transform || !get_rotation_method)
+		{
 			return rot;
+		}
 
 		auto transform = mono::invoke_method(get_transform, player, nullptr);
 		if (!transform)
+		{
 			return rot;
+		}
 
 		auto obj = mono::invoke_method(get_rotation_method, transform, nullptr);
 		if (!obj)
+		{
 			return rot;
+		}
 
 		return *(Vector4*)mono::object_unbox(obj); // Quaternion (x,y,z,w)
 	}
@@ -436,24 +631,30 @@ namespace big::unity
 		Vector3 euler{};
 
 		if (!player)
+		{
 			return euler;
+		}
 
-		static auto get_transform =
-		    mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		static auto get_transform = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 
-		static auto get_euler =
-		    mono::get_method("Transform", "get_eulerAngles", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_euler = mono::get_method("Transform", "get_eulerAngles", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_transform || !get_euler)
+		{
 			return euler;
+		}
 
 		auto transform = mono::invoke_method(get_transform, player, nullptr);
 		if (!transform)
+		{
 			return euler;
+		}
 
 		auto obj = mono::invoke_method(get_euler, transform, nullptr);
 		if (!obj)
+		{
 			return euler;
+		}
 
 		return *(Vector3*)mono::object_unbox(obj);
 	}
@@ -462,64 +663,63 @@ namespace big::unity
 		Vector3 euler{};
 
 		if (!player)
+		{
 			return euler;
+		}
 
-		static auto get_transform =
-		    mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
+		static auto get_transform = mono::get_method("Character", "GetTransform", 0, "assembly_valheim");
 
-		static auto get_euler =
-		    mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_euler = mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_transform || !get_euler)
+		{
 			return euler;
+		}
 
 		auto transform = mono::invoke_method(get_transform, player, nullptr);
 		if (!transform)
+		{
 			return euler;
+		}
 
 		auto obj = mono::invoke_method(get_euler, transform, nullptr);
 		if (!obj)
+		{
 			return euler;
+		}
 
 		return *(Vector3*)mono::object_unbox(obj);
 	}
 	inline Vector3 get_camera_forward()
 	{
-		static MonoMethod* get_main = mono::get_method(
-		    "Camera",
-		    "get_main",
-		    0,
-		    "UnityEngine.CoreModule",
-		    "UnityEngine");
+		static MonoMethod* get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule", "UnityEngine");
 
-		static MonoMethod* get_transform = mono::get_method(
-		    "Component",
-		    "get_transform",
-		    0,
-		    "UnityEngine.CoreModule",
-		    "UnityEngine");
+		static MonoMethod* get_transform = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
 
-		static MonoMethod* get_forward = mono::get_method(
-		    "Transform",
-		    "get_forward",
-		    0,
-		    "UnityEngine.CoreModule",
-		    "UnityEngine");
+		static MonoMethod* get_forward = mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_main || !get_transform || !get_forward)
+		{
 			return {0, 0, 1};
+		}
 
 		auto camera = mono::invoke_method(get_main, nullptr, nullptr);
 		if (!camera)
+		{
 			return {0, 0, 1};
+		}
 
 		auto transform = mono::invoke_method(get_transform, camera, nullptr);
 		if (!transform)
+		{
 			return {0, 0, 1};
+		}
 
 		auto forward_obj = mono::invoke_method(get_forward, transform, nullptr);
 		if (!forward_obj)
+		{
 			return {0, 0, 1};
+		}
 
 		Vector3 forward = *(Vector3*)mono::object_unbox(forward_obj);
 
@@ -530,36 +730,41 @@ namespace big::unity
 		Vector3 result{};
 
 		if (!player || !hash_name)
+		{
 			return result;
+		}
 
 		// 🔥 cache semua
 		static MonoClass* character_class = mono::get_class("Character", "assembly_valheim");
-		static MonoClass* znetview_class = mono::get_class("ZNetView", "assembly_valheim");
-		static MonoClass* zdo_class = mono::get_class("ZDO", "assembly_valheim");
+		static MonoClass* znetview_class  = mono::get_class("ZNetView", "assembly_valheim");
+		static MonoClass* zdo_class       = mono::get_class("ZDO", "assembly_valheim");
 
-		static MonoClassField* m_nview_field =
-		    mono::get_field(character_class, "m_nview");
+		static MonoClassField* m_nview_field = mono::get_field(character_class, "m_nview");
 
-		static MonoMethod* get_zdo_method =
-		    mono::get_method("ZNetView", "GetZDO", 0, "assembly_valheim");
+		static MonoMethod* get_zdo_method = mono::get_method("ZNetView", "GetZDO", 0, "assembly_valheim");
 
-		static MonoMethod* get_vec3_method =
-		    mono::get_method("ZDO", "GetVec3", 2, "assembly_valheim");
+		static MonoMethod* get_vec3_method = mono::get_method_exact("ZDO", "GetVec3", {"System.Int32", "UnityEngine.Vector3"}, "assembly_valheim");
 
 		if (!m_nview_field || !get_zdo_method || !get_vec3_method)
+		{
 			return result;
+		}
 
 		// 1. ambil m_nview
 		void* nview = nullptr;
 		mono::get_field_value(player, m_nview_field, &nview);
 
 		if (!nview)
+		{
 			return result;
+		}
 
 		// 2. ambil ZDO
 		void* zdo = mono::invoke_method(get_zdo_method, nview, nullptr);
 		if (!zdo)
+		{
 			return result;
+		}
 
 		// 3. prepare arg
 		int key_str = hash_name;
@@ -572,7 +777,9 @@ namespace big::unity
 		// 4. invoke
 		auto obj = mono::invoke_method(get_vec3_method, zdo, args);
 		if (!obj)
+		{
 			return result;
+		}
 
 		// 5. unbox
 		return *(Vector3*)mono::object_unbox(obj);
@@ -582,16 +789,22 @@ namespace big::unity
 		Vector3 pos{};
 
 		if (!player)
+		{
 			return pos;
+		}
 
 		static auto method = mono::get_method("Character", "GetCenterPoint", 0, "assembly_valheim");
 
 		if (!method)
+		{
 			return pos;
+		}
 
 		auto obj = mono::invoke_method(method, player, nullptr);
 		if (!obj)
+		{
 			return pos;
+		}
 
 		return *(Vector3*)mono::object_unbox(obj);
 	}
@@ -601,14 +814,13 @@ namespace big::unity
 
 		MonoObject* player = unity::get_local_player();
 		if (!player)
+		{
 			return pos;
+		}
 
 		pos = get_center_point(player);
 
-		LOG(VERBOSE) << std::format("Player m_teleportFromPos = {:.3f}, {:.3f}, {:.3f}",
-		    pos.x,
-		    pos.y,
-		    pos.z);
+		LOG(VERBOSE) << std::format("Player m_teleportFromPos = {:.3f}, {:.3f}, {:.3f}", pos.x, pos.y, pos.z);
 
 		return pos;
 	}
@@ -618,14 +830,16 @@ namespace big::unity
 		MonoObject* player = unity::get_local_player();
 
 		if (!player)
+		{
 			return;
+		}
 
 		static MonoMethod* method = mono::get_method("Player", "TeleportTo", 3, "assembly_valheim");
 
 		bool flashBar = true;
 
-		auto pos = position;
-		auto rot = rotation;
+		auto pos     = position;
+		auto rot     = rotation;
 		auto distant = distantTeleport;
 
 		void* args[3] = {&pos, &rot, &distant};
@@ -637,10 +851,14 @@ namespace big::unity
 	{
 		static MonoMethod* method = mono::get_method("Screen", "get_width", 0, "UnityEngine.CoreModule", "UnityEngine");
 		if (!method)
+		{
 			return g_pointers ? g_pointers->m_resolution.x : 1920;
+		}
 		auto result = mono::invoke_method(method, nullptr, nullptr);
 		if (!result)
+		{
 			return g_pointers ? g_pointers->m_resolution.x : 1920;
+		}
 		auto ptr = mono::object_unbox(result);
 		return ptr ? *(int*)ptr : (g_pointers ? g_pointers->m_resolution.x : 1920);
 	}
@@ -649,10 +867,14 @@ namespace big::unity
 	{
 		static MonoMethod* method = mono::get_method("Screen", "get_height", 0, "UnityEngine.CoreModule", "UnityEngine");
 		if (!method)
+		{
 			return g_pointers ? g_pointers->m_resolution.y : 1080;
+		}
 		auto result = mono::invoke_method(method, nullptr, nullptr);
 		if (!result)
+		{
 			return g_pointers ? g_pointers->m_resolution.y : 1080;
+		}
 		auto ptr = mono::object_unbox(result);
 		return ptr ? *(int*)ptr : (g_pointers ? g_pointers->m_resolution.y : 1080);
 	}
@@ -663,24 +885,32 @@ namespace big::unity
 		static MonoMethod* w2s_method = mono::get_method("Camera", "WorldToScreenPoint", 1, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_main || !w2s_method)
+		{
 			return false;
+		}
 
 		auto camera = mono::invoke_method(get_main, nullptr, nullptr);
 		if (!camera)
+		{
 			return false;
+		}
 
 		int eye = 2;
 
 		auto result_obj = mono::invoke(w2s_method, camera, world);
 		if (!result_obj)
+		{
 			return false;
+		}
 
 		Vector3 result = *(Vector3*)mono::object_unbox(result_obj);
 
 		if (result.z <= 0.1f)
+		{
 			return false;
+		}
 
-		float screen_width = unity::get_screen_width();
+		float screen_width  = unity::get_screen_width();
 		float screen_height = unity::get_screen_height();
 
 		out.x = result.x;
@@ -695,16 +925,20 @@ namespace big::unity
 		if (screen_h <= 0.f)
 		{
 			if (g_pointers)
+			{
 				screen_h = (float)g_pointers->m_resolution.y;
+			}
 			if (screen_h <= 0.f)
+			{
 				screen_h = 1080.f;
+			}
 		}
 
-		constexpr float cam_fov = 65.f; // Standard Valheim camera FOV
+		constexpr float cam_fov      = 65.f; // Standard Valheim camera FOV
 		constexpr float half_cam_rad = (cam_fov * 0.5f) * (3.14159265359f / 180.f);
-		float focal_length = (screen_h * 0.5f) / tanf(half_cam_rad);
+		float focal_length           = (screen_h * 0.5f) / tanf(half_cam_rad);
 
-		float clamped_fov = std::clamp(fov_degrees, 0.1f, 170.f);
+		float clamped_fov     = std::clamp(fov_degrees, 0.1f, 170.f);
 		float half_target_rad = (clamped_fov * 0.5f) * (3.14159265359f / 180.f);
 
 		return focal_length * tanf(half_target_rad);
@@ -715,7 +949,9 @@ namespace big::unity
 		static MonoMethod* method = mono::get_method("Character", "GetAllCharacters", 0, "assembly_valheim");
 
 		if (!method)
+		{
 			return {};
+		}
 
 		MonoObject* result = mono::invoke_method(method, nullptr);
 
@@ -733,7 +969,9 @@ namespace big::unity
 		static MonoMethod* method = mono::get_method("Player", "GetAllPlayers", 0, "assembly_valheim");
 
 		if (!method)
+		{
 			return {};
+		}
 
 		MonoObject* result = mono::invoke_method(method, nullptr);
 
@@ -749,17 +987,16 @@ namespace big::unity
 	inline std::string get_name(void* obj)
 	{
 		if (!obj)
+		{
 			return "unknown";
+		}
 
-		static MonoMethod* get_name_obj = mono::get_method(
-		    "Object",
-		    "get_name",
-		    0,
-		    "UnityEngine.CoreModule",
-		    "UnityEngine");
+		static MonoMethod* get_name_obj = mono::get_method("Object", "get_name", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (!get_name_obj)
+		{
 			return "unknown";
+		}
 
 		// UnityEngine.Object (base of both GameObject and Component) has get_name directly
 		auto name_obj = mono::invoke_method(get_name_obj, obj, nullptr);
@@ -767,16 +1004,13 @@ namespace big::unity
 		{
 			std::string str = mono::from_mono_string((MonoString*)name_obj);
 			if (!str.empty())
+			{
 				return str;
+			}
 		}
 
 		// Fallback in case a component was passed whose Object.get_name did not resolve
-		static MonoMethod* get_go = mono::get_method(
-		    "Component",
-		    "get_gameObject",
-		    0,
-		    "UnityEngine.CoreModule",
-		    "UnityEngine");
+		static MonoMethod* get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
 
 		if (get_go)
 		{
@@ -785,7 +1019,9 @@ namespace big::unity
 			{
 				auto go_name_obj = mono::invoke_method(get_name_obj, go, nullptr);
 				if (go_name_obj)
+				{
 					return mono::from_mono_string((MonoString*)go_name_obj);
+				}
 			}
 		}
 
@@ -794,18 +1030,18 @@ namespace big::unity
 
 	inline std::string get_hover_name(void* character)
 	{
-		static MonoMethod* method = mono::get_method(
-		    "Character",
-		    "GetHoverName",
-		    0,
-		    "assembly_valheim");
+		static MonoMethod* method = mono::get_method("Character", "GetHoverName", 0, "assembly_valheim");
 
 		if (!method || !character)
+		{
 			return "unknown";
+		}
 
 		auto name_obj = mono::invoke_method(method, character, nullptr);
 		if (!name_obj)
+		{
 			return "unknown";
+		}
 
 		std::string result = mono::from_mono_string((MonoString*)name_obj);
 
@@ -813,79 +1049,75 @@ namespace big::unity
 	}
 	inline float get_health(void* character)
 	{
-		static MonoMethod* method = mono::get_method(
-		    "Character",
-		    "GetHealth",
-		    0,
-		    "assembly_valheim");
+		static MonoMethod* method = mono::get_method("Character", "GetHealth", 0, "assembly_valheim");
 
 		if (!method || !character)
+		{
 			return 0.f;
+		}
 
 		auto obj = mono::invoke_method(method, character, nullptr);
 		if (!obj)
+		{
 			return 0.f;
+		}
 
 		return *(float*)mono::object_unbox(obj);
 	}
 	inline bool is_dead(void* character)
 	{
-		static MonoMethod* method = mono::get_method(
-		    "Character",
-		    "IsDead",
-		    0,
-		    "assembly_valheim");
+		static MonoMethod* method = mono::get_method("Character", "IsDead", 0, "assembly_valheim");
 
 		if (!method || !character)
+		{
 			return false;
+		}
 
 		auto obj = mono::invoke_method(method, character, nullptr);
 		if (!obj)
+		{
 			return false;
+		}
 
 		return *(bool*)mono::object_unbox(obj);
 	}
 	inline float get_max_health(void* character)
 	{
-		static MonoMethod* method = mono::get_method(
-		    "Character",
-		    "GetMaxHealth",
-		    0,
-		    "assembly_valheim");
+		static MonoMethod* method = mono::get_method("Character", "GetMaxHealth", 0, "assembly_valheim");
 
 		if (!method || !character)
+		{
 			return 0.f;
+		}
 
 		auto obj = mono::invoke_method(method, character, nullptr);
 		if (!obj)
+		{
 			return 0.f;
+		}
 
 		return *(float*)mono::object_unbox(obj);
 	}
 	inline bool get_bounds(void* character, Vector3& top, Vector3& bottom)
 	{
-		static MonoMethod* get_top = mono::get_method(
-		    "Character",
-		    "GetTopPoint",
-		    0,
-		    "assembly_valheim");
+		static MonoMethod* get_top = mono::get_method("Character", "GetTopPoint", 0, "assembly_valheim");
 
-		static MonoMethod* get_center = mono::get_method(
-		    "Character",
-		    "GetCenterPoint",
-		    0,
-		    "assembly_valheim");
+		static MonoMethod* get_center = mono::get_method("Character", "GetCenterPoint", 0, "assembly_valheim");
 
 		if (!character || !get_top || !get_center)
+		{
 			return false;
+		}
 
-		auto top_obj = mono::invoke_method(get_top, character, nullptr);
+		auto top_obj    = mono::invoke_method(get_top, character, nullptr);
 		auto center_obj = mono::invoke_method(get_center, character, nullptr);
 
 		if (!top_obj || !center_obj)
+		{
 			return false;
+		}
 
-		top = *(Vector3*)mono::object_unbox(top_obj);
+		top            = *(Vector3*)mono::object_unbox(top_obj);
 		Vector3 center = *(Vector3*)mono::object_unbox(center_obj);
 
 		// 🔥 bottom = mirror dari center
@@ -961,11 +1193,15 @@ namespace big::unity
 
 		MonoClass* klass = mono::get_class("Minimap", "assembly_valheim");
 		if (!klass)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = mono::get_field(klass, "s_instance");
 		if (!field)
+		{
 			field = mono::get_field(klass, "m_instance");
+		}
 
 		if (field)
 		{
@@ -973,9 +1209,11 @@ namespace big::unity
 			if (static_data)
 			{
 				uint32_t offset = mono::get_field_offset(field);
-				void* ptr_addr = (void*)((uintptr_t)static_data + offset);
+				void* ptr_addr  = (void*)((uintptr_t)static_data + offset);
 				if (ptr_addr && *(MonoObject**)ptr_addr)
+				{
 					return *(MonoObject**)ptr_addr;
+				}
 			}
 		}
 
@@ -1013,14 +1251,60 @@ namespace big::unity
 					{
 						MonoObject* rot_obj = mono::invoke_method(get_rotation, trans, nullptr);
 						if (rot_obj)
+						{
 							rot = *reinterpret_cast<Quaternions*>(mono::object_unbox(rot_obj));
+						}
 					}
 				}
-				bool distant = true;
+				bool distant  = true;
 				void* args[3] = {&target, &rot, &distant};
 				mono::invoke_method(tele_method, player, args);
 			}
 		}
+	}
+
+	inline bool teleport_to_crosshair()
+	{
+		MonoObject* player = get_local_player();
+		if (!player)
+		{
+			return false;
+		}
+
+		Vector3 direction = get_camera_forward().normalize();
+		if (direction.length() < 0.1f)
+		{
+			return false;
+		}
+
+		Vector3 destination  = get_position(player) + direction * 30.f;
+		static auto get_main = mono::get_method("Camera", "get_main", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_transform = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_position_m = mono::get_method("Transform", "get_position", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto raycast = mono::get_method_exact("Physics", "Raycast", {"UnityEngine.Vector3", "UnityEngine.Vector3", "UnityEngine.RaycastHit&", "System.Single"}, "UnityEngine.PhysicsModule", "UnityEngine");
+		static auto hit_class       = mono::get_class("RaycastHit", "UnityEngine.PhysicsModule", "UnityEngine");
+		static auto hit_point_field = hit_class ? mono::get_field(hit_class, "m_Point") : nullptr;
+		if (get_main && get_transform && get_position_m && raycast && hit_class && hit_point_field)
+		{
+			auto camera        = mono::invoke_method(get_main, nullptr, nullptr);
+			auto transform     = camera ? mono::invoke_method(get_transform, camera, nullptr) : nullptr;
+			auto origin_object = transform ? mono::invoke_method(get_position_m, transform, nullptr) : nullptr;
+			auto hit_object    = mono::object_new(hit_class);
+			if (origin_object && hit_object)
+			{
+				Vector3 origin     = *reinterpret_cast<Vector3*>(mono::object_unbox(origin_object));
+				float max_distance = 1000.f;
+				void* args[]       = {&origin, &direction, mono::object_unbox(hit_object), &max_distance};
+				auto hit           = mono::invoke_method(raycast, nullptr, args);
+				if (hit && *reinterpret_cast<bool*>(mono::object_unbox(hit)))
+				{
+					mono::get_field_value(hit_object, hit_point_field, &destination);
+				}
+			}
+		}
+
+		teleport_to_world_point(destination);
+		return true;
 	}
 
 	struct map_pin_info
@@ -1034,36 +1318,52 @@ namespace big::unity
 	{
 		MonoObject* minimap = get_minimap();
 		if (!minimap)
+		{
 			return std::nullopt;
+		}
 
 		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
 		if (!minimap_class)
+		{
 			return std::nullopt;
+		}
 
 		MonoClassField* field = mono::get_field(minimap_class, "m_pingPins");
 		if (!field)
+		{
 			return std::nullopt;
+		}
 
 		MonoObject* ping_list = nullptr;
 		mono::get_field_value(minimap, field, &ping_list);
 		if (!ping_list)
+		{
 			return std::nullopt;
+		}
 
 		auto pings = list_to_vector(ping_list);
 		if (pings.empty())
+		{
 			return std::nullopt;
+		}
 
 		MonoObject* last_pin = pings.back();
 		if (!last_pin)
+		{
 			return std::nullopt;
+		}
 
 		MonoClass* pin_class = mono::object_get_class(last_pin);
 		if (!pin_class)
+		{
 			return std::nullopt;
+		}
 
 		MonoClassField* pos_field = mono::get_field(pin_class, "m_pos");
 		if (!pos_field)
+		{
 			return std::nullopt;
+		}
 
 		Vector3 pos{};
 		mono::get_field_value(last_pin, pos_field, &pos);
@@ -1074,28 +1374,40 @@ namespace big::unity
 	{
 		MonoObject* minimap = get_minimap();
 		if (!minimap)
+		{
 			return std::nullopt;
+		}
 
 		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
 		if (!minimap_class)
+		{
 			return std::nullopt;
+		}
 
 		MonoClassField* field = mono::get_field(minimap_class, "m_deathPin");
 		if (!field)
+		{
 			return std::nullopt;
+		}
 
 		MonoObject* pin = nullptr;
 		mono::get_field_value(minimap, field, &pin);
 		if (!pin)
+		{
 			return std::nullopt;
+		}
 
 		MonoClass* pin_class = mono::object_get_class(pin);
 		if (!pin_class)
+		{
 			return std::nullopt;
+		}
 
 		MonoClassField* pos_field = mono::get_field(pin_class, "m_pos");
 		if (!pos_field)
+		{
 			return std::nullopt;
+		}
 
 		Vector3 pos{};
 		mono::get_field_value(pin, pos_field, &pos);
@@ -1106,28 +1418,40 @@ namespace big::unity
 	{
 		MonoObject* minimap = get_minimap();
 		if (!minimap)
+		{
 			return std::nullopt;
+		}
 
 		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
 		if (!minimap_class)
+		{
 			return std::nullopt;
+		}
 
 		MonoClassField* field = mono::get_field(minimap_class, "m_spawnPointPin");
 		if (!field)
+		{
 			return std::nullopt;
+		}
 
 		MonoObject* pin = nullptr;
 		mono::get_field_value(minimap, field, &pin);
 		if (!pin)
+		{
 			return std::nullopt;
+		}
 
 		MonoClass* pin_class = mono::object_get_class(pin);
 		if (!pin_class)
+		{
 			return std::nullopt;
+		}
 
 		MonoClassField* pos_field = mono::get_field(pin_class, "m_pos");
 		if (!pos_field)
+		{
 			return std::nullopt;
+		}
 
 		Vector3 pos{};
 		mono::get_field_value(pin, pos_field, &pos);
@@ -1139,37 +1463,47 @@ namespace big::unity
 		std::vector<map_pin_info> result;
 		MonoObject* minimap = get_minimap();
 		if (!minimap)
+		{
 			return result;
+		}
 
 		MonoClass* minimap_class = mono::get_class("Minimap", "assembly_valheim");
 		if (!minimap_class)
+		{
 			return result;
+		}
 
 		MonoClassField* field = mono::get_field(minimap_class, "m_pins");
 		if (!field)
+		{
 			return result;
+		}
 
 		MonoObject* pin_list = nullptr;
 		mono::get_field_value(minimap, field, &pin_list);
 		if (!pin_list)
+		{
 			return result;
+		}
 
 		auto pins = list_to_vector(pin_list);
 
-		static MonoClassField* pos_field = nullptr;
+		static MonoClassField* pos_field  = nullptr;
 		static MonoClassField* name_field = nullptr;
 		static MonoClassField* type_field = nullptr;
 
 		for (auto* pin_obj : pins)
 		{
 			if (!pin_obj)
+			{
 				continue;
+			}
 			if (!pos_field || !name_field || !type_field)
 			{
 				MonoClass* pin_class = mono::object_get_class(pin_obj);
 				if (pin_class)
 				{
-					pos_field = mono::get_field(pin_class, "m_pos");
+					pos_field  = mono::get_field(pin_class, "m_pos");
 					name_field = mono::get_field(pin_class, "m_name");
 					type_field = mono::get_field(pin_class, "m_type");
 				}
@@ -1177,9 +1511,13 @@ namespace big::unity
 
 			map_pin_info info{};
 			if (pos_field)
+			{
 				mono::get_field_value(pin_obj, pos_field, &info.pos);
+			}
 			if (type_field)
+			{
 				mono::get_field_value(pin_obj, type_field, &info.type);
+			}
 			if (name_field)
 			{
 				MonoString* str = nullptr;
@@ -1204,11 +1542,15 @@ namespace big::unity
 
 		MonoClass* klass = mono::get_class("Game", "assembly_valheim");
 		if (!klass)
+		{
 			return nullptr;
+		}
 
 		MonoClassField* field = mono::get_field(klass, "s_instance");
 		if (!field)
+		{
 			field = mono::get_field(klass, "m_instance");
+		}
 
 		if (field)
 		{
@@ -1216,9 +1558,11 @@ namespace big::unity
 			if (static_data)
 			{
 				uint32_t offset = mono::get_field_offset(field);
-				void* ptr_addr = (void*)((uintptr_t)static_data + offset);
+				void* ptr_addr  = (void*)((uintptr_t)static_data + offset);
 				if (ptr_addr && *(MonoObject**)ptr_addr)
+				{
 					return *(MonoObject**)ptr_addr;
+				}
 			}
 		}
 
@@ -1273,7 +1617,7 @@ namespace big::unity
 		}
 
 		auto local_player = get_local_player();
-		Vector3 pos = local_player ? get_position(local_player) : Vector3{0.f, 0.f, 0.f};
+		Vector3 pos       = local_player ? get_position(local_player) : Vector3{0.f, 0.f, 0.f};
 
 		static MonoMethod* method = mono::get_method("Game", "DiscoverClosestLocation", 6, "assembly_valheim");
 		if (!method)
@@ -1283,15 +1627,9 @@ namespace big::unity
 		}
 
 		MonoString* mono_name = mono::to_mono_string(std::string(name));
-		MonoString* mono_pin = mono::to_mono_string(std::string(pin_name));
+		MonoString* mono_pin  = mono::to_mono_string(std::string(pin_name));
 
-		void* args[6] = {
-		    mono_name,
-		    &pos,
-		    mono_pin,
-		    &pin_type,
-		    &show_map,
-		    &discover_all};
+		void* args[6] = {mono_name, &pos, mono_pin, &pin_type, &show_map, &discover_all};
 
 		mono::invoke_method(method, game, args);
 	}
@@ -1305,20 +1643,7 @@ namespace big::unity
 			int pin_type;
 		};
 
-		static const boss_entry entries[] = {
-		    {"Eikthyrnir", "Eikthyr", 9},
-		    {"GDKing", "The Elder", 9},
-		    {"Bonemass", "Bonemass", 9},
-		    {"Dragonqueen", "Moder", 9},
-		    {"GoblinKing", "Yagluth", 9},
-		    {"SeekerQueen", "The Queen", 9},
-		    {"FaderLocation", "$enemy_fader_codename", 9},
-		    {"DN_Bossroom", "$hud_pin_dnboss", 9},
-		    {"Vendor_BlackForest", "Haldor", 2},
-		    {"Hildir_camp", "Hildir", 16},
-		    {"Hildir_crypt", "Hildir Crypt", 17},
-		    {"Hildir_cave", "Hildir Cave", 17},
-		    {"Hildir_tower", "Hildir Tower", 18}};
+		static const boss_entry entries[] = {{"Eikthyrnir", "Eikthyr", 9}, {"GDKing", "The Elder", 9}, {"Bonemass", "Bonemass", 9}, {"Dragonqueen", "Moder", 9}, {"GoblinKing", "Yagluth", 9}, {"SeekerQueen", "The Queen", 9}, {"FaderLocation", "$enemy_fader_codename", 9}, {"DN_Bossroom", "$hud_pin_dnboss", 9}, {"Vendor_BlackForest", "Haldor", 2}, {"Hildir_camp", "Hildir", 16}, {"Hildir_crypt", "Hildir Crypt", 17}, {"Hildir_cave", "Hildir Cave", 17}, {"Hildir_tower", "Hildir Tower", 18}};
 
 		for (const auto& entry : entries)
 		{
@@ -1331,36 +1656,50 @@ namespace big::unity
 	{
 		auto player_obj = get_local_player();
 		if (!player_obj)
+		{
 			return;
+		}
 
-		auto inv_class = mono::get_class("Inventory", "assembly_valheim");
+		auto inv_class    = mono::get_class("Inventory", "assembly_valheim");
 		auto player_class = mono::get_class("Player", "assembly_valheim");
 		if (!inv_class || !player_class)
+		{
 			return;
+		}
 
 		auto inv_field = mono::get_field(player_class, "m_inventory");
 		if (!inv_field)
+		{
 			return;
+		}
 
 		MonoObject* inv_obj = nullptr;
 		mono::get_field_value(player_obj, inv_field, &inv_obj);
 		if (!inv_obj)
+		{
 			return;
+		}
 
 		static auto get_all_method = mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim");
 		if (!get_all_method)
+		{
 			return;
+		}
 
 		auto all_items = mono::invoke_method(get_all_method, inv_obj, nullptr);
 		if (!all_items)
+		{
 			return;
+		}
 
 		auto items_vec = list_to_vector(all_items);
-		int max_y = 3;
+		int max_y      = 3;
 		for (auto* itm_obj : items_vec)
 		{
 			if (!itm_obj)
+			{
 				continue;
+			}
 			bool cheated = mono::get_field_value<"ItemDrop/ItemData", "m_cheated", bool>(itm_obj);
 			if (cheated)
 			{
@@ -1368,7 +1707,9 @@ namespace big::unity
 			}
 			auto pos = mono::get_field_value<"ItemDrop/ItemData", "m_gridPos", iVector2>(itm_obj);
 			if (pos.y > max_y)
+			{
 				max_y = pos.y;
+			}
 		}
 
 		int current_height = mono::get_field_value<"Inventory", "m_height", int>(inv_obj);

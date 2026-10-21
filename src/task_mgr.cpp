@@ -1,86 +1,84 @@
 #include "task_mgr.hpp"
+#include "logger/exception_handler.hpp"
 
 namespace big
 {
 	void task_mgr::add_impl(task<void> t)
 	{
-		std::lock_guard lock(m_mutex);
-		m_tasks.push_back(std::move(t));
+		std::scoped_lock lock(m_incoming_mutex);
+		m_incoming_tasks.push_back(std::move(t));
 	}
 
 	void task_mgr::add_impl(task<void> (*func)())
 	{
 		if (func)
 		{
-			std::lock_guard lock(m_mutex);
-			m_tasks.push_back(func());
+			add_impl(func());
 		}
 	}
 
 	void task_mgr::clear_impl()
 	{
-		std::lock_guard lock(m_mutex);
-		for (auto& t : m_tasks)
 		{
-			if (t.m_handle)
-			{
-				t.m_handle.destroy();
-			}
+			std::scoped_lock lock(m_incoming_mutex);
+			m_incoming_tasks.clear();
 		}
 		m_tasks.clear();
 	}
 
 	void task_mgr::tick_impl()
 	{
-		std::lock_guard lock(m_mutex);
-
-		for (auto it = m_tasks.begin(); it != m_tasks.end();)
+		// 1. Pindahkan semua task baru dari incoming queue ke active task list secara thread-safe
 		{
-			auto& handle = it->m_handle;
-
-			// Bersihkan jika handle kosong atau sudah selesai
-			if (!handle || handle.done())
+			std::scoped_lock lock(m_incoming_mutex);
+			if (!m_incoming_tasks.empty())
 			{
-				if (handle)
-				{
-					handle.destroy();
-				}
-				it = m_tasks.erase(it);
-				continue;
+				m_tasks.insert(m_tasks.end(),
+				               std::make_move_iterator(m_incoming_tasks.begin()),
+				               std::make_move_iterator(m_incoming_tasks.end()));
+				m_incoming_tasks.clear();
 			}
+		}
 
-			auto& promise = handle.promise();
+		// 2. Jalankan semua task aktif (iterasi aman berdasarkan index tanpa mutasi buffer)
+		const size_t task_count = m_tasks.size();
+		for (size_t i = 0; i < task_count; ++i)
+		{
+			auto& handle = m_tasks[i].m_handle;
+
+			if (!handle || handle.done())
+				continue;
+
+			auto* leaf = handle.promise().get_leaf();
 			bool should_run = true;
 
-			// Periksa status jeda/waktu tunggu di Root Task
-			if (promise.m_wake_time.has_value())
+			// Periksa status jeda/waktu tunggu di leaf Task
+			if (leaf->m_wake_time.has_value())
 			{
-				if (std::chrono::high_resolution_clock::now() < promise.m_wake_time.value())
+				if (std::chrono::high_resolution_clock::now() < leaf->m_wake_time.value())
 				{
 					should_run = false; // Belum waktunya jalan
 				}
 				else
 				{
-					promise.m_wake_time = std::nullopt; // Reset wake time
+					leaf->m_wake_time = std::nullopt; // Reset wake time
 				}
 			}
 
-			// Resume eksekusi coroutine
+			// Resume eksekusi coroutine pada leaf aktif
 			if (should_run)
 			{
-				handle.resume();
-			}
-
-			// Cek lagi setelah dijalankan, barangkali baru saja menyentuh co_return
-			if (handle && handle.done())
-			{
-				handle.destroy();
-				it = m_tasks.erase(it);
-			}
-			else
-			{
-				++it;
+				TRY_CLAUSE
+				{
+					leaf->get_handle().resume();
+				}
+				EXCEPT_CLAUSE
 			}
 		}
+
+		// 3. Bersihkan task yang sudah selesai setelah SEMUA task frame ini selesai di-tick
+		std::erase_if(m_tasks, [](const task<void>& t) {
+			return !t.m_handle || t.m_handle.done();
+		});
 	}
 }

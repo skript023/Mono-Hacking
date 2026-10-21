@@ -1,10 +1,11 @@
 #include "hooking.hpp"
+#include "utility/unity.hpp"
 
 namespace big
 {
 	bool hooks::player_in_ghost_mode(MonoObject* player)
 	{
-		if (g_settings.self.ghost_mode)
+		if (g_running && player && player == unity::get_local_player() && g_settings.self.ghost_mode)
 		{
 			return true;
 		}

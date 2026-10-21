@@ -63,6 +63,7 @@
 
 #include "menu_settings.hpp"
 #include "logger/logger.hpp"
+#include "logger/exception_handler.hpp"
 
 #pragma comment(lib, "Xinput.lib")
 

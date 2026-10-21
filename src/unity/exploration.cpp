@@ -1,6 +1,6 @@
 #include "exploration.hpp"
 #include "minimap.hpp"
-#include "notification/notification_service.hpp"
+#include <astra/host/notification.hpp>
 #include "utility/unity.hpp"
 #include "zone_system.hpp"
 #include <format>

@@ -1,377 +1,400 @@
-﻿#include "trampoline_binding.hpp"
+#include "trampoline_binding.hpp"
+
 #include "hooking/detour_hook.hpp"
 
 namespace js::trampoline
 {
 	using namespace big;
 
-	constexpr size_t ABI_MAX_ARGS = 16;
-
-	static JSClassID g_arg_wrapper_class;
-
-	static std::unordered_map<std::string, detour_hook*> g_hooks;
-
-	static JSClassID g_ctx_class;
-
-	static JSClassDef ctx_class_def{"NativeContext"};
-
-	static JSClassDef arg_wrapper_def{"ArgWrapper"};
-
-	struct MonoString
-	{
-		void* klass;
-		void* monitor;
-		int32_t length;
-		char16_t chars[1];
-	};
-
-	struct ArgWrapper
-	{
-		uintptr_t* ptr; // Menunjuk ke c->args[idx]
-	};
-
 	struct AbiContext
 	{
-		uintptr_t args[ABI_MAX_ARGS];
-		uintptr_t ret;
-		void* original;
+		uintptr_t gp[4]{};
+		alignas(16) uint8_t xmm[4][16]{};
+		uintptr_t entry_stack{};
+		void* hook_state{};
+		uint32_t argument_count{};
+		uint32_t reserved{};
+		uintptr_t return_value{};
+		uintptr_t* stack_copy{};
+		void* original{};
+		bool original_called{};
 	};
 
-	// =========================================================
-	// JS <-> C++ helpers
-	// =========================================================
+	static_assert(offsetof(AbiContext, gp) == 0x00);
+	static_assert(offsetof(AbiContext, xmm) == 0x20);
+	static_assert(offsetof(AbiContext, entry_stack) == 0x60);
+	static_assert(offsetof(AbiContext, hook_state) == 0x68);
+	static_assert(offsetof(AbiContext, argument_count) == 0x70);
+	static_assert(offsetof(AbiContext, return_value) == 0x78);
+	static_assert(offsetof(AbiContext, stack_copy) == 0x80);
 
-	static JSValue js_ctx_get_all_args(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+	struct HookState
 	{
-		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
-		JSValue arr = JS_NewArray(ctx);
+		qjs::Context* context{};
+		std::optional<qjs::Value> callback;
+		void* original{};
+		uint32_t argument_count{};
+	};
 
-		for (uint32_t i = 0; i < ABI_MAX_ARGS; ++i)
+	struct HookEntry
+	{
+		std::unique_ptr<detour_hook> hook;
+		std::unique_ptr<HookState> state;
+		void* entry_stub{};
+
+		~HookEntry()
 		{
-			JS_SetPropertyUint32(ctx, arr, i, JS_NewFloat64(ctx, (double)c->args[i]));
-		}
-		return arr;
-	}
-
-	static JSValue js_ctx_get_args(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-	{
-		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
-		uint32_t idx;
-		JS_ToUint32(ctx, &idx, argv[0]);
-
-		if (idx >= ABI_MAX_ARGS)
-			return JS_ThrowRangeError(ctx, "arg index out of range");
-
-		// Buat object wrapper
-		JSValue obj = JS_NewObjectClass(ctx, g_arg_wrapper_class);
-		ArgWrapper* w = (ArgWrapper*)js_malloc(ctx, sizeof(ArgWrapper));
-		w->ptr = &c->args[idx]; // Simpan pointer ke elemen array
-
-		JS_SetOpaque(obj, w);
-		return obj;
-	}
-
-	static JSValue js_ctx_set_arg(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-	{
-		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
-		if (argc != 2)
-			return JS_ThrowTypeError(ctx, "setArg(index, value)");
-
-		uint32_t idx;
-		JS_ToUint32(ctx, &idx, argv[0]);
-		if (idx >= ABI_MAX_ARGS)
-			return JS_ThrowRangeError(ctx, "arg index out of range");
-
-		double v;
-		JS_ToFloat64(ctx, &v, argv[1]);
-		c->args[idx] = (uintptr_t)v;
-		return JS_UNDEFINED;
-	}
-
-	static JSValue js_ctx_call_original(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-	{
-		auto* c = (AbiContext*)JS_GetOpaque(this_val, g_ctx_class);
-
-		using Fn = uintptr_t(__fastcall*)(
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t,
-		    uintptr_t);
-
-		auto fn = (Fn)c->original;
-		c->ret = fn(
-		    c->args[0],
-		    c->args[1],
-		    c->args[2],
-		    c->args[3],
-		    c->args[4],
-		    c->args[5],
-		    c->args[6],
-		    c->args[7],
-		    c->args[8],
-		    c->args[9],
-		    c->args[10],
-		    c->args[11],
-		    c->args[12],
-		    c->args[13],
-		    c->args[14],
-		    c->args[15]);
-
-		return JS_NewFloat64(ctx, (double)c->ret);
-	}
-
-	static JSValue js_arg_as_string(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-	{
-		auto* w = (ArgWrapper*)JS_GetOpaque(this_val, g_arg_wrapper_class);
-		if (!w || !w->ptr)
-			return JS_EXCEPTION;
-
-		// Cast uintptr_t ke const char*
-		return JS_NewString(ctx, (const char*)*w->ptr);
-	}
-
-	// Fungsi untuk mengambil value sebagai number (default)
-	static JSValue js_arg_as_number(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-	{
-		auto* w = (ArgWrapper*)JS_GetOpaque(this_val, g_arg_wrapper_class);
-		if (!w || !w->ptr)
-			return JS_EXCEPTION;
-
-		return JS_NewFloat64(ctx, (double)*w->ptr);
-	}
-
-	static JSValue js_arg_as_mono_string(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-	{
-		auto* w = (ArgWrapper*)JS_GetOpaque(this_val, g_arg_wrapper_class);
-		if (!w || !w->ptr)
-			return JS_EXCEPTION;
-
-		auto* ms = (MonoString*)*w->ptr;
-		if (!ms || ms->length < 0 || ms->length > 0x2000)
-			return JS_NULL;
-
-		int len = WideCharToMultiByte(
-		    CP_UTF8,
-		    0,
-		    (wchar_t*)ms->chars,
-		    ms->length,
-		    nullptr,
-		    0,
-		    nullptr,
-		    nullptr);
-
-		std::string out(len, '\0');
-
-		WideCharToMultiByte(
-		    CP_UTF8,
-		    0,
-		    (wchar_t*)ms->chars,
-		    ms->length,
-		    out.data(),
-		    len,
-		    nullptr,
-		    nullptr);
-
-		return JS_NewStringLen(ctx, out.data(), out.size());
-	}
-
-	static void register_ctx_class(JSContext* ctx)
-	{
-		JS_NewClassID(&g_arg_wrapper_class);
-		JS_NewClass(JS_GetRuntime(ctx), g_arg_wrapper_class, &arg_wrapper_def);
-
-		JSValue arg_proto = JS_NewObject(ctx);
-		JS_SetPropertyStr(ctx, arg_proto, "string", JS_NewCFunction(ctx, js_arg_as_string, "string", 0));
-		JS_SetPropertyStr(ctx, arg_proto, "monoString", JS_NewCFunction(ctx, js_arg_as_mono_string, "monoString", 0));
-		JS_SetPropertyStr(ctx, arg_proto, "number", JS_NewCFunction(ctx, js_arg_as_number, "number", 0));
-		// Opsional: override valueOf agar bisa langsung dipakai di operasi math
-		JS_SetPropertyStr(ctx, arg_proto, "valueOf", JS_NewCFunction(ctx, js_arg_as_number, "valueOf", 0));
-
-		JS_SetClassProto(ctx, g_arg_wrapper_class, arg_proto);
-
-		JS_NewClassID(&g_ctx_class);
-		JS_NewClass(JS_GetRuntime(ctx), g_ctx_class, &ctx_class_def);
-
-		JSValue proto = JS_NewObject(ctx);
-
-		JS_SetPropertyStr(ctx, proto, "args", JS_NewCFunction(ctx, js_ctx_get_all_args, "args", 0));
-
-		JS_SetPropertyStr(ctx, proto, "getArg", JS_NewCFunction(ctx, js_ctx_get_args, "getArg", 1));
-
-		JS_SetPropertyStr(ctx, proto, "setArg", JS_NewCFunction(ctx, js_ctx_set_arg, "setArg", 2));
-
-		JS_SetPropertyStr(ctx, proto, "callOriginal", JS_NewCFunction(ctx, js_ctx_call_original, "callOriginal", 0));
-
-		JS_SetClassProto(ctx, g_ctx_class, proto);
-	}
-
-	// =========================================================
-	// ABI TRAMPOLINE
-	// =========================================================
-
-	struct JsDetour
-	{
-		inline static JSContext* ctx = nullptr;
-		inline static JSValue js_func = JS_UNDEFINED;
-		inline static void* original = nullptr;
-
-		static uintptr_t __fastcall trampoline(
-		    uintptr_t a0, uintptr_t a1, uintptr_t a2,
-		    uintptr_t a3, uintptr_t a4, uintptr_t a5,
-		    uintptr_t a6, uintptr_t a7, uintptr_t a8,
-		    uintptr_t a9, uintptr_t a10, uintptr_t a11,
-		    uintptr_t a12, uintptr_t a13, uintptr_t a14, uintptr_t a15)
-		{
-			AbiContext abi{};
-			abi.args[0] = a0;
-			abi.args[1] = a1;
-			abi.args[2] = a2;
-			abi.args[3] = a3;
-			abi.args[4] = a4;
-			abi.args[5] = a5;
-			abi.args[6] = a6;
-			abi.args[7] = a7;
-			abi.args[8] = a8;
-			abi.args[9] = a9;
-			abi.args[10] = a10;
-			abi.args[11] = a11;
-			abi.args[12] = a12;
-			abi.args[13] = a13;
-			abi.args[14] = a14;
-			abi.args[15] = a15;
-			abi.original = original;
-
-			if (JS_IsFunction(ctx, js_func))
+			if (hook)
 			{
-				JSValue obj = JS_NewObjectClass(ctx, g_ctx_class);
-				JS_SetOpaque(obj, &abi);
+				hook->disable_immediately();
+			}
+			if (entry_stub)
+			{
+				VirtualFree(entry_stub, 0, MEM_RELEASE);
+				entry_stub = nullptr;
+			}
+		}
+	};
 
-				JSValue ret = JS_Call(ctx, js_func, JS_UNDEFINED, 1, &obj);
-				JS_FreeValue(ctx, obj);
+	extern "C" uintptr_t __fastcall JsInvokeOriginal(AbiContext* context, void* original, uint32_t argument_count);
+	extern "C" uintptr_t __fastcall JsDetourDispatch(AbiContext* raw_context, HookState* state);
+	extern "C" void JsDetourEntry();
 
-				if (!JS_IsException(ret))
-				{
-					double d;
-					if (JS_ToFloat64(ctx, &d, ret) == 0)
-					{
-						JS_FreeValue(ctx, ret);
-						return (uintptr_t)d;
-					}
-				}
-				JS_FreeValue(ctx, ret);
+	class NativeArgument
+	{
+	public:
+		NativeArgument(std::shared_ptr<AbiContext> context, std::shared_ptr<std::vector<uintptr_t>> stack_args, uint32_t index) :
+		    m_context(std::move(context)),
+		    m_stack_args(std::move(stack_args)),
+		    m_index(index)
+		{
+			if (!m_context || m_index >= m_context->argument_count)
+			{
+				throw std::out_of_range("native argument index out of range");
+			}
+		}
+
+		uintptr_t raw() const
+		{
+			if (m_index < 4)
+			{
+				return m_context->gp[m_index];
+			}
+			return (*m_stack_args)[m_index - 4];
+		}
+
+		std::string string() const
+		{
+			const auto value = raw();
+			return value ? reinterpret_cast<const char*>(value) : "";
+		}
+
+		std::optional<std::string> mono_string() const
+		{
+			struct MonoStringView
+			{
+				void* klass;
+				void* monitor;
+				int32_t length;
+				char16_t chars[1];
+			};
+			auto* value = reinterpret_cast<MonoStringView*>(raw());
+			if (!value || value->length < 0 || value->length > 0x2000)
+			{
+				return std::nullopt;
+			}
+			const auto* chars = reinterpret_cast<const wchar_t*>(value->chars);
+			const int length  = WideCharToMultiByte(CP_UTF8, 0, chars, value->length, nullptr, 0, nullptr, nullptr);
+			std::string result(static_cast<size_t>(length), '\0');
+			if (length > 0)
+			{
+				WideCharToMultiByte(CP_UTF8, 0, chars, value->length, result.data(), length, nullptr, nullptr);
+			}
+			return result;
+		}
+
+		double number() const
+		{
+			return static_cast<double>(raw());
+		}
+		double float_number() const
+		{
+			uint32_t bits{};
+			if (m_index < 4)
+			{
+				std::memcpy(&bits, m_context->xmm[m_index], sizeof(bits));
+			}
+			else
+			{
+				bits = static_cast<uint32_t>(raw());
+			}
+			return std::bit_cast<float>(bits);
+		}
+		double double_number() const
+		{
+			if (m_index >= 4)
+			{
+				return std::bit_cast<double>(raw());
+			}
+			double value{};
+			std::memcpy(&value, m_context->xmm[m_index], sizeof(value));
+			return value;
+		}
+		double value_of() const
+		{
+			return number();
+		}
+
+	private:
+		std::shared_ptr<AbiContext> m_context;
+		std::shared_ptr<std::vector<uintptr_t>> m_stack_args;
+		uint32_t m_index;
+	};
+
+	class NativeContext
+	{
+	public:
+		NativeContext(std::shared_ptr<AbiContext> context, std::shared_ptr<std::vector<uintptr_t>> stack_args) :
+		    m_context(std::move(context)),
+		    m_stack_args(std::move(stack_args))
+		{
+		}
+
+		std::vector<double> args() const
+		{
+			std::vector<double> result;
+			result.reserve(m_context->argument_count);
+			for (uint32_t i = 0; i < m_context->argument_count; ++i)
+			{
+				result.push_back(NativeArgument(m_context, m_stack_args, i).number());
+			}
+			return result;
+		}
+
+		std::shared_ptr<NativeArgument> get_arg(uint32_t index) const
+		{
+			return std::make_shared<NativeArgument>(m_context, m_stack_args, index);
+		}
+
+		void set_arg(uint32_t index, double value) const
+		{
+			if (index >= m_context->argument_count)
+			{
+				throw std::out_of_range("native argument index out of range");
+			}
+			const auto raw = static_cast<uintptr_t>(value);
+			if (index < 4)
+			{
+				m_context->gp[index] = raw;
+			}
+			else
+			{
+				(*m_stack_args)[index - 4] = raw;
+			}
+		}
+
+		void set_float(uint32_t index, double value) const
+		{
+			if (index >= m_context->argument_count)
+			{
+				throw std::out_of_range("native argument index out of range");
+			}
+			const auto bits = std::bit_cast<uint32_t>(static_cast<float>(value));
+			if (index < 4)
+			{
+				std::memcpy(m_context->xmm[index], &bits, sizeof(bits));
+			}
+			else
+			{
+				auto& slot = (*m_stack_args)[index - 4];
+				slot       = (slot & 0xffffffff00000000ull) | bits;
+			}
+		}
+
+		void set_double(uint32_t index, double value) const
+		{
+			if (index >= m_context->argument_count)
+			{
+				throw std::out_of_range("native argument index out of range");
+			}
+			if (index < 4)
+			{
+				std::memcpy(m_context->xmm[index], &value, sizeof(value));
+			}
+			else
+			{
+				(*m_stack_args)[index - 4] = std::bit_cast<uint64_t>(value);
+			}
+		}
+
+		double call_original() const
+		{
+			if (!m_context->original)
+			{
+				return 0;
+			}
+			if (!m_context->original_called)
+			{
+				m_context->return_value = JsInvokeOriginal(m_context.get(), m_context->original, m_context->argument_count);
+				m_context->original_called = true;
+			}
+			return static_cast<double>(m_context->return_value);
+		}
+
+	private:
+		std::shared_ptr<AbiContext> m_context;
+		std::shared_ptr<std::vector<uintptr_t>> m_stack_args;
+	};
+
+	static std::unordered_map<std::string, std::unique_ptr<HookEntry>> g_hooks;
+
+	static void* make_entry_stub(HookState* state)
+	{
+		uint8_t code[23]         = {0x49, 0xBA};
+		const auto state_address = reinterpret_cast<uint64_t>(state);
+		std::memcpy(code + 2, &state_address, sizeof(state_address));
+		code[10]                 = 0x49;
+		code[11]                 = 0xBB;
+		const auto entry_address = reinterpret_cast<uint64_t>(&JsDetourEntry);
+		std::memcpy(code + 12, &entry_address, sizeof(entry_address));
+		code[20] = 0x41;
+		code[21] = 0xFF;
+		code[22] = 0xE3;
+
+		auto* memory = VirtualAlloc(nullptr, sizeof(code), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+		if (!memory)
+		{
+			return nullptr;
+		}
+		std::memcpy(memory, code, sizeof(code));
+		FlushInstructionCache(GetCurrentProcess(), memory, sizeof(code));
+		return memory;
+	}
+
+	class HookBindings
+	{
+	public:
+		static bool add(std::string const& name, double address, uint32_t argument_count, qjs::Value callback)
+		{
+			auto* target = reinterpret_cast<void*>(static_cast<uintptr_t>(address));
+			if (!target || !callback.isFunction() || g_hooks.contains(name) || argument_count > 256)
+			{
+				return false;
 			}
 
-			using Fn = uintptr_t(__fastcall*)(
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t,
-			    uintptr_t);
+			auto entry            = std::make_unique<HookEntry>();
+			entry->state          = std::make_unique<HookState>();
+			entry->state->context = &qjs::Context::get(callback.ctx);
+			entry->state->callback.emplace(std::move(callback));
+			entry->state->argument_count = argument_count;
+			entry->entry_stub            = make_entry_stub(entry->state.get());
+			if (!entry->entry_stub)
+			{
+				return false;
+			}
 
-			return ((Fn)original)(
-			    abi.args[0],
-			    abi.args[1],
-			    abi.args[2],
-			    abi.args[3],
-			    abi.args[4],
-			    abi.args[5],
-			    abi.args[6],
-			    abi.args[7],
-			    abi.args[8],
-			    abi.args[9],
-			    abi.args[10],
-			    abi.args[11],
-			    abi.args[12],
-			    abi.args[13],
-			    abi.args[14],
-			    abi.args[15]);
+			try
+			{
+				entry->hook            = std::make_unique<detour_hook>(name, target, entry->entry_stub);
+				entry->state->original = entry->hook->get_original_ptr();
+				g_hooks.emplace(name, std::move(entry));
+				return true;
+			}
+			catch (const std::exception& e)
+			{
+				LOG(WARNING) << "Failed to create detour hook " << name << ": " << e.what();
+				return false;
+			}
+		}
+
+		static void enable(std::string const& name)
+		{
+			if (auto it = g_hooks.find(name); it != g_hooks.end())
+			{
+				it->second->hook->enable_immediately();
+			}
+		}
+
+		static void disable(std::string const& name)
+		{
+			if (auto it = g_hooks.find(name); it != g_hooks.end())
+			{
+				g_hooks.erase(it);
+			}
 		}
 	};
 
-	// =========================================================
-	// JS API
-	// =========================================================
-
-	static bool js_add_detour(std::string const& name, double address, qjs::Value callback)
+	extern "C" uintptr_t __fastcall JsDetourDispatch(AbiContext* raw_context, HookState* state)
 	{
-		void* addr = (void*)(uintptr_t)address;
-
-		if (!addr)
+		auto context = std::make_shared<AbiContext>();
+		std::memcpy(context.get(), raw_context, offsetof(AbiContext, stack_copy));
+		context->argument_count = state->argument_count;
+		context->original       = state->original;
+		auto stack_args         = std::make_shared<std::vector<uintptr_t>>();
+		if (state->argument_count > 4)
 		{
-			LOG(WARNING) << "Invalid address for detour";
+			stack_args->resize(state->argument_count - 4);
+			for (uint32_t i = 0; i < stack_args->size(); ++i)
+			{
+				(*stack_args)[i] = *reinterpret_cast<const uintptr_t*>(context->entry_stack + 0x28 + i * sizeof(uintptr_t));
+			}
+		}
+		context->stack_copy = stack_args->data();
 
-			return false;
+		if (state->callback && state->callback->isFunction())
+		{
+			try
+			{
+				auto argument = state->context->newValue(std::make_shared<NativeContext>(context, stack_args));
+				auto result   = state->callback->call(std::vector<qjs::Value>{std::move(argument)});
+				if (result.isInt() || result.isFloat())
+				{
+					return static_cast<uintptr_t>(result.as<double>());
+				}
+				if (context->original_called)
+				{
+					return context->return_value;
+				}
+			}
+			catch (const qjs::exception&)
+			{
+				auto error = state->context->getException();
+				LOG(WARNING) << "[JS Detour Error] " << error.as<std::string>();
+			}
 		}
 
-		LOG(VERBOSE) << "Context for detour: " << (void*)callback.ctx << " JSValue: " << (void*)callback.v.tag;
-
-		JsDetour::ctx = callback.ctx;
-		JsDetour::js_func = JS_DupValue(callback.ctx, callback.v);
-
-		auto* hook = new detour_hook(
-		    name,
-		    addr,
-		    &JsDetour::trampoline);
-
-		JsDetour::original = hook->get_original_ptr();
-		g_hooks.emplace(name, hook);
-
-		return true;
-	}
-
-	static void js_hook_enable(std::string const& name)
-	{
-		g_hooks[name.c_str()]->enable_immediately();
-	}
-
-	static void js_hook_disable(std::string const& name)
-	{
-		auto det = g_hooks[name.c_str()];
-		det->disable_immediately();
-
-		delete det;
-	}
-
-	static int js_detour_module_init(JSContext* ctx, JSModuleDef* m)
-	{
-		register_ctx_class(ctx);
-
-		return 0;
+		return static_cast<uintptr_t>(NativeContext(context, stack_args).call_original());
 	}
 
 	void bind(qjs::Context& context)
 	{
-		auto ctx = context.ctx;
-
-		register_ctx_class(ctx);
-
 		auto& module = context.addModule("detour");
+		module.class_<NativeArgument>("NativeArgument")
+		    .fun<&NativeArgument::string>("string")
+		    .fun<&NativeArgument::mono_string>("monoString")
+		    .fun<&NativeArgument::number>("number")
+		    .fun<&NativeArgument::float_number>("float")
+		    .fun<&NativeArgument::double_number>("double")
+		    .fun<&NativeArgument::value_of>("valueOf");
+		module.class_<NativeContext>("NativeContext")
+		    .fun<&NativeContext::args>("args")
+		    .fun<&NativeContext::get_arg>("getArg")
+		    .fun<&NativeContext::set_arg>("setArg")
+		    .fun<&NativeContext::set_float>("setFloat")
+		    .fun<&NativeContext::set_double>("setDouble")
+		    .fun<&NativeContext::call_original>("callOriginal");
+		module.class_<HookBindings>("Hook")
+		    .constructor<>("Hook")
+		    .static_fun<&HookBindings::add>("add")
+		    .static_fun<&HookBindings::enable>("enable")
+		    .static_fun<&HookBindings::disable>("disable");
+		module.function("add", &HookBindings::add);
+		module.function("enable", &HookBindings::enable);
+		module.function("disable", &HookBindings::disable);
+	}
 
-		module.function<&js_add_detour>("add");
-		module.function<&js_hook_enable>("enable");
-		module.function<&js_hook_disable>("disable");
+	void shutdown()
+	{
+		g_hooks.clear();
 	}
 }

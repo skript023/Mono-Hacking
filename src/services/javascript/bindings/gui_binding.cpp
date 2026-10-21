@@ -1,210 +1,127 @@
 #include "gui_binding.hpp"
+
 #include "menu/submenu.hpp"
+
 #include <astra/host/menu/store_mgr.hpp>
 
 #pragma warning(disable : 4244)
 namespace big
 {
-	JSContext* g_js_ctx;
-	static JSClassID js_submenu_class_id;
+	qjs::Context* g_js_context = nullptr;
 
-	static void register_submenu_class(JSContext* ctx)
+	static void invoke_js_callback(const std::optional<qjs::Value>& callback, std::vector<qjs::Value> args = {})
 	{
-		JS_NewClassID(&js_submenu_class_id);
-
-		JSClassDef def{};
-		def.class_name = "Submenu";
-
-		JS_NewClass(JS_GetRuntime(ctx), js_submenu_class_id, &def);
+		if (!callback || !callback->isFunction())
+		{
+			return;
+		}
+		try
+		{
+			callback->call(args);
+		}
+		catch (const qjs::exception&)
+		{
+			auto error = qjs::Context::get(callback->ctx).getException();
+			LOG(WARNING) << "[JS GUI Error] " << error.as<std::string>();
+		}
 	}
 
-	static bool js_is_int(JSContext* ctx, JSValueConst v)
+	void JSMenuBuilder::add_bool(std::string text, qjs::Value description)
 	{
-		double d;
-		if (JS_ToFloat64(ctx, &d, v))
-			return false;
-
-		return std::floor(d) == d && d >= std::numeric_limits<int32_t>::min() && d <= std::numeric_limits<int32_t>::max();
-	}
-
-	static JSValue js_sub_add_bool(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-	{
-		auto* menu = (JSMenu*)JS_GetOpaque2(ctx, this_val, js_submenu_class_id);
-		if (!menu)
-			return JS_EXCEPTION;
-
-		if (argc < 1)
-			return JS_ThrowTypeError(ctx, "add_bool(text, desc?)");
-
 		JSOption opt{};
 		opt.type = "bool";
-		opt.text = JS_ToCString(ctx, argv[0]);
-		opt.tag = opt.text;
-
-		if (argc >= 2 && JS_IsString(argv[1]))
-			opt.desc = JS_ToCString(ctx, argv[1]);
-
-		menu->options.push_back(std::move(opt));
-		return JS_UNDEFINED;
+		opt.text = std::move(text);
+		opt.tag  = opt.text;
+		if (description.isString())
+		{
+			opt.desc = description.as<std::string>();
+		}
+		g_js_menus.at(m_menu_id).options.push_back(std::move(opt));
 	}
-	static JSValue js_sub_add_slider(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+
+	void JSMenuBuilder::add_slider(std::string text, double min, double max, double step)
 	{
-		auto* menu = (JSMenu*)JS_GetOpaque2(ctx, this_val, js_submenu_class_id);
-		if (!menu)
-			return JS_EXCEPTION;
-
-		if (argc < 4)
-			return JS_ThrowTypeError(ctx, "add_slider(text, min, max, step)");
-
 		JSOption opt{};
-		opt.type = "slider";
-		opt.text = JS_ToCString(ctx, argv[0]);
-		opt.tag = opt.text;
-
-		JS_ToFloat64(ctx, &opt.min, argv[1]);
-		JS_ToFloat64(ctx, &opt.max, argv[2]);
-		JS_ToFloat64(ctx, &opt.step, argv[3]);
-
-		opt.isInt = js_is_int(ctx, argv[1]) && js_is_int(ctx, argv[2]) && js_is_int(ctx, argv[3]);
-
-		menu->options.push_back(std::move(opt));
-		return JS_UNDEFINED;
+		opt.type  = "slider";
+		opt.text  = std::move(text);
+		opt.tag   = opt.text;
+		opt.min   = min;
+		opt.max   = max;
+		opt.step  = step;
+		opt.isInt = std::floor(min) == min && std::floor(max) == max && std::floor(step) == step;
+		g_js_menus.at(m_menu_id).options.push_back(std::move(opt));
 	}
-	static JSValue js_sub_add_choose(
-	    JSContext* ctx,
-	    JSValueConst this_val,
-	    int argc,
-	    JSValueConst* argv)
+
+	void JSMenuBuilder::add_choose(std::string text, std::vector<std::string> values, qjs::Value callback)
 	{
-		auto* menu = (JSMenu*)JS_GetOpaque2(ctx, this_val, js_submenu_class_id);
-		if (!menu)
-			return JS_EXCEPTION;
-
-		if (argc < 3 || !JS_IsArray(ctx, argv[1]) || !JS_IsFunction(ctx, argv[2]))
-			return JS_ThrowTypeError(ctx, "add_choose(text, values[], callback)");
-
+		if (!callback.isFunction())
+		{
+			throw std::runtime_error("choose callback must be a function");
+		}
 		JSOption opt{};
 		opt.type = "choose";
-		opt.text = JS_ToCString(ctx, argv[0]);
-		opt.tag = opt.text;
-		opt.callback = JS_DupValue(ctx, argv[2]);
-
-		uint32_t len;
-		JS_ToUint32(ctx, &len, JS_GetPropertyStr(ctx, argv[1], "length"));
-
-		for (uint32_t i = 0; i < len; i++)
-		{
-			JSValue v = JS_GetPropertyUint32(ctx, argv[1], i);
-			opt.values.emplace_back(JS_ToCString(ctx, v));
-			JS_FreeValue(ctx, v);
-		}
-
-		menu->options.push_back(std::move(opt));
-		return JS_UNDEFINED;
+		opt.text = std::move(text);
+		opt.tag  = opt.text;
+		opt.callback.emplace(std::move(callback));
+		opt.values = std::move(values);
+		g_js_menus.at(m_menu_id).options.push_back(std::move(opt));
 	}
-	static JSValue js_sub_add_option(
-	    JSContext* ctx,
-	    JSValueConst this_val,
-	    int argc,
-	    JSValueConst* argv)
-	{
-		auto* menu = (JSMenu*)JS_GetOpaque2(ctx, this_val, js_submenu_class_id);
-		if (!menu)
-			return JS_EXCEPTION;
 
+	void JSMenuBuilder::add_option(std::string text, qjs::Value callback)
+	{
 		JSOption opt{};
 		opt.type = "option";
-		opt.text = JS_ToCString(ctx, argv[0]);
-		opt.tag = opt.text;
-
-		if (argc >= 2 && JS_IsFunction(ctx, argv[1]))
-			opt.callback = JS_DupValue(ctx, argv[1]);
-
-		menu->options.push_back(std::move(opt));
-		return JS_UNDEFINED;
+		opt.text = std::move(text);
+		opt.tag  = opt.text;
+		if (callback.isFunction())
+		{
+			opt.callback.emplace(std::move(callback));
+		}
+		g_js_menus.at(m_menu_id).options.push_back(std::move(opt));
 	}
-	static JSValue js_sub_add_submenu(
-	    JSContext* ctx,
-	    JSValueConst this_val,
-	    int argc,
-	    JSValueConst* argv)
+
+	void JSMenuBuilder::add_submenu(std::string text, uint32_t submenu_id, qjs::Value callback)
 	{
-		auto* menu = (JSMenu*)JS_GetOpaque(this_val, 0);
-		if (!menu)
-			return JS_EXCEPTION;
-
-		// add_submenu(text, subId, callback?)
-		if (argc < 2)
-			return JS_ThrowTypeError(ctx, "add_submenu(text, subId, callback?)");
-
 		JSOption opt{};
-		opt.type = "submenu";
-		opt.text = JS_ToCString(ctx, argv[0]);
-		JS_ToUint32(ctx, &opt.subId, argv[1]);
-		opt.tag = opt.text;
-
-		if (argc >= 3 && JS_IsFunction(ctx, argv[2]))
-			opt.callback = JS_DupValue(ctx, argv[2]);
-
-		menu->options.push_back(std::move(opt));
-		return JS_UNDEFINED;
+		opt.type  = "submenu";
+		opt.text  = std::move(text);
+		opt.tag   = opt.text;
+		opt.subId = submenu_id;
+		if (callback.isFunction())
+		{
+			opt.callback.emplace(std::move(callback));
+		}
+		g_js_menus.at(m_menu_id).options.push_back(std::move(opt));
 	}
-	static JSValue js_gui_add_tab(JSContext* ctx, JSValueConst,
-	    int argc, JSValueConst* argv)
+
+	void JSCanvasBindings::add_tab(std::string title, uint32_t id, qjs::Value callback)
 	{
-		if (argc < 3 || !JS_IsFunction(ctx, argv[2]))
-			return JS_ThrowTypeError(ctx, "add_tab(title, id, callback)");
-
-		const char* title = JS_ToCString(ctx, argv[0]);
-		uint32_t id;
-		JS_ToUint32(ctx, &id, argv[1]);
-
-		JSMenu& menu = g_js_menus[id];
-		menu.type = "tabmenu";
-		menu.title = title;
-		menu.id = id;
-
+		if (!callback.isFunction())
+		{
+			throw std::runtime_error("add_tab(title, id, callback): callback must be a function");
+		}
+		auto& menu = g_js_menus[id];
+		menu.type  = "tabmenu";
+		menu.title = std::move(title);
+		menu.id    = id;
 		menu.options.clear();
-		menu.build_version++;
-
-		JSValue sub = JS_NewObjectClass(ctx, js_submenu_class_id);
-		JS_SetOpaque(sub, &menu);
-
-		JS_SetPropertyStr(ctx, sub, "add_bool", JS_NewCFunction(ctx, js_sub_add_bool, "add_bool", 2));
-		JS_SetPropertyStr(ctx, sub, "add_slider", JS_NewCFunction(ctx, js_sub_add_slider, "add_slider", 4));
-		JS_SetPropertyStr(ctx, sub, "add_choose", JS_NewCFunction(ctx, js_sub_add_choose, "add_choose", 3));
-		JS_SetPropertyStr(ctx, sub, "add_option", JS_NewCFunction(ctx, js_sub_add_option, "add_option", 2));
-
-		JS_Call(ctx, argv[2], JS_UNDEFINED, 1, &sub);
-		JS_FreeCString(ctx, title);
-		return JS_UNDEFINED;
+		++menu.build_version;
+		auto builder = g_js_context->newValue(std::make_shared<JSMenuBuilder>(id));
+		callback.call(std::vector<qjs::Value>{std::move(builder)});
 	}
 
-	static JSValue js_gui_add_submenu(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+	void JSCanvasBindings::add_submenu(std::string title, uint32_t id, qjs::Value callback)
 	{
-		if (argc < 3 || !JS_IsFunction(ctx, argv[2]))
-			return JS_ThrowTypeError(ctx, "submenu(title, id, callback)");
-
-		const char* title = JS_ToCString(ctx, argv[0]);
-		uint32_t id;
-		JS_ToUint32(ctx, &id, argv[1]);
-
-		JSMenu& menu = g_js_menus[id];
-		menu.type = "submenu";
-		menu.title = title;
-		menu.id = id;
-
-		JSValue sub = JS_NewObjectClass(ctx, js_submenu_class_id);
-		JS_SetOpaque(sub, &menu);
-
-		JS_SetPropertyStr(ctx, sub, "add_bool", JS_NewCFunction(ctx, js_sub_add_bool, "add_bool", 2));
-		JS_SetPropertyStr(ctx, sub, "add_slider", JS_NewCFunction(ctx, js_sub_add_slider, "add_slider", 4));
-		JS_SetPropertyStr(ctx, sub, "add_choose", JS_NewCFunction(ctx, js_sub_add_choose, "add_choose", 3));
-		JS_SetPropertyStr(ctx, sub, "add_option", JS_NewCFunction(ctx, js_sub_add_option, "add_option", 2));
-
-		JS_Call(ctx, argv[2], JS_UNDEFINED, 1, &sub);
-		JS_FreeCString(ctx, title);
-		return JS_UNDEFINED;
+		if (!callback.isFunction())
+		{
+			throw std::runtime_error("add_submenu(title, id, callback): callback must be a function");
+		}
+		auto& menu   = g_js_menus[id];
+		menu.type    = "submenu";
+		menu.title   = std::move(title);
+		menu.id      = id;
+		auto builder = g_js_context->newValue(std::make_shared<JSMenuBuilder>(id));
+		callback.call(std::vector<qjs::Value>{std::move(builder)});
 	}
 	void js_gui::register_gui()
 	{
@@ -216,7 +133,9 @@ namespace big
 		for (auto& [id, menu] : g_js_menus)
 		{
 			if (menu.rendered_version == menu.build_version)
+			{
 				continue;
+			}
 
 			auto render = [&menu](regular_submenu* sub) {
 				for (auto& opt : menu.options)
@@ -224,10 +143,11 @@ namespace big
 					if (opt.type == "bool")
 					{
 						if (!boolStates.count(opt.tag))
+						{
 							boolStates[opt.tag] = store::get_bool(opt.tag);
+						}
 
-						sub->add_option<bool_option<bool>>(
-						    opt.text.c_str(),
+						sub->add_option<bool_option<bool>>(opt.text.c_str(),
 						    opt.desc.c_str(),
 						    &boolStates[opt.tag],
 						    [tag = opt.tag]() {
@@ -237,12 +157,13 @@ namespace big
 					else if (opt.type == "slider")
 					{
 						if (!floatStates.count(opt.tag))
+						{
 							floatStates[opt.tag] = store::get_float(opt.tag);
+						}
 
 						if (opt.isInt)
 						{
-							sub->add_option<bool_slider_int_option>(
-							    opt.text.c_str(),
+							sub->add_option<bool_slider_int_option>(opt.text.c_str(),
 							    opt.desc.c_str(),
 							    &boolStates[opt.tag],
 							    &intStates[opt.tag],
@@ -251,23 +172,15 @@ namespace big
 							    (int)opt.step,
 							    1,
 							    true,
-							    [ctx = g_js_ctx, cb = opt.callback, tag = opt.tag]() {
-								    auto data = store::get_float(tag, floatStates[tag]);
-								    if (JS_IsUndefined(cb))
-									    return;
-
-								    JSValue args[1];
-								    args[0] = JS_NewInt32(ctx, data);
-
-								    JS_Call(ctx, cb, JS_UNDEFINED, 1, args);
-
-								    JS_FreeValue(ctx, args[0]);
+							    [ctx = g_js_context, cb = opt.callback, tag = opt.tag]() {
+								    auto data  = store::get_float(tag, floatStates[tag]);
+								    auto value = ctx->newValue(static_cast<int>(data));
+								    invoke_js_callback(cb, std::vector<qjs::Value>{std::move(value)});
 							    });
 						}
 						else
 						{
-							sub->add_option<bool_slider_float_option>(
-							    opt.text.c_str(),
+							sub->add_option<bool_slider_float_option>(opt.text.c_str(),
 							    opt.desc.c_str(),
 							    &boolStates[opt.tag],
 							    &floatStates[opt.tag],
@@ -276,117 +189,88 @@ namespace big
 							    opt.step,
 							    opt.precision,
 							    true,
-							    [ctx = g_js_ctx, cb = opt.callback, tag = opt.tag]() {
-								    auto data = store::get_float(tag, floatStates[tag]);
-								    if (JS_IsUndefined(cb))
-									    return;
-
-								    JSValue args[1];
-								    args[0] = JS_NewFloat64(ctx, data);
-
-								    JS_Call(ctx, cb, JS_UNDEFINED, 1, args);
-
-								    JS_FreeValue(ctx, args[0]);
+							    [ctx = g_js_context, cb = opt.callback, tag = opt.tag]() {
+								    auto data  = store::get_float(tag, floatStates[tag]);
+								    auto value = ctx->newValue(static_cast<double>(data));
+								    invoke_js_callback(cb, std::vector<qjs::Value>{std::move(value)});
 							    });
 						}
 					}
 					else if (opt.type == "choose")
 					{
 						if (!choosePositions.count(opt.tag))
+						{
 							choosePositions[opt.tag] = 0;
+						}
 
-						auto& pos = choosePositions[opt.tag];
+						auto& pos  = choosePositions[opt.tag];
 						auto& vals = opt.values;
 
 						if (vals.empty())
+						{
 							continue;
+						}
 
-						sub->add_option<choose_option<std::string, int>>(
-						    opt.text.c_str(),
+						sub->add_option<choose_option<std::string, int>>(opt.text.c_str(),
 						    opt.desc.c_str(),
 						    &vals,
 						    &pos,
 						    true,
-						    [ctx = g_js_ctx, cb = opt.callback, &vals, &pos]() {
-							    if (JS_IsUndefined(cb))
-								    return;
-
-							    JSValue args[2];
-							    args[0] = JS_NewInt32(ctx, pos + 1);
-							    args[1] = JS_NewString(ctx, vals[pos].c_str());
-
-							    JS_Call(ctx, cb, JS_UNDEFINED, 2, args);
-
-							    JS_FreeValue(ctx, args[0]);
-							    JS_FreeValue(ctx, args[1]);
+						    [ctx = g_js_context, cb = opt.callback, &vals, &pos]() {
+							    auto index = ctx->newValue(static_cast<int>(pos + 1));
+							    auto value = ctx->newValue(vals[pos]);
+							    invoke_js_callback(cb, std::vector<qjs::Value>{std::move(index), std::move(value)});
 						    });
 					}
 					else if (opt.type == "option")
 					{
-						sub->add_option<reguler_option>(
-						    opt.text.c_str(),
-						    opt.desc.c_str(),
-						    [ctx = g_js_ctx, cb = opt.callback]() {
-							    if (JS_IsUndefined(cb))
-								    return;
-							    JS_Call(ctx, cb, JS_UNDEFINED, 0, nullptr);
-						    });
+						sub->add_option<reguler_option>(opt.text.c_str(), opt.desc.c_str(), [cb = opt.callback]() {
+							invoke_js_callback(cb);
+						});
 					}
 					else if (opt.type == "submenu")
 					{
-						sub->add_option<sub_option>(
-						    opt.text.c_str(),
-						    opt.desc.c_str(),
-						    opt.subId,
-						    [ctx = g_js_ctx, cb = opt.callback]() {
-							    if (JS_IsUndefined(cb))
-								    return;
-							    JS_Call(ctx, cb, JS_UNDEFINED, 0, nullptr);
-						    });
+						sub->add_option<sub_option>(opt.text.c_str(), opt.desc.c_str(), opt.subId, [cb = opt.callback]() {
+							invoke_js_callback(cb);
+						});
 					}
 				}
 			};
 
 			if (menu.type == "tabmenu")
+			{
 				canvas::add_tab<regular_submenu>(menu.title.c_str(), menu.id, render);
+			}
 			else
+			{
 				canvas::add_submenu<regular_submenu>(menu.title.c_str(), menu.id, render);
+			}
 
 			menu.rendered_version = menu.build_version;
 		}
 	}
 
-	static int js_gui_module_init(JSContext* ctx, JSModuleDef* m)
-	{
-		JS_SetModuleExport(ctx, m, "add_tab", JS_NewCFunction(ctx, js_gui_add_tab, "add_tab", 3));
-
-		JS_SetModuleExport(ctx, m, "add_submenu", JS_NewCFunction(ctx, js_gui_add_submenu, "add_submenu", 3));
-
-		return 0; // WAJIB
-	}
-
-	static JSModuleDef* js_gui_init(JSContext* ctx, const char* module_name)
-	{
-		JSModuleDef* m = JS_NewCModule(ctx, module_name, js_gui_module_init);
-
-		if (!m)
-			return nullptr;
-
-		JS_AddModuleExport(ctx, m, "add_tab");
-		JS_AddModuleExport(ctx, m, "add_submenu");
-
-		return m;
-	}
-
 	void js_gui::bind(qjs::Context& context)
 	{
-		auto ctx = context.ctx;
-		g_js_ctx = ctx;
+		g_js_context = &context;
+		auto& module = context.addModule("canvas");
+		module.class_<JSMenuBuilder>("MenuBuilder")
+		    .fun<&JSMenuBuilder::add_bool>("add_bool")
+		    .fun<&JSMenuBuilder::add_slider>("add_slider")
+		    .fun<&JSMenuBuilder::add_choose>("add_choose")
+		    .fun<&JSMenuBuilder::add_option>("add_option")
+		    .fun<&JSMenuBuilder::add_submenu>("add_submenu");
+		module.class_<JSCanvasBindings>("Canvas")
+		    .constructor<>("Canvas")
+		    .static_fun<&JSCanvasBindings::add_tab>("add_tab")
+		    .static_fun<&JSCanvasBindings::add_submenu>("add_submenu");
+		module.function("add_tab", &JSCanvasBindings::add_tab);
+		module.function("add_submenu", &JSCanvasBindings::add_submenu);
+	}
 
-		register_submenu_class(ctx);
-		JSModuleDef* m = js_gui_init(ctx, "canvas");
-
-		if (!m)
-			LOG(WARNING) << "Failed to init gui module";
+	void js_gui::shutdown()
+	{
+		g_js_menus.clear();
+		g_js_context = nullptr;
 	}
 } // namespace js::gui

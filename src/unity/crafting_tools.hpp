@@ -14,6 +14,14 @@ namespace big
 		{
 			instance().queue_update_impl();
 		}
+		static void toggle_recipe_browser()
+		{
+			instance().toggle_recipe_browser_impl();
+		}
+		static void draw_recipe_browser()
+		{
+			instance().draw_recipe_browser_impl();
+		}
 		static bool active(MonoObject* player = nullptr)
 		{
 			return instance().active_impl(player);
@@ -32,8 +40,8 @@ namespace big
 		}
 
 	private:
-		crafting_tools() = default;
-		crafting_tools(const crafting_tools&) = delete;
+		crafting_tools()                                 = default;
+		crafting_tools(const crafting_tools&)            = delete;
 		crafting_tools& operator=(const crafting_tools&) = delete;
 		static crafting_tools& instance()
 		{
@@ -42,6 +50,11 @@ namespace big
 		}
 		void queue_update_impl();
 		void update_impl();
+		void apply_crafting_speed_impl();
+		void toggle_recipe_browser_impl();
+		void draw_recipe_browser_impl();
+		void refresh_recipe_browser_impl();
+		void scan_recipe_browser_impl();
 		void reset_impl();
 		void shutdown_impl();
 		bool cleanup_pending_impl() const
@@ -63,11 +76,26 @@ namespace big
 		};
 		std::unordered_map<MonoObject*, ingredient_entry> m_ingredients;
 		std::vector<uintptr_t> m_roots;
-		MonoObject* m_player = nullptr;
-		bool m_active = false;
-		bool m_pending = false;
+		MonoObject* m_player              = nullptr;
+		MonoObject* m_craft_gui           = nullptr;
+		float m_base_craft_duration       = 2.f;
+		float m_base_multi_craft_duration = 6.f;
+		bool m_active                     = false;
+		bool m_pending                    = false;
 		std::atomic<bool> m_cleanup_pending{false};
 		std::chrono::steady_clock::time_point m_next_discovery{};
 		std::chrono::steady_clock::time_point m_retry_after{};
+		struct recipe_row
+		{
+			std::string name;
+			std::string output_prefab;
+			std::string requirements;
+			int output_amount = 1;
+		};
+		std::mutex m_browser_mutex;
+		std::vector<recipe_row> m_browser_recipes;
+		std::atomic<bool> m_browser_refreshing{false};
+		bool m_browser_open = false;
+		char m_browser_search[96]{};
 	};
 }

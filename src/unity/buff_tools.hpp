@@ -28,9 +28,21 @@ namespace big
 		{
 			return instance().activate_guardian_power_impl(power_name);
 		}
+		static bool discover_guardian_powers()
+		{
+			return instance().discover_guardian_powers_impl();
+		}
+		static bool activate_selected_guardian_power(const std::string& power_name)
+		{
+			return instance().activate_selected_guardian_power_impl(power_name);
+		}
 		static void activate_all_guardian_powers()
 		{
 			return instance().activate_all_guardian_powers_impl();
+		}
+		static bool reset_guardian_power_cooldown()
+		{
+			return instance().reset_guardian_power_cooldown_impl();
 		}
 		static void apply_eitr_shield(float hp = 1000.f)
 		{
@@ -44,10 +56,14 @@ namespace big
 		{
 			return instance().remove_status_effect_impl(name);
 		}
+		static bool apply_registered_effect(const std::string& prefab_name)
+		{
+			return instance().apply_registered_effect_impl(prefab_name);
+		}
 
 	private:
-		buff_tools() = default;
-		buff_tools(const buff_tools&) = delete;
+		buff_tools()                             = default;
+		buff_tools(const buff_tools&)            = delete;
 		buff_tools& operator=(const buff_tools&) = delete;
 		static buff_tools& instance()
 		{
@@ -58,10 +74,14 @@ namespace big
 		const std::vector<boss_power>& get_boss_powers_impl();
 		void apply_rested_impl(int comfort, bool notify);
 		void activate_guardian_power_impl(const std::string& power_name);
+		bool discover_guardian_powers_impl();
+		bool activate_selected_guardian_power_impl(const std::string& power_name);
 		void activate_all_guardian_powers_impl();
+		bool reset_guardian_power_cooldown_impl();
 		void apply_eitr_shield_impl(float hp);
 		void clear_all_debuffs_impl(bool notify);
 		void remove_status_effect_impl(const std::string& name);
+		bool apply_registered_effect_impl(const std::string& prefab_name);
 		int get_stable_hash_impl(const std::string& name);
 		MonoObject* get_seman_impl();
 		MonoMethod* get_add_status_effect_method_impl(bool by_prefab);
