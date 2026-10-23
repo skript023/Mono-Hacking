@@ -35,15 +35,15 @@ namespace big
 			ServerAuthInfo info;
 			resolve_server_config(info);
 
-			std::string hwid = utils::get_hwid();
-			LOG(INFO) << "[AuthClient] Generated HWID: " << hwid;
+			static const std::string hwid_detail = utils::get_hwid_raw();
+			static const std::string hwid        = utils::get_hwid(hwid_detail);
 			LOG(INFO) << "[AuthClient] Target auth server: " << (info.is_ssl ? "https://" : "http://") << info.host << ":" << info.port;
 
 			// 1. Try server-sided device login via HWID
-			if (login_via_hwid(info, hwid))
+			if (login_via_hwid(info, hwid, hwid_detail))
 			{
 				info.success = true;
-				info.ws_endpoint = build_ws_endpoint(info);
+				info.ws_endpoint = build_ws_endpoint(info, hwid);
 				LOG(INFO) << "[AuthClient] Device auto-login succeeded! Server: " << info.host << ":" << info.port;
 				return info;
 			}
@@ -52,7 +52,7 @@ namespace big
 			if (login_via_session_file(info))
 			{
 				info.success = true;
-				info.ws_endpoint = build_ws_endpoint(info);
+				info.ws_endpoint = build_ws_endpoint(info, hwid);
 				LOG(INFO) << "[AuthClient] Auto-login via session.dat succeeded! Server: " << info.host << ":" << info.port;
 				return info;
 			}
@@ -171,22 +171,20 @@ namespace big
 			return escaped.str();
 		}
 
-		static std::string build_ws_endpoint(const ServerAuthInfo& info)
+		static std::string build_ws_endpoint(const ServerAuthInfo& info, const std::string& hwid)
 		{
 			std::string endpoint = info.host;
 			if ((info.is_ssl && info.port != 443) || (!info.is_ssl && info.port != 80))
 			{
 				endpoint += ":" + std::to_string(info.port);
 			}
-			std::string hwid = utils::get_hwid();
 			std::string device_name = utils::get_device_name();
 			return endpoint + "/ws/auth?token=" + url_encode(info.token) + "&client=valheim_mod" + "&hwid=" + url_encode(hwid) + "&device_name=" + url_encode(device_name);
 		}
 
-		static bool login_via_hwid(ServerAuthInfo& info, const std::string& hwid)
+		static bool login_via_hwid(ServerAuthInfo& info, const std::string& hwid, const std::string& hwid_detail)
 		{
 			std::string device_name = utils::get_device_name();
-			std::string hwid_detail = utils::get_hwid_raw();
 			nlohmann::json body = {
 			    {"hwid", hwid},
 			    {"device_name", device_name},
@@ -339,13 +337,6 @@ namespace big
 				WinHttpCloseHandle(hConnect);
 				WinHttpCloseHandle(hSession);
 				return false;
-			}
-
-			// If SSL, ignore cert errors for dev/custom environments
-			if (info.is_ssl)
-			{
-				DWORD secFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID | SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
-				WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
 			}
 
 			// Add extra headers first (e.g. Cookie)

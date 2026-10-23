@@ -72,7 +72,6 @@ namespace big
 				if (!m_alpha_service->auto_reconnect())
 				{
 					m_alpha_service->ping();
-					m_alpha_service->send_hardware();
 				}
 			}
 		}

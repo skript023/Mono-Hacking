@@ -32,10 +32,13 @@ namespace big
 			m_auth_info = auth_client::authenticate();
 			if (!m_auth_info.success)
 			{
+				m_next_auth_attempt = std::chrono::steady_clock::now() + m_auth_retry;
+				m_auth_retry        = std::min(m_auth_retry * 2, std::chrono::seconds(300));
 				LOG(WARNING) << "[AlphaService] Authentication failed: " << m_auth_info.error_message;
 				notification::info("Ellohim Server", "Authentication required. Please launch from Loader.");
 				return;
 			}
+			m_auth_retry = std::chrono::seconds(15);
 
 			m_alpha_gateway = std::make_shared<socket_client>(m_auth_info.ws_endpoint, m_auth_info.is_ssl);
 
@@ -74,10 +77,6 @@ namespace big
 			}
 		}
 
-		void send_hardware()
-		{
-		}
-
 		bool auto_reconnect()
 		{
 			if (m_auth_invalidated.exchange(false))
@@ -89,6 +88,10 @@ namespace big
 			{
 				if (!m_auth_info.success || m_auth_info.token.empty())
 				{
+					if (std::chrono::steady_clock::now() < m_next_auth_attempt)
+					{
+						return false;
+					}
 					init_connection();
 					return m_alpha_gateway && m_alpha_gateway->is_connected();
 				}
@@ -112,6 +115,8 @@ namespace big
 
 	private:
 		std::atomic<bool> m_auth_invalidated{false};
+		std::chrono::steady_clock::time_point m_next_auth_attempt{};
+		std::chrono::seconds m_auth_retry{15};
 		ServerAuthInfo m_auth_info;
 		std::shared_ptr<socket_client> m_alpha_gateway;
 		Gateway m_event;
