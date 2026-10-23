@@ -125,12 +125,9 @@ namespace big
 				*reinterpret_cast<float*>((uintptr_t)hit_data + backstab_offset) *= std::clamp(g_settings.self.backstab_multiplier, 0.f, 100.f);
 			}
 
-			if (g_settings.self.infinite_durability)
+			if (g_settings.self.infinite_durability && weapon)
 			{
-				if (weapon)
-				{
-					mono::set_field_value<"ItemDrop/ItemData", "m_durability">(weapon, 1000.f);
-				}
+				weapon_data.set_durability(weapon_data.get_max_durability());
 			}
 		}
 	}

@@ -524,7 +524,7 @@ namespace big
 			    1,
 			    0);
 			sub->add_option<number_option<float>>("Food Duration Multiplier",
-			    "Scale how quickly food timers decay; 0 keeps food duration from decreasing.",
+			    "Scale how long food lasts; 2.0 doubles the duration and 0 keeps food from decreasing.",
 			    &g_settings.self.food_duration_multiplier,
 			    0.f,
 			    10.f,
@@ -540,8 +540,8 @@ namespace big
 			sub->add_option<bool_option<bool>>("Prevent Cold",
 			    "Remove the Cold environment effect from the local player.",
 			    &g_settings.self.prevent_cold);
-			sub->add_option<bool_option<bool>>("Never Wet",
-			    "Treat the local player as sheltered from rain without changing roof checks elsewhere.",
+			sub->add_option<bool_option<bool>>("Never Wet or Tarred",
+			    "Keep the local player from getting Wet from rain or water, and Tarred from tar pits.",
 			    &g_settings.self.is_wet);
 		});
 
@@ -1565,7 +1565,6 @@ namespace big
 
 		canvas::add_submenu<regular_submenu>("ESP", "SubmenuESP"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("esp_activate"_hash);
-			sub->add_option<bool_option<bool>>("draw_anim"_hash);
 			sub->add_option<bool_option<bool>>("draw_line"_hash);
 			sub->add_option<bool_option<bool>>("draw_name"_hash);
 			sub->add_option<bool_option<bool>>("draw_health"_hash);
@@ -1584,10 +1583,6 @@ namespace big
 			sub->add_option<bool_option<bool>>("tp"_hash);
 			sub->add_option<bool_option<bool>>("draw_fov"_hash);
 			sub->add_option<number_option<float>>("aimbot_fov"_hash);
-			sub->add_option<number_option<float>>("aimbot_smooth"_hash);
-			sub->add_option<number_option<int>>("aimbot_trigger"_hash);
-			sub->add_option<bool_option<bool>>("triggerbot"_hash);
-			sub->add_option<number_option<float>>("trigger_fov"_hash);
 		});
 
 		canvas::add_submenu<regular_submenu>("Item Spawner", "SubmenuItemSpawner"_hash, [](regular_submenu* sub) {

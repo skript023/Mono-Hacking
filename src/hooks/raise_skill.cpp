@@ -40,7 +40,8 @@ namespace big
 
 		if (g_running && player && player == unity::get_local_player())
 		{
-			if (features::_freeze_skills.get_state() || (features::_prevent_skill_loss.get_state() && factor > 0.f))
+			if (features::_freeze_skills.get_state()
+			    || ((features::_prevent_skill_loss.get_state() || features::_keep_skills_on_death.get_state()) && factor > 0.f))
 			{
 				return;
 			}

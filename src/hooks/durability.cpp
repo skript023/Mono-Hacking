@@ -7,10 +7,6 @@ namespace big
 	{
 		if (g_settings.self.infinite_durability && humanoid && humanoid == unity::get_local_player())
 		{
-			if (item)
-			{
-				mono::set_field_value<"ItemDrop/ItemData", "m_durability">(item, 1000.f);
-			}
 			return;
 		}
 

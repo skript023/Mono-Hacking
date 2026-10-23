@@ -1,11 +1,12 @@
 #include "hooking.hpp"
 #include <script_mgr.hpp>
+#include "utility/unity.hpp"
 
 namespace big
 {
 	void hooks::update_water(MonoObject* _this, float dt)
 	{
-		if (g_settings.self.is_wet)
+		if (g_settings.self.is_wet && _this && _this == unity::get_local_player())
 		{
 			static MonoClass* player_class = mono::get_class("Character", "assembly_valheim");
 

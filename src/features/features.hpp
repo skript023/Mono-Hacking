@@ -25,6 +25,7 @@ namespace big::features
 	inline bool_command _esp_target_marker("esp_target_marker", "ESP Target Marker", "Mark the visible creature or player closest to screen center", false);
 	inline bool_command _prevent_skill_loss("prevent_skill_loss", "Prevent Skill Loss", "Ignore experience loss when skills are reduced", false);
 	inline bool_command _freeze_skills("freeze_skills", "Freeze Skills", "Block all skill level changes", false);
+	inline bool_command _keep_skills_on_death("keep_skills_on_death", "Retain Skills on Death", "Prevent losing 5% of skill levels upon dying.", true);
 	inline float_command _eitr_amount("eitr_amount", "Maximum Eitr", "Maximum eitr capacity while the override is enabled.", 0.f, 10000.f, 0.f);
 	inline std::atomic<float> _food_max_eitr{-1.f};
 	inline color_command _esp_character_color("esp_character_color", "ESP Creature Color", "Saved RGB color for creatures and players", ImVec4(0.92f, 0.92f, 0.86f, 1.f));

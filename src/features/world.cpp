@@ -1,5 +1,4 @@
 #include "commands/looped_command.hpp"
-#include "commands/bool_command.hpp"
 #include "mono/mono.hpp"
 #include "task_mgr.hpp"
 #include "utility/unity.hpp"
@@ -56,5 +55,4 @@ namespace big::features
 	};
 
 	static disable_raids _disable_raids("disable_raids", "Disable Base Raids", "Prevent all random monster attacks from spawning near your base.");
-	static bool_command _keep_skills_on_death("keep_skills_on_death", "Retain Skills on Death", "Prevent losing 5% of skill levels upon dying.", true);
 }
