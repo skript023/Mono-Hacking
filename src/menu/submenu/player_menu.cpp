@@ -29,6 +29,7 @@
 #include "unity/zone_system.hpp"
 #include "menu/esp/esp.h"
 #include "services/input/input_service.hpp"
+#include "render_queue.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cctype>
@@ -1110,7 +1111,7 @@ namespace big
 
 		canvas::add_submenu<regular_submenu>("Equipment & Quick Slots", "SubmenuEquipmentSlots"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Enabled",
-			    "Enable BetrValheim extra inventory and equipment slots.",
+			    "Enable BetrValheim extra inventory and equipment slots. Items in these slots never drop on death, and they are only visible while the mod is loaded.",
 			    &g_settings.self.equipment_slots_enabled);
 			sub->add_option<bool_option<bool>>("Native Unity Inventory Grid",
 			    "Render equipment slots natively in Valheim's inventory screen.",
@@ -1301,31 +1302,39 @@ namespace big
 				view::toggle_generated_location_browser();
 			});
 			sub->add_option<reguler_option>("Copy Current Coordinates", "Copy your current X, Y, Z coordinates.", [] {
-				auto player_obj = unity::get_local_player();
-				if (!player_obj)
-				{
-					notification::warning("Coordinates", "Join a world first.");
-					return;
-				}
-				player local_player(player_obj);
-				const auto position = local_player.get_position();
-				ImGui::SetClipboardText(coordinates(position).c_str());
-				notification::success("Coordinates", "Copied current coordinates.");
+				queue_job([] {
+					auto player_obj = unity::get_local_player();
+					if (!player_obj)
+					{
+						notification::warning("Coordinates", "Join a world first.");
+						return;
+					}
+					player local_player(player_obj);
+					render_queue::post([text = coordinates(local_player.get_position())] {
+						ImGui::SetClipboardText(text.c_str());
+						notification::success("Coordinates", "Copied current coordinates.");
+					});
+				});
 			});
 			sub->add_option<reguler_option>("Add Map Pin Here", "Create a saved map icon pin at your current location.", [] {
-				auto player_obj = unity::get_local_player();
-				if (!player_obj)
+				if (!unity::get_local_player())
 				{
 					notification::warning("Map Pin", "Join a world before adding a pin.");
 					return;
 				}
-				const Vector3 position = unity::get_position(player_obj);
-				g_input_service.show("Map Pin Name", [position](const std::string& name) {
+				g_input_service.show("Map Pin Name", [](const std::string& name) {
 					if (name.empty())
 					{
 						return;
 					}
-					queue_job([position, name] {
+					queue_job([name] {
+						auto player_obj = unity::get_local_player();
+						if (!player_obj)
+						{
+							notification::warning("Map Pin", "Join a world before adding a pin.");
+							return;
+						}
+						const Vector3 position = unity::get_position(player_obj);
 						if (minimap::get_instance().add_pin(position, 4, name))
 						{
 							notification::success("Map Pin", std::format("Added map pin '{}'.", name));

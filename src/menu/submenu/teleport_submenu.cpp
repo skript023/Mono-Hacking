@@ -8,6 +8,7 @@
 #include "menu_settings.hpp"
 #include "input/input_service.hpp"
 #include <custom_teleport/custom_teleport_service.hpp>
+#include "render_queue.hpp"
 #include <algorithm>
 #include <cmath>
 #include <unordered_set>
@@ -17,6 +18,34 @@
 namespace big
 {
 	std::string category = "Default";
+
+	static void save_current_location(const std::string& group, const std::string& name)
+	{
+		async_run([group, name] {
+			auto player = self::get_player();
+			if (!player)
+			{
+				return;
+			}
+
+			auto coords  = player.get_position();
+			auto rotator = player.get_rotation();
+
+			teleport_location new_location;
+			new_location.name  = name;
+			new_location.x     = coords.x;
+			new_location.y     = coords.y;
+			new_location.z     = coords.z;
+			new_location.rot_x = rotator.x;
+			new_location.rot_y = rotator.y;
+			new_location.rot_z = rotator.z;
+			new_location.rot_w = rotator.w;
+
+			render_queue::post([group, new_location] {
+				g_custom_teleport_service.save_new_location(group, new_location);
+			});
+		});
+	}
 
 	static std::unordered_map<std::string, std::string> s_localized_pin_cache;
 	static std::unordered_set<std::string> s_requested_pins;
@@ -326,28 +355,7 @@ namespace big
 			g_custom_teleport_service.fetch_saved_locations();
 			sub->add_option<reguler_option>("Add Category", nullptr, [] {
 				g_input_service.show("Input Category Name", [](std::string const& input) {
-					teleport_location new_location;
-
-					auto player = self::get_player();
-
-					if (!player)
-					{
-						return;
-					}
-
-					auto coords  = player.get_position();
-					auto rotator = player.get_rotation();
-
-					new_location.name  = input;
-					new_location.x     = coords.x;
-					new_location.y     = coords.y;
-					new_location.z     = coords.z;
-					new_location.rot_x = rotator.x;
-					new_location.rot_y = rotator.y;
-					new_location.rot_z = rotator.z;
-					new_location.rot_w = rotator.w;
-
-					g_custom_teleport_service.save_new_location(input, new_location);
+					save_current_location(input, input);
 				});
 			});
 
@@ -362,29 +370,8 @@ namespace big
 					current_list = g_custom_teleport_service.all_saved_locations.at(l);
 
 					sub->add_option<reguler_option>("Add Teleport", nullptr, [l] {
-						g_input_service.show("Input Location Name", [](std::string const& input) {
-							teleport_location new_location;
-
-							auto player = self::get_player();
-
-							if (!player)
-							{
-								return;
-							}
-
-							auto coords  = player.get_position();
-							auto rotator = player.get_rotation();
-
-							new_location.name  = input;
-							new_location.x     = coords.x;
-							new_location.y     = coords.y;
-							new_location.z     = coords.z;
-							new_location.rot_x = rotator.x;
-							new_location.rot_y = rotator.y;
-							new_location.rot_z = rotator.z;
-							new_location.rot_w = rotator.w;
-
-							g_custom_teleport_service.save_new_location(category, new_location);
+						g_input_service.show("Input Location Name", [l](std::string const& input) {
+							save_current_location(l, input);
 						});
 					});
 

@@ -30,6 +30,7 @@
 #include "unity/status_effect_browser.hpp"
 #include "unity/bookmark_manager.hpp"
 #include "unity/crafting_tools.hpp"
+#include "render_queue.hpp"
 
 namespace big
 {
@@ -39,6 +40,7 @@ namespace big
 	enum eRenderPriority
 	{
 		// low priority
+		RENDER_JOBS,
 		ESP,
 		CENSOR,
 		JS_GUI,
@@ -62,6 +64,7 @@ namespace big
 
 	void gui::init()
 	{
+		this->add_dx_callback(render_queue::run, eRenderPriority::RENDER_JOBS);
 		this->add_dx_callback(esp::draw_esp, eRenderPriority::ESP);
 		this->add_dx_callback(esp::draw_color_settings, eRenderPriority::INFO_OVERLAY + 6);
 		this->add_dx_callback(view::draw_input, eRenderPriority::INPUT);

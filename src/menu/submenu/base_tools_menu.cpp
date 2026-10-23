@@ -3,6 +3,7 @@
 #include "unity/ship_tools.hpp"
 #include <astra/host/notification.hpp>
 #include "task_mgr.hpp"
+#include <atomic>
 #include <cmath>
 
 namespace big
@@ -10,6 +11,7 @@ namespace big
 	namespace
 	{
 		base_tools::options config;
+		std::atomic<float> pending_tailwind{-1.f};
 		int panel_frame   = -1;
 		int panel_section = 0;
 		void show_panel(int section)
@@ -202,34 +204,34 @@ namespace big
 			    0);
 			sub->add_option<number_option<float>>("Wind Strength", "Wind intensity from calm to strong.", &config.wind_strength, 0.f, 2.f, .1f, 1);
 			sub->add_option<reguler_option>("Set Tailwind from Boat Heading", "Align controlled wind with your current boat heading and enable a strong tailwind.", [] {
-				auto ship = ship_tools::get_local_ship();
-				if (!ship)
-				{
-					notification::warning("Controlled Wind", "Board a boat first to set a tailwind from its heading.");
-					return;
-				}
+				async_run([] {
+					auto ship = ship_tools::get_local_ship();
+					if (!ship)
+					{
+						notification::warning("Controlled Wind", "Board a boat first to set a tailwind from its heading.");
+						return;
+					}
 
-				static auto get_transform = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
-				static auto get_forward = mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
-				auto transform = get_transform ? mono::invoke_method(get_transform, ship, nullptr) : nullptr;
-				auto forward_object = transform && get_forward ? mono::invoke_method(get_forward, transform, nullptr) : nullptr;
-				if (!forward_object)
-				{
-					notification::warning("Controlled Wind", "Could not read the boat's horizontal heading.");
-					return;
-				}
-				const auto forward = *reinterpret_cast<Vector3*>(mono::object_unbox(forward_object));
-				if (forward.x * forward.x + forward.z * forward.z < 0.001f)
-				{
-					notification::warning("Controlled Wind", "Could not read the boat's horizontal heading.");
-					return;
-				}
+					static auto get_transform = mono::get_method("Component", "get_transform", 0, "UnityEngine.CoreModule", "UnityEngine");
+					static auto get_forward = mono::get_method("Transform", "get_forward", 0, "UnityEngine.CoreModule", "UnityEngine");
+					auto transform = get_transform ? mono::invoke_method(get_transform, ship, nullptr) : nullptr;
+					auto forward_object = transform && get_forward ? mono::invoke_method(get_forward, transform, nullptr) : nullptr;
+					if (!forward_object)
+					{
+						notification::warning("Controlled Wind", "Could not read the boat's horizontal heading.");
+						return;
+					}
+					const auto forward = *reinterpret_cast<Vector3*>(mono::object_unbox(forward_object));
+					if (forward.x * forward.x + forward.z * forward.z < 0.001f)
+					{
+						notification::warning("Controlled Wind", "Could not read the boat's horizontal heading.");
+						return;
+					}
 
-				config.wind_direction  = std::fmod(std::atan2(forward.x, forward.z) * 57.2957795131f + 360.f, 360.f);
-				config.wind_strength   = 1.f;
-				config.controlled_wind = true;
-				base_tools::set_options(config);
-				notification::success("Controlled Wind", std::format("Tailwind set to {:.0f} degrees.", config.wind_direction));
+					const float heading = std::fmod(std::atan2(forward.x, forward.z) * 57.2957795131f + 360.f, 360.f);
+					pending_tailwind    = heading;
+					notification::success("Controlled Wind", std::format("Tailwind set to {:.0f} degrees.", heading));
+				});
 			});
 			sub->add_option<sub_option>("Select Weather", "Choose from environments defined by the current game.", "BaseWeather"_hash);
 			sub->add_option<reguler_option>("Restore Automatic Environment", "Clear weather and daylight overrides.", [] {
@@ -273,6 +275,12 @@ namespace big
 
 	void view::base_tools_panel()
 	{
+		if (const float heading = pending_tailwind.exchange(-1.f); heading >= 0.f)
+		{
+			config.wind_direction  = heading;
+			config.wind_strength   = 1.f;
+			config.controlled_wind = true;
+		}
 		base_tools::set_options(config);
 		if (config.damaged_markers)
 		{

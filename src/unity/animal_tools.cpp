@@ -673,12 +673,16 @@ namespace big
 			{
 				if (ImGui::Button("Instant Tame", ImVec2(120.f, 0.f)))
 				{
-					tame_aimed_creature();
+					async_run([] {
+						tame_aimed_creature();
+					});
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Heal Full", ImVec2(100.f, 0.f)))
 				{
-					heal_aimed_creature();
+					async_run([] {
+						heal_aimed_creature();
+					});
 				}
 			}
 		}
