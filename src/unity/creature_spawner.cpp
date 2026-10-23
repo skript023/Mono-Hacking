@@ -318,11 +318,14 @@ namespace big
 			creature.set_level(level);
 			if (tamed)
 			{
-				creature.set_tamed(true);
 				auto tameable = creature.get_tameable();
 				if (tameable)
 				{
 					tameable.tame();
+				}
+				else
+				{
+					creature.set_tamed(true);
 				}
 				auto ai = creature.get_monster_ai();
 				if (ai)

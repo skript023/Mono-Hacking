@@ -167,7 +167,7 @@ namespace big
 
 	bool animal_tools::tame_creature_impl(character creature)
 	{
-		if (!creature || !creature.get_object())
+		if (!creature || !creature.get_object() || creature.is_player() || (!creature.get_tameable() && !creature.get_monster_ai()))
 		{
 			return false;
 		}

@@ -28,7 +28,6 @@ namespace big
 		bool tame();
 		bool set_text(const std::string& text);
 		void command(character player);
-		void set_tame_time_left(float time);
 		MonoObject* get_nview();
 
 		bool operator==(const tameable& other) const

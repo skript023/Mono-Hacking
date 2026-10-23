@@ -23,9 +23,7 @@ namespace big::features
 				if (!character || (uintptr_t)character.get_object() < 0x10000)
 					continue;
 
-				auto name = character.get_hover_name();
-
-				if (joaat(name) == "Deer"_hash)
+				if (mono::get_field_value<"Character", "m_name", std::string>(character.get_object()) == "$enemy_deer")
 				{
 					character.set_tamed(true);
 				}
@@ -45,9 +43,7 @@ namespace big::features
 				if (!character || (uintptr_t)character.get_object() < 0x10000)
 					continue;
 
-				auto name = character.get_hover_name();
-
-				if (joaat(name) == "Boar"_hash)
+				if (mono::get_field_value<"Character", "m_name", std::string>(character.get_object()) == "$enemy_boar")
 				{
 					character.set_tamed(true);
 				}
@@ -68,9 +64,7 @@ namespace big::features
 				if (!character || (uintptr_t)character.get_object() < 0x10000)
 					continue;
 
-				auto name = character.get_hover_name();
-
-				if (joaat(name) == "Wolf"_hash)
+				if (mono::get_field_value<"Character", "m_name", std::string>(character.get_object()) == "$enemy_wolf")
 				{
 					character.set_tamed(true);
 				}
