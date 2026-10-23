@@ -1,6 +1,6 @@
 # Audit Bug Valheim (Mono-Hacking)
 
-Tanggal: 2026-10-21, diperbarui 2026-10-22. Dicek pada branch `shared`, commit `6651dda`.
+Tanggal: 2026-10-21, diperbarui 2026-10-23. Dicek pada branch `shared`, commit `6651dda`.
 
 Cara cek: kode mod dibaca lalu dibandingkan dengan IL `assembly_valheim.dll` dari game yang terpasang
 (`E:\SteamLibrary\steamapps\common\Valheim`), lewat runtime Mono milik game. Nilai default game diambil
@@ -52,7 +52,11 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 | 39 | Teleport XYZ, crosshair, dan pin mengabaikan nilai Y | Rendah | `utility/unity.hpp` |
 | 40 | Kesalahan kecil di helper: `can_pickup`/`can_eat` tidak di-unbox, dan pin type salah di fungsi yang tidak dipakai | Rendah | `unity/item_drop.cpp`, `utility/unity.hpp` |
 | 41 | Consolidate Stacks di Inventory Editor tidak pernah jalan | Rendah | `unity/inventory_editor.cpp` |
-| 42 | Masalah kecil di exploration, breeding, dan fishing: pin The Queen ikut di Infested Mine, Breeding Speed hanya separuh berlaku | Rendah, sebagian belum dipastikan | `unity/exploration.cpp`, `unity/procreation.cpp`, `unity/fishing_tools.cpp` |
+| 42 | Masalah kecil di exploration, breeding, dan fishing: pin The Queen ikut di Infested Mine, Breeding Speed hanya separuh berlaku | Rendah | `unity/exploration.cpp`, `unity/procreation.cpp`, `unity/fishing_tools.cpp` |
+| 43 | World Time Scale dan Pause Time hilang setiap kali menu ESC ditutup, dan label menu tidak ikut berubah | Rendah | `unity/world_time.cpp` |
+| 44 | Sepuluh nama prefab tidak ada di game: sebagian Quick Spawn dan pin Sealed Tower tidak pernah berhasil | Rendah | `menu/submenu/player_menu.cpp`, `unity/item_spawner.cpp`, `unity/exploration.cpp` |
+| 45 | Task async yang kena exception SEH dijalankan ulang setiap frame | Rendah, belum dipastikan | `task_mgr.cpp`, `logger/exception_handler.cpp`, `logger/stack_trace.cpp` |
+| 46 | Masalah kecil di World Modifiers, Tame All, scanner pattern JS, settings, dan kode mati | Rendah | beberapa file |
 
 Temuan performa ada di bagian [Performa](#performa).
 
@@ -338,7 +342,9 @@ tidak dipanggil.
   langsung menjalankan kode game tanpa `queue_job`:
   - Equipment & Quick Slots: Auto-Fill, Return All, dan Save Loadout memanggil `Inventory.MoveItemToThis`,
     `Humanoid.EquipItem`, `UnequipAllItems`, dan `save_to_player`.
-  - Bookmark: Save Current Location membaca posisi pemain, dan tombol teleport memanggil `Player.TeleportTo`.
+  - Bookmark: Save Current Location membaca posisi pemain lalu menulis `Player.m_customData`, dan tombol Delete
+    juga menulis dictionary itu. Daftar bookmark dibaca lewat `Dictionary.TryGetValue` setiap frame (P15).
+    Tombol Teleport sudah lewat `async_run`, jadi berjalan di thread game.
   - Opsi menu dari skrip JS memanggil callback JS langsung, jadi skrip yang memakai binding Mono ikut berjalan
     di thread itu.
 - Akibat: kalau thread render memang terpisah dari thread game, pemindahan item berjalan bersamaan dengan
@@ -684,8 +690,10 @@ tidak dipanggil.
 - Exploration: kandidat lokasi untuk The Queen berisi `Mistlands_DvergrTownEntrance1`, dan
   `discover_location` memproses semua kandidat, bukan berhenti di yang pertama ketemu. File lokalisasi game
   memakai `location_dvergrtown` untuk Infested Mine dan `location_dvergrboss` untuk Infested Citadel, jadi pin
-  "The Queen" kemungkinan besar juga dipasang di Infested Mine terdekat. Nama prefab lokasi ada di asset bundle
-  dan belum bisa dibaca langsung, jadi ini belum dipastikan.
+  "The Queen" juga dipasang di Infested Mine terdekat. Daftar asset game di `StreamingAssets/SoftRef/manifest`
+  memastikan kedua prefab ada, yaitu `Assets/world/Locations/Mistlands/Mistlands_DvergrBossEntrance1.prefab`
+  dan `Mistlands_DvergrTownEntrance1.prefab`. Jadi kandidat pertama sudah benar, dan kandidat keempat yang
+  menambah pin di mine. Belum dites di game.
 - Breeding Speed: `Procreation.m_updateInterval` hanya dibaca game di `Awake` untuk `InvokeRepeating`, jadi
   mengubahnya sesudahnya tidak mengubah interval cek breeding. Yang benar-benar berubah hanya
   `m_pregnancyDuration`. Nilai asli juga disimpan di map `static` dengan key pointer mentah yang tidak pernah
@@ -696,6 +704,113 @@ tidak dipanggil.
 - Saran: buang `Mistlands_DvergrTownEntrance1` dari kandidat The Queen dan berhenti di kandidat pertama yang
   berhasil. Untuk interval breeding, panggil `CancelInvoke("Procreate")` lalu `InvokeRepeating` dengan interval
   baru, atau hapus bagian itu dari deskripsi fitur. Cek `GetCatch` sebelum menampilkan pesan.
+
+### 43. World Time Scale dan Pause Time hilang setiap kali menu ESC ditutup
+
+- Lokasi: [world_time.cpp:49-74](../src/unity/world_time.cpp#L49-L74),
+  [world_time.cpp:121-124](../src/unity/world_time.cpp#L121-L124), dan
+  [player_menu.cpp:1186-1192](../src/menu/submenu/player_menu.cpp#L1186-L1192).
+- Penyebab: mod mengatur kecepatan lewat `Game.FadeTimeScale`, yang hanya mengisi `Game.m_timeScale`. Di build
+  sekarang, `Menu.Hide` memanggil `Game.Unpause`, dan `Unpause` mengisi ulang `m_timeScale = 1`.
+  `Game.UpdatePause` juga memaksa `Time.timeScale = 1` setiap frame selama ada pemain lain yang tersambung.
+  Status pause di menu dibaca dari variabel mod sendiri (`s_time_scale`), bukan dari game.
+- Akibat: setelah menu ESC dibuka lalu ditutup, waktu kembali berjalan normal, tetapi menu masih menampilkan
+  "Resume Time". Menekannya hanya mengatur kecepatan ke nilai slider (default 1), jadi perlu dua kali tekan
+  untuk pause lagi. Hal yang sama terjadi saat pemain lain bergabung.
+- Saran: baca status untuk label dan toggle dari `Game.m_timeScale`. Kalau kecepatan harus bertahan, pasang
+  ulang nilainya setelah `Game.Unpause`, misalnya lewat pengecekan di `Game.Update`.
+
+### 44. Sepuluh nama prefab tidak ada di game
+
+- Lokasi: [player_menu.cpp:1657-1664](../src/menu/submenu/player_menu.cpp#L1657-L1664),
+  [player_menu.cpp:1736-1740](../src/menu/submenu/player_menu.cpp#L1736-L1740),
+  [item_spawner.cpp:153-294](../src/unity/item_spawner.cpp#L153-L294), dan
+  [exploration.cpp:28](../src/unity/exploration.cpp#L28).
+- Cara cek: 200 nama prefab dan lokasi yang ditulis langsung di kode dibandingkan dengan daftar asset game di
+  `valheim_Data/StreamingAssets/SoftRef/manifest` dan `manifest_extended` (6.507 nama prefab). Yang tidak ada:
+
+  | Di mod | Nama di game | Dipakai di |
+  | --- | --- | --- |
+  | `HelmetAshlandsMedium` | `HelmetAshlandsMediumHood` | Quick Armor "Full Flametal Armor Set", katalog default |
+  | `ArmorAshlandsMediumLegs` | `ArmorAshlandsMediumlegs` | Quick Armor "Full Flametal Armor Set", katalog default |
+  | `MagicallyStuffedMushroom` | `MagicallyStuffedShroom` | Quick Foods "Spawn Stuffed Mushroom", katalog default |
+  | `SwordNidhogg` | `SwordNiedhogg` | katalog default |
+  | `AxeBerserkir` | `AxeBerzerkr` | katalog default |
+  | `StaffRedDumortierite` | `StaffClusterbomb` (Staff of Fracturing) | katalog default |
+  | `ArmorPaddedChest` | `ArmorPaddedCuirass` | katalog default |
+  | `SizzlingBerryTart` | `SizzlingBerryBroth` | katalog default |
+  | `Ashwood` | `Blackwood` | katalog default |
+  | `Hildir_tower` | `Hildir_plainsfortress` | pin "Sealed Tower" dan Reveal All Traders |
+
+- Akibat:
+  - "Full Flametal Armor Set" hanya menambahkan chest dan cape. Helm dan celana gagal dengan pesan "Inventory is
+    full or the item could not be added." ([item_spawner.cpp:804](../src/unity/item_spawner.cpp#L804)), jadi
+    terlihat seperti inventory penuh. Isinya juga set Ask (`AshlandsMedium`), bukan Flametal (`HelmetFlametal`,
+    `ArmorFlametalChest`, `ArmorFlametalLegs`).
+  - "Spawn Stuffed Mushroom (10x)" tidak pernah menambahkan item.
+  - Katalog default dipakai sampai scan ObjectDB selesai. Selama itu, sembilan entri di atas gagal saat dipilih.
+    Label "Staff of the Wild" juga menunjuk ke `StaffLightning` (Dundr), padahal Staff of the Wild adalah
+    `StaffGreenRoots`.
+  - Pin "Sealed Tower" tidak pernah terpasang, tetapi notifikasi tetap "Pin requested", karena
+    `discover_location` selalu mengembalikan true dan pesan di menu tidak mengecek hasilnya.
+- Saran: ganti nama sesuai tabel. Untuk Item Spawner, tampilkan "prefab tidak ditemukan" saat
+  `ObjectDB.GetItemPrefab` mengembalikan null, supaya tidak tertukar dengan inventory penuh.
+
+### 45. Task async yang kena exception SEH dijalankan ulang setiap frame
+
+- Lokasi: [task_mgr.cpp:69-76](../src/task_mgr.cpp#L69-L76),
+  [exception_handler.cpp:39-49](../src/logger/exception_handler.cpp#L39-L49), dan
+  [stack_trace.cpp:195-215](../src/logger/stack_trace.cpp#L195-L215).
+- Penyebab: `tick_impl` menjalankan setiap task di dalam `TRY_CLAUSE`/`EXCEPT_CLAUSE`. Kalau task kena access
+  violation, `__except` menangkapnya, tetapi coroutine tidak pernah sampai ke `final_suspend`, jadi `done()`
+  tetap false dan task tidak dibuang. Project ini dikompilasi dengan clang-cl tanpa `/EHa`, jadi `catch (...)`
+  bawaan coroutine tidak menangkap SEH. Di ABI coroutine Clang, indeks resume hanya diperbarui di titik suspend,
+  jadi di frame berikutnya task dilanjutkan dari titik suspend terakhir. Untuk tugas `async_run` biasa, artinya
+  seluruh fungsi diulang dari awal.
+- Akibat: satu fungsi yang crash di tengah jalan diulang setiap frame sampai unload, termasuk efek samping
+  sebelum titik crash (spawn, RPC, notifikasi). Setiap pengulangan juga menjalankan `new_stack_trace`
+  (`StackWalk64`, lalu `SymFromAddr` dan `SymGetLineFromAddr64` untuk sampai 32 frame) sebelum pengecekan log
+  ganda, jadi frame rate ikut turun. `m_frame_pointers` juga tidak dikosongkan sebelum stack baru dibaca. Kalau
+  stack baru lebih pendek, sisa frame dari exception sebelumnya ikut tercetak dan ikut masuk hash dedup.
+- Belum dipastikan: perilaku ini disimpulkan dari ABI coroutine Clang dan setting build, belum direproduksi di
+  game. Pemicunya juga butuh access violation di kode mod, yang jarang karena kebanyakan fungsi mengecek null.
+- Saran: di `EXCEPT_CLAUSE` milik `tick_impl`, tandai task yang gagal dan buang dari daftar tanpa me-resume lagi.
+  Cek hash alamat crash sebelum membuat stack trace lengkap, dan kosongkan `m_frame_pointers` di awal
+  `grab_stacktrace`.
+
+### 46. Masalah kecil di World Modifiers, Tame All, scanner pattern JS, settings, dan kode mati
+
+- World Modifiers ([player_menu.cpp:1254-1258](../src/menu/submenu/player_menu.cpp#L1254-L1258)): daftar nilai
+  setiap modifier tidak punya `Default`, padahal enum `WorldModifierOption` di game punya `Default = 0`. Setelah
+  misalnya Combat diubah ke Hard, Combat tidak bisa dikembalikan ke normal sendirian. Satu-satunya jalan adalah
+  preset Normal, yang ikut mereset modifier lain.
+- Tame All Deer, Boar, dan Wolf ([tamed.cpp:26-30](../src/features/tamed.cpp#L26-L30)) mencocokkan hasil
+  `Character.GetHoverName`, yang sudah diterjemahkan lewat `Localization.Localize`. Jadi ketiga tombol ini hanya
+  jalan kalau bahasa game Inggris. Hewan yang sudah dinamai juga tidak cocok, tetapi itu tidak masalah karena
+  sudah jinak.
+- `range::fullscan` ([range.cpp:176](../src/memory/range.cpp#L176)) membuat `range mem(r.base, regions.size())`,
+  jadi setiap region dipindai sepanjang jumlah region, bukan `r.size`. Pola di luar awal region tidak pernah
+  ketemu. Kalau jumlah region lebih besar dari ukuran region (region 4 KB dan proses dengan ribuan region), scan
+  membaca melewati akhir region dan bisa kena access violation di thread pool, yang tidak punya `__try`. Hanya
+  terpakai lewat `main_batch.fullscan_run` dari skrip JS.
+- Pattern cache ([pattern_cache.cpp:14-23](../src/memory/pattern_cache.cpp#L14-L23) dan
+  [pattern_batch.cpp:21-31](../src/memory/pattern_batch.cpp#L21-L31)): loop baca memakai
+  `while (!stream.eof())`, jadi satu entri sampah ikut dimasukkan. Offset dari cache juga langsung dipakai tanpa
+  mencocokkan ulang byte pattern, jadi setelah update game dengan ukuran modul yang sama, skrip JS bisa menerima
+  alamat yang salah. Pattern bawaan mod hanya `FF 23` (gadget return address), jadi tidak terdampak.
+- Settings ([menu_settings.cpp:29-58](../src/menu_settings.cpp#L29-L58) dan
+  [menu_settings.cpp:94-120](../src/menu_settings.cpp#L94-L120)): `save()` menulis langsung ke
+  `menu_settings.json` dengan mode `trunc`. Kalau game crash saat menulis, file tertinggal setengah. Saat load
+  berikutnya parse gagal, semua setting diganti default, lalu file lama ditimpa tanpa cadangan.
+- Kode mati: `call_hook.cpp` membuat alokasi RWX 1 KB di alamat tetap (`base + 0x20000000`) saat DLL dimuat,
+  padahal `call_hook` tidak dipakai di mana pun. Jalur OpenGL di
+  [graphic_manager.cpp:797-805](../src/graphic/graphic_manager.cpp#L797-L805) menulis `m_swapchain_methods[i]`
+  setelah `reserve` saja (tanpa `resize`), yang termasuk undefined behavior. Jalur ini tidak pernah dipanggil,
+  karena renderer hanya meminta DX11.
+- Saran: tambahkan `Default` ke setiap daftar modifier. Untuk Tame All, cocokkan `Character.m_name` (misalnya
+  `$enemy_deer`) atau nama prefab. Pakai `r.size` di `fullscan`, dan cek ulang byte pattern sebelum memakai
+  offset dari cache. Tulis settings ke file sementara lalu rename. Hapus `call_hook` dan jalur OpenGL kalau
+  memang tidak dipakai.
 
 ## Performa
 
@@ -719,12 +834,13 @@ menghentikan game sejenak saat berjalan (stutter).
 | P12 | Forsaken Power Always Ready mencari class dan field setiap frame | Saat fitur menyala | `hooks/update_guardian_power.cpp` |
 | P13 | Hash nama efek dihitung lewat Mono setiap kali dipakai | Saat Auto-Purge atau Prevent Freezing/Cold/Wet menyala | `unity/buff_tools.cpp` |
 | P14 | Scan objek sekitar memakai `FindObjectsOfType` dan sort dengan panggilan Mono, setiap detik | Saat monitor Base Tools terbuka atau marker bangunan menyala | `unity/base_tools.cpp` |
-| P15 | Jendela ImGui membaca data game lewat Mono setiap frame | Saat Status Effect Browser, Equipment, Item Spawner, atau Global Key Editor terbuka | `unity/status_effect_browser.cpp`, `unity/equipment_slots.cpp`, `unity/item_spawner.cpp`, `unity/global_key_editor.cpp` |
+| P15 | Jendela ImGui membaca data game lewat Mono setiap frame | Saat Status Effect Browser, Equipment, Item Spawner, Global Key Editor, atau World Bookmarks terbuka | `unity/status_effect_browser.cpp`, `unity/equipment_slots.cpp`, `unity/item_spawner.cpp`, `unity/global_key_editor.cpp`, `unity/bookmark_manager.cpp` |
 | P16 | UI equipment native bekerja setiap frame, termasuk saat inventory tertutup | Selalu (Equipment Slots default menyala) | `unity/equipment_slots.cpp` |
 | P17 | `save_to_player()` menulis log setiap kali, dan dipanggil per item saat Auto-Fill atau Return All | Setiap simpan | `unity/equipment_slots.cpp` |
 | P18 | Information Overlay membaca 8 nilai lewat Mono setiap frame | Saat overlay menyala (menyala di setting Anda) | `menu/submenu/player_menu.cpp` |
 | P19 | Spawn in World membuat satu objek jaringan per unit untuk item yang tidak bisa ditumpuk, sampai 10.000 dalam satu frame | Saat spawn item non-stack dalam jumlah besar | `unity/item_spawner.cpp` |
 | P20 | `set_health` mencari method berdasarkan nama setiap kali dipanggil | Saat Maintain Health atau Health Regen menyala | `unity/character.cpp`, `hooks/player_update.cpp` |
+| P21 | Pratinjau skrip di Javascript Console membaca file dari disk setiap frame | Saat tab Script Manager terbuka dan ada skrip yang dipilih | `menu/core/js_scripts.cpp` |
 
 ### P1. `get_local_player()` tanpa cache
 
@@ -872,7 +988,9 @@ menghentikan game sejenak saat berjalan (stutter).
   `mono_runtime_invoke` ([item_spawner.cpp:328](../src/unity/item_spawner.cpp#L328),
   [item_spawner.cpp:1167](../src/unity/item_spawner.cpp#L1167)). Global Key Editor memanggil
   `ZoneSystem.GetGlobalKeys`, yang membuat list baru, lalu mengonversi setiap key ke string, setiap frame
-  ([global_key_editor.cpp:38-50](../src/unity/global_key_editor.cpp#L38-L50)). Semuanya berjalan di thread
+  ([global_key_editor.cpp:38-50](../src/unity/global_key_editor.cpp#L38-L50)). World Bookmarks membaca
+  `ZNet.m_world`, memanggil `Dictionary.TryGetValue` lewat Mono, lalu mem-parse JSON semua bookmark setiap frame
+  ([bookmark_manager.cpp:159-193](../src/unity/bookmark_manager.cpp#L159-L193)). Semuanya berjalan di thread
   render (bug 20).
 - Saran: ambil daftar nama dan isi slot sekali saat jendela dibuka atau saat inventory berubah, lalu gambar
   dari data yang sudah disimpan.
@@ -930,6 +1048,14 @@ menghentikan game sejenak saat berjalan (stutter).
   Health Regen menyala, ini terjadi setiap frame. Biayanya kecil per frame, tetapi perbaikannya cukup menambah
   `static`.
 - Saran: simpan hasil `get_method` di variabel `static`, seperti fungsi lain di file yang sama.
+
+### P21. Pratinjau skrip membaca file dari disk setiap frame
+
+- Lokasi: [js_scripts.cpp:297-334](../src/menu/core/js_scripts.cpp#L297-L334).
+- Biaya: selama tab Script Manager terbuka dan ada skrip yang dipilih, `read_script(path)` membuka dan membaca
+  seluruh file, dan `std::filesystem::file_size` dipanggil, setiap frame di thread render. Untuk skrip kecil
+  biayanya kecil, tetapi tetap I/O disk per frame.
+- Saran: baca isi file sekali saat skrip dipilih atau saat tombol Reload ditekan.
 
 ## Sudah dicek dan aman
 
@@ -1010,6 +1136,26 @@ menghentikan game sejenak saat berjalan (stutter).
 - Override global key 21, 22, dan 23 cocok dengan `AllPiecesUnlocked`, `NoWorkbench`, dan `AllRecipesUnlocked`
   di enum `GlobalKeys`.
 - Creature spawner dan item spawner hanya membaca prefab, tidak menulis field-nya.
+- Base Tools: 34 method yang dipanggil lewat nama dan 23 field yang dibaca dengan tipe tertentu cocok dengan
+  build sekarang, termasuk `Fireplace.m_maxFuel` yang `float` sementara `m_maxFuel` di Smelter, CookingStation,
+  dan ShieldGenerator `int`. `Plant.Grow` mengembalikan `GameObject`, jadi hitungan "Instantly matured" benar.
+- World Time dan Camera: signature `Game.FadeTimeScale`, `Game.CanPause`, `ZNet.SetNetTime(double)`,
+  `GetTimeSeconds`, `SaveWorldAndPlayerProfiles`, `GameCamera.InFreeFly` (static), `ToggleFreeFly`,
+  `SetFreeFlySmoothness`, dan `Player.TeleportTo` cocok. `EnvMan.m_dayLengthSec` dan `World.m_uid` (`Int64`)
+  dibaca dengan ukuran yang benar, dan `ZNet.m_world` memang field static.
+- `task_mgr`: coroutine dibuat dalam keadaan suspend (`initial_suspend` mengembalikan `suspend_always`) dan baru
+  dijalankan dari `Game.Update`, jadi `async_run` dan `queue_job` benar-benar pindah ke thread game. Transfer
+  ke parent di `final_suspend` juga benar.
+- Selain bug 44, semua 200 nama prefab dan lokasi yang ditulis langsung di kode ada di daftar asset game,
+  termasuk lokasi boss (`Eikthyrnir`, `GDKing`, `Bonemass`, `Dragonqueen`, `GoblinKing`,
+  `Mistlands_DvergrBossEntrance1`, `FaderLocation`, `DN_Bossroom`), lokasi trader (`Vendor_BlackForest`,
+  `Hildir_camp`, `BogWitch_Camp`, `Hildir_crypt`, `Hildir_cave`), dan prefab trader untuk Remote Merchant.
+- Override cuaca dengan nama environment yang tidak ada tidak membuat crash, karena
+  `EnvMan.QueueEnvironment(string)` mengecek hasil `GetEnv` sebelum dipakai.
+- Hook DX11: jumlah entri vtable dummy (18 swapchain, 43 device, 144 context) sesuai interface, dan index
+  Present (8) serta ResizeBuffers (13) benar.
+- Command `int`, `float`, `list`, `vector3`, dan `color` menjalankan `on_change` lewat `async_run`, jadi
+  callback selalu melihat nilai baru di thread game.
 
 ## Cakupan audit
 
@@ -1033,8 +1179,15 @@ Area berisiko tinggi sudah dibaca seluruhnya:
 - Renderer DX11 seluruhnya, dan jalur per frame renderer Vulkan.
 - Item, creature, dan prefab spawner, world tools, global key editor, serta custom teleport (service dan
   submenu) dibaca seluruhnya.
-- Pemeriksaan otomatis untuk seluruh kode: ukuran tipe setiap akses field, dan keberadaan setiap method dan
-  field yang dicari berdasarkan nama, keduanya dibandingkan dengan runtime game yang terpasang.
+- Seluruh `menu/submenu/player_menu.cpp` (semua builder submenu dan opsinya), `base_tools_menu.cpp`, dan
+  `menu/core/js_scripts.cpp`.
+- Seluruh `unity/base_tools.cpp`, `world_time.cpp`, `camera_tools.cpp`, dan `bookmark_manager.cpp`.
+- Infrastruktur: `task.hpp`, `task_mgr.cpp`, `thread_pool.cpp`, `logger/` (`logger.cpp`, `stack_trace.cpp`,
+  `exception_handler.cpp`), semua tipe command di `commands/`, `menu_settings.cpp`, pattern scanner dan cache di
+  `memory/`, helper hook di `hooking/`, dan `graphic/graphic_manager.cpp`.
+- Pemeriksaan otomatis untuk seluruh kode: ukuran tipe setiap akses field, keberadaan setiap method dan field
+  yang dicari berdasarkan nama, dan nama prefab serta lokasi yang ditulis langsung. Dua yang pertama
+  dibandingkan dengan runtime game, yang ketiga dengan daftar asset game.
 
 Sengaja tidak diaudit:
 
@@ -1043,8 +1196,10 @@ Sengaja tidak diaudit:
 Belum diperiksa mendalam (risiko lebih rendah):
 
 - `utility/subprocess.hpp` (library pihak ketiga), `hwid.hpp`, dan kode lisensi.
-- Builder submenu lain di `menu/`: polanya sudah dicek untuk pembacaan game dan pendaftaran submenu (bug 32),
-  tetapi tidak setiap opsi dibaca.
+- Sisa `menu/`: `teleport_submenu.cpp` (hanya builder yang terkait bug 32), `esp.cpp`, dan halaman kecil di
+  `menu/core`.
 - Internal Astra UI selain `bool_option`, `canvas::tick`, dan polling settings.
-- Server lisensi, pattern scanner, `graphic_manager`, dan engine QuickJS di luar binding GUI dan sigscanner.
+- Server lisensi (`server/`), `file_manager`, tekstur UI (`textures/toggle.cpp`, `checkbox.cpp`), dan engine
+  QuickJS di luar binding GUI dan sigscanner (`mono_binding`, `trampoline_binding`, `command_binding`,
+  `javascript_manager`).
 - Pengukuran FPS langsung di game. Semua temuan performa berasal dari analisis kode.
