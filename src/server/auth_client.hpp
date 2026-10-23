@@ -24,6 +24,8 @@ namespace big
 		int port{443};
 		bool is_ssl{true};
 		std::string ws_endpoint;
+		std::string hwid;
+		std::string device_name;
 		std::string error_message;
 	};
 
@@ -36,6 +38,8 @@ namespace big
 			resolve_server_config(info);
 
 			std::string hwid = utils::get_hwid();
+			info.hwid = hwid;
+			info.device_name = utils::get_device_name();
 			LOG(INFO) << "[AuthClient] Generated HWID: " << hwid;
 			LOG(INFO) << "[AuthClient] Target auth server: " << (info.is_ssl ? "https://" : "http://") << info.host << ":" << info.port;
 
@@ -151,26 +155,6 @@ namespace big
 			}
 		}
 
-		static std::string url_encode(const std::string& value)
-		{
-			std::ostringstream escaped;
-			escaped.fill('0');
-			escaped << std::hex;
-
-			for (auto c : value)
-			{
-				if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~')
-				{
-					escaped << c;
-				}
-				else
-				{
-					escaped << '%' << std::setw(2) << static_cast<int>(static_cast<unsigned char>(c));
-				}
-			}
-			return escaped.str();
-		}
-
 		static std::string build_ws_endpoint(const ServerAuthInfo& info)
 		{
 			std::string endpoint = info.host;
@@ -178,9 +162,7 @@ namespace big
 			{
 				endpoint += ":" + std::to_string(info.port);
 			}
-			std::string hwid = utils::get_hwid();
-			std::string device_name = utils::get_device_name();
-			return endpoint + "/ws/auth?token=" + url_encode(info.token) + "&client=valheim_mod" + "&hwid=" + url_encode(hwid) + "&device_name=" + url_encode(device_name);
+			return endpoint + "/ws/auth?client=valheim_mod";
 		}
 
 		static bool login_via_hwid(ServerAuthInfo& info, const std::string& hwid)
@@ -339,13 +321,6 @@ namespace big
 				WinHttpCloseHandle(hConnect);
 				WinHttpCloseHandle(hSession);
 				return false;
-			}
-
-			// If SSL, ignore cert errors for dev/custom environments
-			if (info.is_ssl)
-			{
-				DWORD secFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID | SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
-				WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
 			}
 
 			// Add extra headers first (e.g. Cookie)

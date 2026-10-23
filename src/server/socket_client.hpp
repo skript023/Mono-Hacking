@@ -19,9 +19,12 @@ namespace big
 		using MessageCallback = std::function<void(std::string const&)>;
 		using KickCallback = std::function<void(std::string const&)>;
 
-		socket_client(std::string const& endpoint, bool is_ssl = false) :
+		socket_client(std::string const& endpoint, bool is_ssl = false, std::string token = {}, std::string hwid = {}, std::string device_name = {}) :
 		    m_endpoint(endpoint),
 		    m_is_ssl(is_ssl),
+		    m_token(std::move(token)),
+		    m_hwid(std::move(hwid)),
+		    m_device_name(std::move(device_name)),
 		    m_connection_status(eConnectionStatus::DISCONNECT)
 		{
 			connect();
@@ -49,15 +52,15 @@ namespace big
 
 			if (m_is_ssl)
 			{
-				m_client_wss = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WSS>>(m_endpoint, false);
-				m_client_wss->config.header.emplace("User-Agent", "Valheim/1.0");
+				m_client_wss = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WSS>>(m_endpoint);
+				configure_headers(m_client_wss->config.header);
 				setup_wss_handlers();
 				start_client(m_client_wss);
 			}
 			else
 			{
 				m_client_ws = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WS>>(m_endpoint);
-				m_client_ws->config.header.emplace("User-Agent", "Valheim/1.0");
+				configure_headers(m_client_ws->config.header);
 				setup_ws_handlers();
 				start_client(m_client_ws);
 			}
@@ -131,6 +134,15 @@ namespace big
 		}
 
 	private:
+		template<typename Headers>
+		void configure_headers(Headers& headers) const
+		{
+			headers.emplace("User-Agent", "Valheim/1.0");
+			if (!m_token.empty()) headers.emplace("Authorization", "Bearer " + m_token);
+			if (!m_hwid.empty()) headers.emplace("X-HWID", m_hwid);
+			if (!m_device_name.empty()) headers.emplace("X-Device-Name", m_device_name);
+		}
+
 		template<typename Client>
 		void start_client(const std::shared_ptr<Client>& client)
 		{
@@ -256,6 +268,9 @@ namespace big
 	private:
 		std::string m_endpoint;
 		bool m_is_ssl{false};
+		std::string m_token;
+		std::string m_hwid;
+		std::string m_device_name;
 		std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>> m_client_wss;
 		std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>> m_client_ws;
 		std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection> m_active_conn_wss;
