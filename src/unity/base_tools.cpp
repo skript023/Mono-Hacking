@@ -644,9 +644,51 @@ namespace big
 			projected = std::chrono::steady_clock::now();
 		}
 	}
+	void base_tools::advance_fermenters_impl(float speed, float radius)
+	{
+		static auto get_znet = mono::get_method("ZNet", "get_instance", 0, "assembly_valheim");
+		static auto net_time = mono::get_field("ZNet", "m_netTime", "assembly_valheim");
+		static auto get_zdo  = mono::get_method("ZNetView", "GetZDO", 0, "assembly_valheim");
+		static auto get_long = mono::get_method_exact("ZDO", "GetLong", {"System.Int32", "System.Int64"}, "assembly_valheim");
+		static auto set_long = mono::get_method_exact("ZDO", "Set", {"System.Int32", "System.Int64"}, "assembly_valheim");
+		static auto start_time = static_cast<int*>(mono::get_static_field_value("ZDOVars", "s_startTime", "assembly_valheim"));
+		std::unordered_map<MonoObject*, double> next;
+		auto znet = get_znet ? mono::invoke_method(get_znet, nullptr, nullptr) : nullptr;
+		if (speed > 1.f && znet && net_time && get_zdo && get_long && set_long && start_time)
+		{
+			double now = 0.0;
+			mono::get_field_value(znet, net_time, &now);
+			for (auto object : nearby("Fermenter", radius))
+			{
+				auto view = field<MonoObject*>(object, "m_nview");
+				if (!valid(object) || !value<bool>(view, "IsOwner"))
+				{
+					continue;
+				}
+				if (auto previous = fermenter_clock.find(object); previous != fermenter_clock.end() && now > previous->second)
+				{
+					auto zdo          = mono::invoke_method(get_zdo, view, nullptr);
+					int key           = *start_time;
+					int64_t empty     = 0;
+					void* get_args[2] = {&key, &empty};
+					auto boxed        = zdo ? mono::invoke_method(get_long, zdo, get_args) : nullptr;
+					int64_t start     = boxed ? *static_cast<int64_t*>(mono::object_unbox(boxed)) : 0;
+					if (start != 0)
+					{
+						int64_t shifted = start - static_cast<int64_t>((speed - 1.f) * (now - previous->second) * 10000000.0);
+						void* set_args[2] = {&key, &shifted};
+						mono::invoke_method(set_long, zdo, set_args);
+					}
+				}
+				next[object] = now;
+			}
+		}
+		fermenter_clock = std::move(next);
+	}
 	void base_tools::update_impl()
 	{
 		const auto cfg = get_options();
+		advance_fermenters_impl(cfg.fermenter_speed, cfg.radius);
 		if (!scan_requested.exchange(false) && !cfg.damaged_markers)
 		{
 			return;

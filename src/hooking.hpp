@@ -92,7 +92,6 @@ namespace big
 		static bool inventory_gui_have_repairable_items(MonoObject* gui);
 		static void inventory_gui_repair_one_item(MonoObject* gui);
 		static double smelter_delta(MonoObject* object);
-		static double fermenter_time(MonoObject* object);
 		static float hive_delta(MonoObject* object);
 		static float plant_grow_time(MonoObject* object);
 		static void plant_update_health(MonoObject* object, double time_since_planted);

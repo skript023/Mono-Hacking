@@ -8,11 +8,6 @@ namespace big
 		return detour_base::get_original<smelter_delta>()(object)
 		    * base_tools::multiplier(object, base_tools::get_options().smelter_speed);
 	}
-	double hooks::fermenter_time(MonoObject* object)
-	{
-		return detour_base::get_original<fermenter_time>()(object)
-		    * base_tools::multiplier(object, base_tools::get_options().fermenter_speed);
-	}
 	float hooks::hive_delta(MonoObject* object)
 	{
 		return detour_base::get_original<hive_delta>()(object)

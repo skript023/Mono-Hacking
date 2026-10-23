@@ -153,7 +153,7 @@ namespace big
 			    1.f,
 			    0);
 			sub->add_option<number_option<float>>("Fermenter Speed",
-			    "Scales elapsed fermentation time, including existing batches.",
+			    "Speeds up fermentation while you are within the radius; the progress stays when you leave.",
 			    &config.fermenter_speed,
 			    1.f,
 			    50.f,

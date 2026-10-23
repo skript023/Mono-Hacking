@@ -147,7 +147,6 @@ namespace big
 		add_mono_hook<hooks::inventory_gui_have_repairable_items>("InventoryGui::HaveRepairableItems", "InventoryGui", "HaveRepairableItems", 0, "assembly_valheim");
 		add_mono_hook<hooks::inventory_gui_repair_one_item>("InventoryGui::RepairOneItem", "InventoryGui", "RepairOneItem", 0, "assembly_valheim");
 		add_mono_hook<hooks::smelter_delta>("Smelter::GetDeltaTime", "Smelter", "GetDeltaTime", 0, "assembly_valheim");
-		add_mono_hook<hooks::fermenter_time>("Fermenter::GetFermentationTime", "Fermenter", "GetFermentationTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::hive_delta>("Beehive::GetTimeSinceLastUpdate", "Beehive", "GetTimeSinceLastUpdate", 0, "assembly_valheim");
 		add_mono_hook<hooks::plant_grow_time>("Plant::GetGrowTime", "Plant", "GetGrowTime", 0, "assembly_valheim");
 		add_mono_hook<hooks::plant_update_health>("Plant::UpdateHealth", "Plant", "UpdateHealth", 1, "assembly_valheim");

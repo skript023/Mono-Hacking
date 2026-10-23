@@ -85,66 +85,50 @@ namespace big
 		static auto get_collider = mono::get_method("Player", "GetCollider", 0, "assembly_valheim");
 		static auto get_enabled = mono::get_method("Collider", "get_enabled", 0, "UnityEngine.PhysicsModule", "UnityEngine");
 		static auto set_enabled = mono::get_method_overload("Collider", "set_enabled", 1, "System.Void", "System.Boolean", "UnityEngine.PhysicsModule", "UnityEngine");
-		static MonoObject* active_collider = nullptr;
-		static bool original_enabled       = true;
+		static uintptr_t active_collider = 0;
+		static bool original_enabled     = true;
 
-		if (!get_collider || !get_enabled || !set_enabled)
+		const bool noclip = g_running && g_settings.self.noclip;
+		if ((!noclip && !active_collider) || !get_collider || !get_enabled || !set_enabled)
 		{
 			return;
 		}
 
-		auto collider = mono::invoke_method(get_collider, player, nullptr);
-		if (active_collider != collider)
+		auto collider = noclip ? mono::invoke_method(get_collider, player, nullptr) : nullptr;
+		auto previous = mono::retained_object(active_collider);
+		if (active_collider && previous != collider)
 		{
-			if (active_collider)
+			if (previous)
 			{
 				void* restore_args[]  = {&original_enabled};
 				MonoObject* exception = nullptr;
-				mono::invoke_method(set_enabled, active_collider, restore_args, &exception);
-				if (exception)
-				{
-					return;
-				}
+				mono::invoke_method(set_enabled, previous, restore_args, &exception);
 			}
-			active_collider = collider;
-			if (active_collider)
-			{
-				MonoObject* exception = nullptr;
-				auto enabled          = mono::invoke_method(get_enabled, active_collider, nullptr, &exception);
-				auto value            = enabled ? mono::object_unbox(enabled) : nullptr;
-				if (!exception && value)
-				{
-					original_enabled = *reinterpret_cast<bool*>(value);
-				}
-				else
-				{
-					active_collider = nullptr;
-					return;
-				}
-			}
+			mono::release(active_collider);
+			active_collider = 0;
+		}
+		if (!collider)
+		{
+			return;
 		}
 
 		if (!active_collider)
 		{
-			return;
+			MonoObject* exception = nullptr;
+			auto enabled          = mono::invoke_method(get_enabled, collider, nullptr, &exception);
+			auto value            = enabled ? mono::object_unbox(enabled) : nullptr;
+			if (exception || !value)
+			{
+				return;
+			}
+			original_enabled = *reinterpret_cast<bool*>(value);
+			active_collider  = mono::retain(collider);
 		}
 
-		bool enabled = original_enabled;
-		if (g_running && g_settings.self.noclip)
-		{
-			enabled = false;
-		}
+		bool enabled          = false;
 		void* args[]          = {&enabled};
 		MonoObject* exception = nullptr;
-		mono::invoke_method(set_enabled, active_collider, args, &exception);
-		if (exception)
-		{
-			return;
-		}
-		if (!g_running || !g_settings.self.noclip)
-		{
-			active_collider = nullptr;
-		}
+		mono::invoke_method(set_enabled, collider, args, &exception);
 	}
 
 	static void update_build_overlap(MonoObject* player, bool enabled)

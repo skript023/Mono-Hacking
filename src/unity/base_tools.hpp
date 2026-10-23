@@ -125,6 +125,7 @@ namespace big
 		std::vector<marker> get_markers_impl();
 		void request_scan_impl();
 		void update_impl();
+		void advance_fermenters_impl(float speed, float radius);
 		void hotkey_tick_impl();
 		void quick_stack_impl();
 		void repair_nearby_impl();
@@ -144,5 +145,6 @@ namespace big
 		std::vector<marker> markers;
 		std::chrono::steady_clock::time_point projected;
 		std::unordered_map<int, std::chrono::steady_clock::time_point> pending_stacks;
+		std::unordered_map<MonoObject*, double> fermenter_clock;
 	};
 }
