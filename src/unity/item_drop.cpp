@@ -187,7 +187,7 @@ namespace big
 			return false;
 		}
 
-		return *reinterpret_cast<bool*>(ret);
+		return *static_cast<bool*>(mono::object_unbox(ret));
 	}
 	bool item_drop::can_eat()
 	{
@@ -205,7 +205,7 @@ namespace big
 			return false;
 		}
 
-		return *reinterpret_cast<bool*>(ret);
+		return *static_cast<bool*>(mono::object_unbox(ret));
 	}
 	void item_drop::save()
 	{

@@ -70,6 +70,11 @@ namespace big
 		static auto f_line_len = mono::get_field(float_class, "m_lineLength");
 		static auto get_catch_method = mono::get_method("FishingFloat", "GetCatch", 0, "assembly_valheim");
 
+		if (!get_catch_method || !mono::invoke_method(get_catch_method, fl, nullptr))
+		{
+			notification::warning("Fishing Assistant", "No fish is hooked yet.");
+			return;
+		}
 		if (f_line_len)
 		{
 			float snap_zero = 0.1f;

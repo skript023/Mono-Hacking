@@ -141,7 +141,11 @@ namespace big
 	}
 	void crafting_tools::refresh_ui_impl(bool force)
 	{
-		auto gui = call_impl(mono::get_method("InventoryGui", "get_instance", 0, "assembly_valheim"), nullptr);
+		static auto get_instance = mono::get_method("InventoryGui", "get_instance", 0, "assembly_valheim");
+		static auto update_panel = mono::get_method("InventoryGui", "UpdateCraftingPanel", 1, "assembly_valheim");
+		static auto get_object = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
+		auto gui = call_impl(get_instance, nullptr);
 		if (!gui)
 		{
 			return;
@@ -150,17 +154,17 @@ namespace big
 		{
 			bool focus   = false;
 			void* args[] = {&focus};
-			call_impl(mono::get_method("InventoryGui", "UpdateCraftingPanel", 1, "assembly_valheim"), gui, args);
+			call_impl(update_panel, gui, args);
 		}
 		if (m_active)
 		{
 			auto button = field_impl(gui, "m_tabUpgrade");
-			auto go = button ? call_impl(mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine"), button) : nullptr;
+			auto go     = button ? call_impl(get_object, button) : nullptr;
 			if (go)
 			{
 				bool enabled = true;
 				void* args[] = {&enabled};
-				call_impl(mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine"), go, args);
+				call_impl(set_active, go, args);
 			}
 		}
 	}
