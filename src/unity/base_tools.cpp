@@ -1,4 +1,5 @@
 #include "base_tools.hpp"
+#include "esp_projection.hpp"
 #include "mono/mono.hpp"
 #include "unity/player.hpp"
 #include "unity/localization.hpp"
@@ -621,16 +622,19 @@ namespace big
 		if (get_options().damaged_markers)
 		{
 			auto state = get_snapshot();
-			for (const auto& building : state.buildings)
+			if (!state.buildings.empty() && esp_projection::begin_frame())
 			{
-				Vector3 screen;
-				if (unity::world_to_screen(building.position, screen))
+				for (const auto& building : state.buildings)
 				{
-					next.push_back({building.detail, screen});
-				}
-				if (next.size() >= 200)
-				{
-					break;
+					Vector3 screen;
+					if (esp_projection::project(building.position, screen))
+					{
+						next.push_back({building.detail, screen});
+					}
+					if (next.size() >= 200)
+					{
+						break;
+					}
 				}
 			}
 		}

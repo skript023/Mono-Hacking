@@ -45,6 +45,17 @@ namespace big
 			auto result  = mono::invoke_method(is_enemy, base_ai, args);
 			return result && *reinterpret_cast<bool*>(mono::object_unbox(result));
 		}
+
+		std::string creature_name(character target)
+		{
+			auto name = target.get_hover_name();
+			return name.empty() || name == "unknown" ? "Creature" : name;
+		}
+
+		std::string snapshot_name(const animal_tools::creature_info& info)
+		{
+			return info.name.empty() ? creature_name(info.character) : info.name;
+		}
 	}
 
 	void animal_tools::set_options_impl(const options& opt)
@@ -97,11 +108,14 @@ namespace big
 		creature_info info{};
 		info.valid     = true;
 		info.character = target.get_object();
-		info.name      = target.get_hover_name();
-		if (info.name.empty() || info.name == "unknown")
+		if (!g_options.show_inspector)
 		{
-			info.name = "Creature";
+			std::lock_guard lock(g_mutex);
+			g_snapshot  = std::move(info);
+			g_last_seen = now;
+			return;
 		}
+		info.name = creature_name(target);
 
 		info.level = target.get_level();
 		if (info.level <= 0)
@@ -269,7 +283,7 @@ namespace big
 
 		if (heal_creature(snap.character))
 		{
-			notification::success("Animal Tamer", std::format("Restored {} to full health!", snap.name));
+			notification::success("Animal Tamer", std::format("Restored {} to full health!", snapshot_name(snap)));
 			return true;
 		}
 
@@ -315,7 +329,7 @@ namespace big
 			return false;
 		}
 
-		notification::success("Breeding", std::format("{} breeding and pregnancy timing set to {:.1f}x.", snap.name, multiplier));
+		notification::success("Breeding", std::format("{} breeding and pregnancy timing set to {:.1f}x.", snapshot_name(snap), multiplier));
 		return true;
 	}
 

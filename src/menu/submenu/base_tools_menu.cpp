@@ -276,9 +276,10 @@ namespace big
 		base_tools::set_options(config);
 		if (config.damaged_markers)
 		{
+			const auto display = ImGui::GetIO().DisplaySize;
 			for (const auto& marker : base_tools::get_markers())
 			{
-				const ImVec2 point{marker.screen.x, marker.screen.y};
+				const ImVec2 point{marker.screen.x * display.x, marker.screen.y * display.y};
 				auto* draw      = ImGui::GetBackgroundDrawList();
 				const auto size = ImGui::CalcTextSize(marker.text.c_str());
 				draw->AddRectFilled({point.x - 3.f, point.y - 2.f}, {point.x + size.x + 3.f, point.y + size.y + 2.f}, IM_COL32(20, 20, 20, 230), 2.f);

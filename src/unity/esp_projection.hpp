@@ -2,6 +2,8 @@
 #include "mono/mono.hpp"
 #include "class/vector.hpp"
 
+#include <array>
+
 namespace big
 {
 	class esp_projection
@@ -27,8 +29,9 @@ namespace big
 		esp_projection& operator=(const esp_projection&) = delete;
 		bool begin_frame_impl();
 		bool project_impl(const Vector3& world, Vector3& viewport);
-		MonoObject* m_camera{};
-		MonoMethod* m_project{};
+		bool m_ready{};
+		std::array<float, 16> m_world_to_camera{};
+		std::array<float, 16> m_projection{};
 		struct viewport_rect
 		{
 			float x, y, width, height;

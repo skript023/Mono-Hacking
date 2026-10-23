@@ -6,7 +6,7 @@ namespace big
 {
 	bool hooks::is_debug_flying(MonoObject* _this)
 	{
-		if (g_running && _this && _this == unity::get_local_player() && g_settings.self.flying)
+		if (g_running && g_settings.self.flying && _this && _this == unity::get_local_player())
 		{
 			return true;
 		}

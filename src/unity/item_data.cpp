@@ -153,20 +153,38 @@ namespace big
 			return false;
 		}
 
-		static MonoMethod* try_get_value = nullptr;
-		if (!try_get_value)
+		struct dictionary_layout
 		{
-			auto klass    = mono::object_get_class(custom_data);
-			try_get_value = klass ? mono::class_get_method_from_name(klass, "TryGetValue", 2) : nullptr;
-		}
-		if (!try_get_value)
+			MonoMethod* try_get_value{};
+			uint32_t count{};
+			uint32_t free_count{};
+		};
+		static const dictionary_layout layout = [custom_data] {
+			dictionary_layout result{};
+			if (auto klass = mono::object_get_class(custom_data))
+			{
+				result.try_get_value = mono::class_get_method_from_name(klass, "TryGetValue", 2);
+				result.count         = mono::get_field_offset(mono::get_field(klass, "_count"));
+				result.free_count    = mono::get_field_offset(mono::get_field(klass, "_freeCount"));
+			}
+			return result;
+		}();
+		if (!layout.try_get_value)
 		{
 			return false;
+		}
+		if (layout.count && layout.free_count)
+		{
+			const auto base = reinterpret_cast<uintptr_t>(custom_data);
+			if (*reinterpret_cast<int*>(base + layout.count) - *reinterpret_cast<int*>(base + layout.free_count) <= 0)
+			{
+				return false;
+			}
 		}
 
 		MonoString* raw_value = nullptr;
 		void* args[2]         = {mono::to_mono_string(name), &raw_value};
-		auto found            = mono::invoke_method(try_get_value, custom_data, args);
+		auto found            = mono::invoke_method(layout.try_get_value, custom_data, args);
 		if (!found || !*reinterpret_cast<bool*>(mono::object_unbox(found)) || !raw_value)
 		{
 			return false;

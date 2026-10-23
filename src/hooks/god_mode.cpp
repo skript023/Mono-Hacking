@@ -5,7 +5,7 @@ namespace big
 {
 	bool hooks::player_in_god_mode(MonoObject* player)
 	{
-		if (g_running && player && player == unity::get_local_player() && g_settings.self.god_mode)
+		if (g_running && g_settings.self.god_mode && player && player == unity::get_local_player())
 		{
 			return true;
 		}

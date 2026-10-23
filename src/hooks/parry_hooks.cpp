@@ -173,12 +173,9 @@ namespace big
 
 	bool hooks::humanoid_is_blocking(MonoObject* humanoid)
 	{
-		if (humanoid && humanoid == unity::get_local_player())
+		if (s_in_auto_parry && g_settings.self.auto_parry && humanoid && humanoid == unity::get_local_player())
 		{
-			if (s_in_auto_parry && g_settings.self.auto_parry)
-			{
-				return true;
-			}
+			return true;
 		}
 
 		return detour_base::get_original<humanoid_is_blocking>()(humanoid);
