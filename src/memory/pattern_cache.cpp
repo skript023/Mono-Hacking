@@ -11,14 +11,10 @@ namespace memory
 		if (file.exists())
 		{
 			std::ifstream stream(file.get_path(), std::ios_base::binary);
-			while (!stream.eof())
+			std::uint64_t hash;
+			int offset;
+			while (stream.read(reinterpret_cast<char*>(&hash), sizeof(hash)) && stream.read(reinterpret_cast<char*>(&offset), sizeof(offset)))
 			{
-				std::uint64_t hash;
-				int offset;
-
-				stream.read(reinterpret_cast<char*>(&hash), sizeof(hash));
-				stream.read(reinterpret_cast<char*>(&offset), sizeof(offset));
-
 				m_data.emplace(hash, offset);
 			}
 		}

@@ -6,7 +6,7 @@ namespace big
 	{
 	private:
 	protected:
-		const std::string_view m_name;
+		const std::string m_name;
 		bool m_enabled;
 
 	public:

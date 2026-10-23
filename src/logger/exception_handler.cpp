@@ -3,18 +3,11 @@
 #include "stack_trace.hpp"
 
 #include <hde64.h>
+#include <mutex>
 #include <set>
 
 namespace big
 {
-	inline auto hash_stack_trace(std::vector<uint64_t> stack_trace)
-	{
-		auto data        = reinterpret_cast<const char*>(stack_trace.data());
-		std::size_t size = stack_trace.size() * sizeof(uint64_t);
-
-		return std::hash<std::string_view>()({data, size});
-	}
-
 	exception_handler::exception_handler()
 	{
 		m_old_error_mode    = SetErrorMode(0);
@@ -36,16 +29,20 @@ namespace big
 			return EXCEPTION_CONTINUE_SEARCH;
 		}
 
-		static std::set<std::size_t> logged_exceptions;
-
-		trace.new_stack_trace(exception_info);
-		const auto trace_hash = hash_stack_trace(trace.frame_pointers());
-		if (const auto it = logged_exceptions.find(trace_hash); it == logged_exceptions.end())
+		static std::mutex logged_mutex;
+		static std::set<std::pair<uintptr_t, DWORD>> logged_exceptions;
+		bool first_time = false;
 		{
+			std::lock_guard lock(logged_mutex);
+			first_time = logged_exceptions
+			                 .emplace(reinterpret_cast<uintptr_t>(exception_info->ExceptionRecord->ExceptionAddress), exception_code)
+			                 .second;
+		}
+		if (first_time)
+		{
+			trace.new_stack_trace(exception_info);
 			LOG(FATAL) << trace;
 			Logger::FlushQueue();
-
-			logged_exceptions.insert(trace_hash);
 		}
 
 		// Advancing past an access violation skips an arbitrary memory operation
