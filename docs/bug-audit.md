@@ -57,6 +57,11 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 | 44 | Sepuluh nama prefab tidak ada di game: sebagian Quick Spawn dan pin Sealed Tower tidak pernah berhasil | Rendah | `menu/submenu/player_menu.cpp`, `unity/item_spawner.cpp`, `unity/exploration.cpp` |
 | 45 | Task async yang kena exception SEH dijalankan ulang setiap frame | Rendah, belum dipastikan | `task_mgr.cpp`, `logger/exception_handler.cpp`, `logger/stack_trace.cpp` |
 | 46 | Masalah kecil di World Modifiers, Tame All, scanner pattern JS, settings, dan kode mati | Rendah | beberapa file |
+| 47 | Login dan WebSocket server mematikan verifikasi sertifikat TLS, jadi token dan data hardware bisa disadap | Sedang (keamanan), hanya build `PRODUCTION` | `server/auth_client.hpp`, `server/socket_client.hpp` |
+| 48 | Hook dari skrip JS dihapus dua kali saat unload, dan callback-nya memakai QuickJS dari thread mana saja | Sedang, hanya kalau skrip memakai `detour.add` | `services/javascript/bindings/trampoline_binding.cpp`, `hooking.cpp` |
+| 49 | Bug di binding JS: `set_field_string`, `get_field_value`, argumen float, slider integer, dan `canvas.add_submenu` | Rendah | `services/javascript/bindings/` |
+| 50 | Tombol Exit di Settings menutup game tanpa menyimpan world dan karakter | Sedang | `menu/submenu/setting_menu.cpp` |
+| 51 | Masalah kecil di server, input, teleport, dan renderer Vulkan | Rendah, sebagian belum dipastikan | beberapa file |
 
 Temuan performa ada di bagian [Performa](#performa).
 
@@ -812,6 +817,119 @@ tidak dipanggil.
   offset dari cache. Tulis settings ke file sementara lalu rename. Hapus `call_hook` dan jalur OpenGL kalau
   memang tidak dipakai.
 
+### 47. Login dan WebSocket server mematikan verifikasi sertifikat TLS
+
+- Lokasi: [auth_client.hpp:344-349](../src/server/auth_client.hpp#L344-L349) dan
+  [socket_client.hpp:52](../src/server/socket_client.hpp#L52).
+- Penyebab: `http_post` di `auth_client` memasang `SECURITY_FLAG_IGNORE_UNKNOWN_CA`,
+  `SECURITY_FLAG_IGNORE_CERT_DATE_INVALID`, dan `SECURITY_FLAG_IGNORE_CERT_CN_INVALID` untuk semua request HTTPS,
+  termasuk server produksi. Komentarnya menyebut "dev/custom environments", tetapi tidak ada pengecekan
+  `env_type`. Client WebSocket dibuat dengan `verify_certificate = false`. Sebaliknya, `dll_session` memakai
+  verifikasi TLS normal.
+- Akibat: siapa pun yang bisa mencegat koneksi (Wi-Fi publik, DNS palsu, proxy) bisa menyamar sebagai server
+  tanpa ketahuan. Yang terkirim lewat jalur ini adalah `refresh_token` dari `session.dat` (header Cookie), token
+  sesi (di query string URL WebSocket, [auth_client.hpp:183](../src/server/auth_client.hpp#L183)), dan detail
+  hardware mentah (UUID board, serial board dan disk, MAC, MachineGuid). HWID juga ditulis ke file log
+  ([auth_client.hpp:39](../src/server/auth_client.hpp#L39)).
+- Cakupan: kode server hanya dikompilasi kalau `PRODUCTION` didefinisikan. CMake di repo ini tidak
+  mendefinisikannya, jadi build biasa tidak terdampak. Build rilis yang memakai `-DPRODUCTION` terdampak.
+- Saran: hapus flag `IGNORE_*` untuk produksi (kalau perlu, sisakan hanya untuk `env_type` lokal), pakai
+  `verify_certificate = true` untuk WSS, kirim token lewat header, bukan query string, dan jangan menulis HWID ke
+  log.
+
+### 48. Hook dari skrip JS dihapus dua kali saat unload
+
+- Lokasi: [trampoline_binding.cpp:39-57](../src/services/javascript/bindings/trampoline_binding.cpp#L39-L57),
+  [trampoline_binding.cpp:298](../src/services/javascript/bindings/trampoline_binding.cpp#L298),
+  [trampoline_binding.cpp:327-367](../src/services/javascript/bindings/trampoline_binding.cpp#L327-L367),
+  [hooking.cpp:253-270](../src/hooking.cpp#L253-L270), dan
+  [javascript_manager.cpp:14-21](../src/services/javascript/javascript_manager.cpp#L14-L21).
+- Penyebab: `detour.add` dari skrip membuat `big::detour_hook`, yang otomatis masuk daftar global
+  `detour_base::hooks()`, tetapi pemiliknya `unique_ptr` di map `g_hooks`. Saat unload,
+  `hooking::disable()` mematikan semua hook di daftar itu lalu `delete_disabled_hooks()` menghapusnya dengan
+  `delete`, termasuk hook JS. Setelah `FreeLibraryAndExitThread`, destructor `static` milik
+  `javascript_manager` memanggil `trampoline::shutdown()`, lalu `g_hooks.clear()` memanggil
+  `disable_immediately()` pada objek yang sudah dihapus dan menghapusnya lagi.
+- Akibat: kalau ada skrip yang pernah memakai `detour.add`, unload berakhir dengan use-after-free dan double free
+  di dalam `DllMain`, yang biasanya membuat game crash. Masalah lain di jalur yang sama:
+  - Nama hook disimpan sebagai `std::string_view` ([detour_base.hpp:9](../src/hooking/detour_base.hpp#L9)), padahal
+    untuk hook JS nama itu string sementara. Log di `hooking::disable` membaca memori yang sudah dibebaskan.
+  - `JsDetourDispatch` memanggil callback JS dari thread mana pun yang memanggil fungsi yang di-hook. Pada saat
+    yang sama skrip juga berjalan di thread game (eval) dan thread render (callback menu, bug 23). QuickJS tidak
+    thread-safe, jadi pemakaian bersamaan bisa merusak heap JS.
+  - `detour.disable(name)` dari dalam callback hook itu sendiri langsung membebaskan trampoline dan objek
+    callback yang sedang berjalan.
+- Saran: hapus hook JS di `g_hooks` sebelum `g_hooking->disable()` (misalnya panggil
+  `javascript_manager::unload_all_modules` dan `trampoline::shutdown` di urutan unload `main.cpp`). Simpan nama
+  hook sebagai `std::string`. Antre callback JS ke satu thread, atau kunci runtime QuickJS dengan mutex.
+
+### 49. Bug di binding JavaScript
+
+- Lokasi: [mono_binding.cpp:33-121](../src/services/javascript/bindings/mono_binding.cpp#L33-L121),
+  [gui_binding.cpp:113-125](../src/services/javascript/bindings/gui_binding.cpp#L113-L125),
+  [gui_binding.cpp:164-179](../src/services/javascript/bindings/gui_binding.cpp#L164-L179), dan
+  [javascript_manager.cpp:203](../src/services/javascript/javascript_manager.cpp#L203).
+- Masalah:
+  - `mono.set_field_string` menulis pointer `const char*` milik C++ langsung ke field string managed, bukan
+    `MonoString`. Kode game yang membaca field itu akan membaca memori yang salah dan bisa crash.
+  - `mono.get_field_value` membaca ke variabel `void*` (8 byte). Untuk field yang lebih besar, misalnya
+    `Vector3` (12 byte), `mono_field_get_value` menulis melewati variabel itu di stack.
+  - `mono.invoke_method` mengirim angka desimal sebagai `double` 8 byte. Untuk parameter `float` (`Single`), Mono
+    hanya membaca 4 byte pertama, jadi nilainya salah.
+  - Slider integer dari `canvas` menulis nilainya ke `intStates`, tetapi callback-nya membaca
+    `floatStates`, jadi skrip selalu menerima nilai awal. `precision` slider float tidak pernah diisi, jadi selalu
+    0 desimal.
+  - `canvas.add_submenu` tidak menaikkan `build_version`, padahal `register_gui` hanya mendaftarkan menu yang
+    versinya berubah. Submenu dari skrip tidak pernah muncul.
+  - REPL menjalankan kode sebagai module (QuickJS 2020-07-05), jadi hasil ekspresi selalu `undefined` dan tidak
+    pernah tampil, dan `const` dari satu eval tidak terlihat di eval berikutnya.
+- Saran: pakai `mono::to_mono_string` di `set_field_string`, baca field ke buffer seukuran
+  `mono_field_get_type`, terima tipe argumen dari skrip, simpan nilai slider integer ke tempat yang dibaca
+  callback, naikkan `build_version` di `add_submenu`, dan eval REPL sebagai script global.
+
+### 50. Tombol Exit di Settings menutup game tanpa menyimpan
+
+- Lokasi: [setting_menu.cpp:13-15](../src/menu/submenu/setting_menu.cpp#L13-L15).
+- Penyebab: tombol Exit memanggil `exit(0)` langsung dari callback menu di thread render.
+- Akibat: proses berhenti tanpa lewat jalur keluar Valheim, jadi world dan karakter tidak disimpan. Progres sejak
+  autosave terakhir hilang, dan pemain lain di sesi yang di-host langsung terputus. `exit` juga menjalankan
+  destructor `static` mod saat thread game masih berjalan, termasuk destructor `equipment_manager` yang memanggil
+  Mono (bug 37).
+- Saran: panggil jalur keluar game di thread game, misalnya `Menu.OnQuitYes` atau `Application.Quit` lewat
+  `queue_job`, atau hapus tombol ini.
+
+### 51. Masalah kecil di server, input, teleport, dan renderer Vulkan
+
+- Server (hanya build `PRODUCTION`):
+  - `dll_session_client` tidur 20 detik sekaligus di heartbeat
+    ([dll_session.hpp:213-217](../src/server/dll_session.hpp#L213-L217)), dan destructor-nya menunggu thread itu.
+    Unload bisa tertahan sampai 20 detik, ditambah request `/dll-session/close` dengan timeout 5 detik per tahap.
+  - `socket_client::connect` mengisi `m_shutdown_requested = false`, lalu langsung memanggil `disconnect()`, yang
+    mengisinya `true` lagi dan tidak pernah dikembalikan
+    ([socket_client.hpp:35-46](../src/server/socket_client.hpp#L35-L46)). Akibatnya log koneksi tertutup dan
+    error thread I/O tidak pernah ditulis.
+  - `FORCE_LOGOUT` dideteksi dengan mencari substring di pesan apa pun, bukan field event.
+  - Selama belum terautentikasi, heartbeat menjalankan `authenticate()` setiap 15 detik: dua request HTTP dan tiga
+    kali pengumpulan HWID lengkap per percobaan.
+- Input ([input_service.cpp:48-81](../src/services/input/input_service.cpp#L48-L81),
+  [input.cpp:30-35](../src/menu/core/input.cpp#L30-L35)): stack callback dan buffer `m_input` dipakai dari thread
+  render (menu) dan thread game (`execute` lewat `async_run`) tanpa kunci. Kotak input juga hanya bisa ditutup
+  dengan Enter.
+- Teleport: daftar Objectives memasukkan pin `Memorial` (type 17) sebagai "Hildir Quest", dan pin buatan pemain
+  yang namanya mengandung "bog", "elder", atau "queen" ikut masuk
+  ([teleport_submenu.cpp:249-280](../src/menu/submenu/teleport_submenu.cpp#L249-L280)). "Add Teleport" di Custom
+  Teleport menyimpan ke variabel global `category`, bukan kategori submenu yang sedang dibuka
+  ([teleport_submenu.cpp:364-387](../src/menu/submenu/teleport_submenu.cpp#L364-L387)).
+- Vulkan (belum dipastikan): kalau mod masuk setelah swapchain dibuat, image view memakai
+  `VK_FORMAT_R8G8B8A8_UNORM` ([render_vulkan.cpp:227-262](../src/render/render_vulkan.cpp#L227-L262)), padahal
+  format swapchain bisa BGRA8 atau sRGB. Vulkan tidak mengizinkan format view berbeda untuk image swapchain tanpa
+  flag mutable format. Kemungkinan akibatnya warna menu tertukar merah dan biru sampai swapchain dibuat ulang,
+  atau error di driver yang ketat.
+- Kode mati tambahan: kelas `plugins` (loader BepInEx), `spoof_call` beserta scan `FF 23` saat startup,
+  `Rotator` (dengan `operator+` dan `operator/` yang salah), `command_arguments`, `checkbox_texture`,
+  `alpha_service::send_hardware`, `list_get` di `mono_binding`, `home()`, `stats_submenu()`, dan
+  `main_script.hpp` tidak dipakai.
+
 ## Performa
 
 Kecuali disebut lain (P15 dan P18 berjalan di callback gambar), kode di bawah berjalan di thread game. Biaya
@@ -882,9 +1000,13 @@ menghentikan game sejenak saat berjalan (stutter).
 - Lokasi: [entity_worker.cpp:32-150](../src/worker/entity_worker.cpp#L32-L150).
 - Biaya: untuk setiap karakter yang dimuat game, tanpa batas jarak, ESP membaca posisi, titik atas, HP, dan
   nama (konversi string dari Mono) setiap frame. Untuk drop, posisi setiap drop dibaca dulu sebelum disaring
-  60 m, lalu `Localization.Localize` dipanggil per drop per frame.
+  60 m, lalu `Localization.Localize` dipanggil per drop per frame. Sebelum itu,
+  `esp_projection::begin_frame` mencari `GameCamera.get_instance`, field `m_camera`,
+  `Camera.WorldToViewportPoint` (lewat `get_method_exact`, yang membandingkan nama tipe parameter), dan
+  `Camera.get_rect` berdasarkan nama setiap frame ([esp_projection.cpp:5-33](../src/unity/esp_projection.cpp#L5-L33)).
 - Saran: tambahkan batas jarak untuk karakter, simpan nama dan level per objek lalu segarkan sekitar sekali
-  per detik, dan cache hasil `Localize` berdasarkan nama prefab.
+  per detik, cache hasil `Localize` berdasarkan nama prefab, dan simpan hasil lookup di `begin_frame` di
+  variabel `static`.
 
 ### P4. Marker bangunan rusak memakai `unity::world_to_screen`
 
@@ -1156,10 +1278,26 @@ menghentikan game sejenak saat berjalan (stutter).
   Present (8) serta ResizeBuffers (13) benar.
 - Command `int`, `float`, `list`, `vector3`, dan `color` menjalankan `on_change` lewat `async_run`, jadi
   callback selalu melihat nilai baru di thread game.
+- Server: `dll_session` memakai verifikasi TLS normal, memvalidasi tiket (format, PID, waktu mulai proses), dan
+  menghapus token dari memori saat selesai. Autentikasi berjalan di thread utama mod saat startup dan heartbeat di
+  thread sendiri, jadi thread game tidak pernah menunggu jaringan.
+- Antrean notifikasi Astra memakai mutex, jadi notifikasi dari thread jaringan dan thread game aman.
+- Proxy `version.dll`: setiap fungsi yang diteruskan punya cache pointer sendiri, dan DLL asli dimuat dari folder
+  System32.
+- Data ESP memakai triple buffer yang dikunci selama thread render membaca, dan `esp_projection` menolak titik
+  di belakang kamera, jadi label dan garis tidak tergambar terbalik.
+- Renderer Vulkan memilih GPU sesuai `SystemInfo.graphicsDeviceVendorID` dan `graphicsDeviceID` dari Unity, jadi
+  aman di PC dengan beberapa GPU.
+- Semua field `self` di `menu_settings.hpp` ikut disimpan, lewat makro JSON atau `serialize_extra_options`.
+- `file_manager` menolak path absolut dan `..`.
+- Tekstur PNG yang ditanam di kode (`toggle_texture`, `checkbox_texture`) ukurannya cocok dan diakhiri chunk
+  `IEND`.
+- QuickJS versi 2020-07-05 menjalankan module secara sinkron, jadi error skrip tetap tertangkap `try`/`catch` dan
+  masuk ke console.
 
 ## Cakupan audit
 
-Area berisiko tinggi sudah dibaca seluruhnya:
+Sudah dibaca seluruhnya:
 
 - Semua 46 file di `hooks/`, termasuk ukuran IL target (risiko inline) dan overload yang dipilih.
 - Semua jalur per frame: `Game.Update` (task, `main_worker`, ESP worker), hook `Player.Update`, dan hook yang
@@ -1185,6 +1323,12 @@ Area berisiko tinggi sudah dibaca seluruhnya:
 - Infrastruktur: `task.hpp`, `task_mgr.cpp`, `thread_pool.cpp`, `logger/` (`logger.cpp`, `stack_trace.cpp`,
   `exception_handler.cpp`), semua tipe command di `commands/`, `menu_settings.cpp`, pattern scanner dan cache di
   `memory/`, helper hook di `hooking/`, dan `graphic/graphic_manager.cpp`.
+- Putaran 100%: seluruh `server/` dan `utility/hwid.hpp`, seluruh engine dan binding JavaScript
+  (`javascript_manager`, `mono_binding`, `trampoline_binding`, `command_binding`, `gui_binding`,
+  `javascript_binding`, `store_binding`), renderer Vulkan seluruhnya (termasuk bootstrap, attach, dan shutdown),
+  sisa `menu/` (`teleport_submenu.cpp`, `esp.cpp`, halaman kecil di `menu/core`, `setting_menu.cpp`),
+  `file_manager`, proxy `version.dll`, `plugins.hpp`, `input_service`, tekstur UI, dan semua header (`unity/`,
+  `commands/`, `memory/`, `hooking/`, `class/`, `menu_settings.hpp`, dan lainnya).
 - Pemeriksaan otomatis untuk seluruh kode: ukuran tipe setiap akses field, keberadaan setiap method dan field
   yang dicari berdasarkan nama, dan nama prefab serta lokasi yang ditulis langsung. Dua yang pertama
   dibandingkan dengan runtime game, yang ketiga dengan daftar asset game.
@@ -1193,13 +1337,9 @@ Sengaja tidak diaudit:
 
 - Panel dan tool Cheat Status (`unity/cheat_status.cpp`, `menu/submenu/cheat_status_menu.cpp`).
 
-Belum diperiksa mendalam (risiko lebih rendah):
+Di luar hitungan (bukan kode mod sendiri):
 
-- `utility/subprocess.hpp` (library pihak ketiga), `hwid.hpp`, dan kode lisensi.
-- Sisa `menu/`: `teleport_submenu.cpp` (hanya builder yang terkait bug 32), `esp.cpp`, dan halaman kecil di
-  `menu/core`.
-- Internal Astra UI selain `bool_option`, `canvas::tick`, dan polling settings.
-- Server lisensi (`server/`), `file_manager`, tekstur UI (`textures/toggle.cpp`, `checkbox.cpp`), dan engine
-  QuickJS di luar binding GUI dan sigscanner (`mono_binding`, `trampoline_binding`, `command_binding`,
-  `javascript_manager`).
+- Library pihak ketiga yang ikut di `src/`: `utility/subprocess.hpp`, `quickjspp.hpp`, header Mono, dan
+  `cloakwork.h`. Data font dan banner (`fonts/`, `textures/header.cpp`, `textures/connect.cpp`).
+- Internal Astra UI selain `bool_option`, `canvas::tick`, polling settings, `store_mgr`, dan antrean notifikasi.
 - Pengukuran FPS langsung di game. Semua temuan performa berasal dari analisis kode.
