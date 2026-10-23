@@ -8,10 +8,6 @@ namespace big
 	    discord_batch("discord"),
 	    m_resolution(1920, 1080)
 	{
-		main_batch.add("Return Address", "FF 23", [this](memory::handle ptr) {
-			m_return_address = ptr.as<void*>();
-		});
-
 		discord_batch.add("Discord Overlay Present", "48 8B 05 ? ? ? ? 48 89 D9 89 FA 41 89 F0 FF 15 ? ? ? ? 41 89 C7", [this](memory::handle ptr) {
 			m_present = ptr.add(3).rip().as<decltype(m_present)>();
 		});

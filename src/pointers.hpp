@@ -27,7 +27,6 @@ namespace big
 		void* m_battle_points_handle;
 		void* m_credits_handle;
 		void* m_items_handle;
-		void* m_return_address;
 
 	public:
 		inline DWORD get_process_id(LPCSTR ProcessName)

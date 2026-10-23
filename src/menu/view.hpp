@@ -10,18 +10,15 @@ namespace big
 	public:
 		static void register_submenu()
 		{
-			home();
 			player_submenu();
 			base_tools_submenu();
 			cheat_status_submenu();
-			//stats_submenu();
 			teleport_submenu();
 			//esp_submenu();
 			setting_submenu();
 		}
 
 	public:
-		static void home();
 		static void js_scripts();
 		static void draw_input();
 		static void draw_overlay();
@@ -37,7 +34,6 @@ namespace big
 	public:
 		//static void esp_submenu();
 		static void player_submenu();
-		static void stats_submenu();
 		static void teleport_submenu();
 		static void setting_submenu();
 	};
