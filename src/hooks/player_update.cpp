@@ -236,18 +236,24 @@ namespace big
 		detour_base::get_original<update>()(player);
 		if (g_running && local_player && player == local_player)
 		{
-			if (g_settings.self.prevent_freezing)
+			static bool removed_freezing = false;
+			static bool removed_cold     = false;
+			static bool removed_wet      = false;
+			if (g_settings.self.prevent_freezing && !removed_freezing)
 			{
 				buff_tools::remove_status_effect("Freezing");
 			}
-			if (g_settings.self.prevent_cold)
+			if (g_settings.self.prevent_cold && !removed_cold)
 			{
 				buff_tools::remove_status_effect("Cold");
 			}
-			if (g_settings.self.is_wet)
+			if (g_settings.self.is_wet && !removed_wet)
 			{
 				buff_tools::remove_status_effect("Wet");
 			}
+			removed_freezing = g_settings.self.prevent_freezing;
+			removed_cold     = g_settings.self.prevent_cold;
+			removed_wet      = g_settings.self.is_wet;
 
 			const auto now      = std::chrono::steady_clock::now();
 			const float elapsed = std::clamp(std::chrono::duration<float>(now - last_tick).count(), 0.f, 0.25f);

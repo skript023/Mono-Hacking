@@ -6,21 +6,13 @@
 
 namespace big::features
 {
-	class auto_cleanse_debuffs : public looped_command
+	class auto_cleanse_debuffs : public bool_command
 	{
-		using looped_command::looped_command;
-		bool m_pending = false;
+		using bool_command::bool_command;
 
-		virtual void on_tick() override
+		virtual void on_enable() override
 		{
-			if (m_pending)
-				return;
-			m_pending = true;
-			async_run([this] {
-				m_pending = false;
-				if (g_running && get_state())
-					buff_tools::clear_all_debuffs(false);
-			});
+			buff_tools::clear_all_debuffs(false);
 		}
 	};
 

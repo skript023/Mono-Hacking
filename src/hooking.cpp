@@ -94,8 +94,8 @@ namespace big
 		add_mono_hook<hooks::is_debug_flying>("Player::IsDebugFlying", "Player", "IsDebugFlying", 0, "assembly_valheim");
 		add_mono_hook<hooks::is_encumbered>("Player::IsEncumbered", "Player", "IsEncumbered", 0, "assembly_valheim");
 		add_mono_hook<hooks::update_guardian_power>("Player::UpdateGuardianPower", "Player", "UpdateGuardianPower", 1, "assembly_valheim");
-		add_mono_hook<hooks::is_under_roof>("Cover::IsUnderRoof", "Cover", "IsUnderRoof", 1, "assembly_utils");
 		add_mono_hook<hooks::update_water>("Character::UpdateWater", "Character", "UpdateWater", 1, "assembly_valheim");
+		add_mono_hook_overload<hooks::seman_add_status_effect>("SEMan::AddStatusEffect(StatusEffect)", "SEMan", "AddStatusEffect", 5, nullptr, "StatusEffect", "assembly_valheim");
 		add_mono_hook<hooks::on_selected_item>("InventoryGui::OnSelectedItem", "InventoryGui", "OnSelectedItem", 4, "assembly_valheim");
 		add_mono_hook<hooks::get_weight>("ItemDrop::ItemData::GetWeight", "ItemDrop/ItemData", "GetWeight", 1, "assembly_valheim");
 		add_mono_hook<hooks::item_get_armor>("ItemDrop::ItemData::GetArmor", "ItemDrop/ItemData", "GetArmor", 2, "assembly_valheim");
@@ -104,13 +104,13 @@ namespace big
 		add_mono_hook<hooks::item_get_deflection_force>("ItemDrop::ItemData::GetDeflectionForce", "ItemDrop/ItemData", "GetDeflectionForce", 1, "assembly_valheim");
 		add_mono_hook<hooks::set_alerted>("AnimalAI::SetAlerted", "AnimalAI", "SetAlerted", 1, "assembly_valheim");
 		add_mono_hook<hooks::is_wind_controll_active>("Ship::IsWindControllActive", "Ship", "IsWindControllActive", 0, "assembly_valheim");
-		add_mono_hook<hooks::is_out_of_water>("Fish::IsOutOfWater", "Fish", "IsOutOfWater", 0, "assembly_valheim");
+		add_mono_hook<hooks::fish_interact>("Fish::Interact", "Fish", "Interact", 3, "assembly_valheim");
+		add_mono_hook<hooks::fish_get_hover_text>("Fish::GetHoverText", "Fish", "GetHoverText", 0, "assembly_valheim");
 		add_mono_hook<hooks::raise_skill>("Player::RaiseSkill", "Player", "RaiseSkill", 2, "assembly_valheim");
 		add_mono_hook<hooks::lower_all_skills>("Skills::LowerAllSkills", "Skills", "LowerAllSkills", 1, "assembly_valheim");
 		add_mono_hook<hooks::take_input>("PlayerController::TakeInput", "PlayerController", "TakeInput", 1, "assembly_valheim");
 		add_mono_hook<hooks::player_set_controls>("Player::SetControls", "Player", "SetControls", 12, "assembly_valheim");
 		add_mono_hook<hooks::get_body_armor>("Player::GetBodyArmor", "Player", "GetBodyArmor", 0, "assembly_valheim");
-		add_mono_hook<hooks::have_empty_slot>("Inventory::HaveEmptySlot", "Inventory", "HaveEmptySlot", 0, "assembly_valheim");
 		add_mono_hook<hooks::allowed_command>("Terminal::ConsoleCommand::IsValid", "Terminal/ConsoleCommand", "IsValid", 2, "assembly_valheim");
 		add_mono_hook<hooks::console_run_action>("Terminal::ConsoleCommand::RunAction", "Terminal/ConsoleCommand", "RunAction", 1, "assembly_valheim");
 		add_mono_hook<hooks::camera_render>("Camera::Render", "Camera", "Render", 0, "UnityEngine.CoreModule", "UnityEngine");
