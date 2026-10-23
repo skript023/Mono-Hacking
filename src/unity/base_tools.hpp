@@ -51,6 +51,11 @@ namespace big
 		{
 			return instance().get_options_impl();
 		}
+		template<typename T>
+		static T option(T options::* member)
+		{
+			return instance().option_impl(member);
+		}
 		static void set_options(options value)
 		{
 			return instance().set_options_impl(value);
@@ -120,6 +125,12 @@ namespace big
 		}
 
 		options get_options_impl();
+		template<typename T>
+		T option_impl(T options::* member)
+		{
+			std::lock_guard lock(options_mutex);
+			return config.*member;
+		}
 		void set_options_impl(options value);
 		snapshot get_snapshot_impl();
 		std::vector<marker> get_markers_impl();

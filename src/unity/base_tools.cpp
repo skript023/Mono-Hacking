@@ -88,6 +88,34 @@ namespace big
 			auto d = a - b;
 			return d.x * d.x + d.y * d.y + d.z * d.z;
 		}
+		std::vector<MonoObject*> scene_objects(const char* name)
+		{
+			static const std::unordered_map<std::string_view, const char*> instance_lists = {{"WearNTear", "s_allInstances"}, {"ShieldGenerator", "m_instances"}};
+			if (auto list = instance_lists.find(name); list != instance_lists.end())
+			{
+				auto slot = static_cast<MonoObject**>(mono::get_static_field_value(name, list->second, "assembly_valheim"));
+				return slot && *slot ? unity::list_to_vector(*slot) : std::vector<MonoObject*>{};
+			}
+
+			static auto find = mono::get_method_overload("Object", "FindObjectsOfType", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+			auto type = mono::reflection_type(mono::get_class(name, "assembly_valheim"));
+			if (!find || !type)
+			{
+				return {};
+			}
+			void* args[] = {type};
+			auto array   = reinterpret_cast<MonoArray*>(mono::invoke_method(find, nullptr, args));
+			if (!array)
+			{
+				return {};
+			}
+			std::vector<MonoObject*> objects;
+			for (auto object : mono_array_view<MonoObject*>(array))
+			{
+				objects.push_back(object);
+			}
+			return objects;
+		}
 		std::vector<MonoObject*> nearby(const char* name, float radius)
 		{
 			std::vector<MonoObject*> result;
@@ -96,29 +124,28 @@ namespace big
 			{
 				return result;
 			}
-			static auto find = mono::get_method_overload("Object", "FindObjectsOfType", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
-			auto type = mono::reflection_type(mono::get_class(name, "assembly_valheim"));
-			if (!find || !type)
-			{
-				return result;
-			}
-			void* args[] = {type};
-			auto array   = reinterpret_cast<MonoArray*>(mono::invoke_method(find, nullptr, args));
-			if (!array)
-			{
-				return result;
-			}
 			const auto origin = player(local).get_position();
-			for (auto object : mono_array_view<MonoObject*>(array))
+			std::vector<std::pair<float, MonoObject*>> found;
+			for (auto object : scene_objects(name))
 			{
-				if (object && distance_squared(origin, position(object)) <= radius * radius)
+				if (!object)
 				{
-					result.push_back(object);
+					continue;
+				}
+				const float distance = distance_squared(origin, position(object));
+				if (distance <= radius * radius)
+				{
+					found.emplace_back(distance, object);
 				}
 			}
-			std::sort(result.begin(), result.end(), [&](auto a, auto b) {
-				return distance_squared(origin, position(a)) < distance_squared(origin, position(b));
+			std::sort(found.begin(), found.end(), [](const auto& a, const auto& b) {
+				return a.first < b.first;
 			});
+			result.reserve(found.size());
+			for (const auto& entry : found)
+			{
+				result.push_back(entry.second);
+			}
 			return result;
 		}
 		std::string name(MonoObject* object)
@@ -199,7 +226,7 @@ namespace big
 		{
 			return 1.f;
 		}
-		const float radius = get_options().radius;
+		const float radius = option_impl(&options::radius);
 		return distance_squared(position(object), player(local).get_position()) <= radius * radius ? speed : 1.f;
 	}
 
