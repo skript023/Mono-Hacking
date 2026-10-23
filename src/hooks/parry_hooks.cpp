@@ -165,6 +165,7 @@ namespace big
 				EXCEPT_CLAUSE
 
 				s_in_auto_parry = false;
+				return;
 			}
 		}
 
