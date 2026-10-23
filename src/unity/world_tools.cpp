@@ -8,6 +8,7 @@
 #include "player.hpp"
 #include "utility/unity.hpp"
 #include "zone_system.hpp"
+#include "task_mgr.hpp"
 
 #include <format>
 #include <unordered_set>
@@ -481,10 +482,32 @@ namespace big
 
 		// Expand hide distance so it never auto-closes
 		static auto f_hide_dist = mono::get_field(store_class, "m_hideDistance");
-		if (f_hide_dist)
+		static std::atomic_bool hide_distance_extended = false;
+		if (f_hide_dist && !hide_distance_extended.exchange(true))
 		{
+			float original = 0.f;
+			mono::get_field_value(store_gui, f_hide_dist, &original);
 			float max_dist = 99999999.f;
 			mono::set_field_value(store_gui, f_hide_dist, &max_dist);
+			async_run([handle = mono::retain(store_gui), original]() -> task<void> {
+				static auto is_visible = mono::get_method("StoreGui", "IsVisible", 0, "assembly_valheim");
+				while (g_running && is_visible)
+				{
+					co_await this_task::wait();
+					auto visible = mono::invoke_method(is_visible, nullptr, nullptr);
+					if (!visible || !*static_cast<bool*>(mono::object_unbox(visible)))
+					{
+						break;
+					}
+				}
+				if (auto gui = mono::retained_object(handle))
+				{
+					float value = original;
+					mono::set_field_value(gui, f_hide_dist, &value);
+				}
+				mono::release(handle);
+				hide_distance_extended = false;
+			});
 		}
 
 		auto trader_class         = mono::get_class("Trader", "assembly_valheim");
@@ -507,20 +530,10 @@ namespace big
 						continue;
 					}
 
-					static auto f_tname = mono::get_field(trader_class, "m_name");
-					if (f_tname)
-					{
-						MonoString* ms = nullptr;
-						mono::get_field_value(obj, f_tname, &ms);
-						if (ms && mono::from_mono_string(ms).find(trader_name) != std::string::npos)
-						{
-							target_trader = obj;
-							break;
-						}
-					}
-					if (!target_trader)
+					if (unity::get_name(obj).starts_with(trader_name))
 					{
 						target_trader = obj;
+						break;
 					}
 				}
 			}
@@ -549,26 +562,29 @@ namespace big
 		}
 
 		// Safe animator setup to prevent NullReferenceException on buy/sell
-		auto player_obj = unity::get_local_player();
-		if (player_obj && trader_class)
+		if (trader_class)
 		{
 			static auto f_anim = mono::get_field(trader_class, "m_animator");
-			if (f_anim)
+			static auto is_alive = mono::get_method_exact("Object", "op_Implicit", {"UnityEngine.Object"}, "UnityEngine.CoreModule", "UnityEngine");
+			if (f_anim && is_alive)
 			{
 				MonoObject* cur_anim = nullptr;
 				mono::get_field_value(target_trader, f_anim, &cur_anim);
-				if (!cur_anim)
+				void* alive_args[1] = {cur_anim};
+				auto alive          = cur_anim ? mono::invoke_method(is_alive, nullptr, alive_args) : nullptr;
+				if (!alive || !*static_cast<bool*>(mono::object_unbox(alive)))
 				{
-					static auto comp_in_children = mono::get_method_overload("Component", "GetComponentInChildren", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+					static auto comp_in_children = mono::get_method_exact("Component", "GetComponentInChildren", {"System.Type", "System.Boolean"}, "UnityEngine.CoreModule", "UnityEngine");
 					auto anim_class = mono::get_class("Animator", "UnityEngine.AnimationModule", "UnityEngine");
 					if (comp_in_children && anim_class)
 					{
 						auto anim_type          = mono::reflection_type(anim_class);
-						void* aargs[1]          = {anim_type};
-						MonoObject* player_anim = mono::invoke_method(comp_in_children, player_obj, aargs);
-						if (player_anim)
+						bool include_inactive   = true;
+						void* aargs[2]          = {anim_type, &include_inactive};
+						MonoObject* trader_anim = mono::invoke_method(comp_in_children, target_trader, aargs);
+						if (trader_anim)
 						{
-							mono::set_field_value(target_trader, f_anim, player_anim);
+							mono::set_field_value(target_trader, f_anim, trader_anim);
 						}
 					}
 				}
