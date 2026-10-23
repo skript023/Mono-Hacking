@@ -11,11 +11,11 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 
 | # | Masalah | Dampak | Lokasi |
 | --- | --- | --- | --- |
-| 1 | Max Eitr ditimpa game setiap detik, eitr ikut terpotong | Tinggi | `features/max_mana.cpp` |
-| 2 | Mematikan No Wave & Collision Damage mengisi nilai yang salah | Sedang | `features/ship.cpp` |
-| 3 | Ashlands Ocean Boiling Immunity tidak bisa dimatikan | Sedang | `features/ship.cpp` |
-| 4 | Ship Speed Boost memakai angka tetap untuk semua kapal | Sedang, belum dipastikan | `features/ship.cpp` |
-| 5 | Mematikan Disable Base Raids mengisi peluang raid yang salah | Rendah | `features/world.cpp` |
+| 1 | Max Eitr ditimpa game setiap detik, eitr ikut terpotong | Tinggi, diperbaiki | `features/max_mana.cpp` |
+| 2 | Mematikan No Wave & Collision Damage mengisi nilai yang salah | Sedang, diperbaiki | `features/ship.cpp` |
+| 3 | Ashlands Ocean Boiling Immunity tidak bisa dimatikan | Sedang, diperbaiki | `features/ship.cpp` |
+| 4 | Ship Speed Boost memakai angka tetap untuk semua kapal | Sedang, belum dipastikan, diperbaiki | `features/ship.cpp` |
+| 5 | Mematikan Disable Base Raids mengisi peluang raid yang salah | Rendah, diperbaiki | `features/world.cpp` |
 | 6 | Mematikan fitur fishing mengisi nilai yang salah | Rendah | `features/fishing.cpp` |
 | 7 | Never Wet berlaku untuk semua karakter dan juga menghapus efek Tar | Sedang | `hooks/update_water.cpp` |
 | 8 | Enam opsi menu tidak dipakai kode mana pun | Sedang | beberapa file |
@@ -68,6 +68,9 @@ Temuan performa ada di bagian [Performa](#performa).
 Sudah diperbaiki sebelumnya: Attack Animation Speed menimpa `Animator.speed` setiap frame walaupun
 pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki di `557a25e`.
 
+Diperbaiki pada 2026-10-23: #1 sampai #5 dan P1 sampai P5. Build `x64-Clang-Release` berhasil, tetapi
+perbaikannya belum dites di dalam game. Cara perbaikannya ada di baris **Status** pada masing-masing bagian.
+
 ## Detail
 
 ### 1. Max Eitr ditimpa game setiap detik
@@ -82,6 +85,13 @@ pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki 
   field base.
 - Saran: jangan menulis `m_maxEitr`. Hook `Player.SetMaxEitr(float, bool)` dan ganti argumennya selama fitur
   menyala, supaya game sendiri yang menyimpan nilai dan menjepit `m_eitr` dengan batas yang benar.
+- **Status**: diperbaiki. Hook baru [set_max_eitr.cpp](../src/hooks/set_max_eitr.cpp) mengganti argumen
+  `SetMaxEitr` dengan nilai setting selama fitur menyala dan mencatat nilai dari makanan. `SetMaxEitr` hanya
+  dipanggil `UpdateFood` dan `Player.Load`, dan hanya method itu yang menulis `m_maxEitr`, jadi hook melihat
+  setiap nilai yang dihitung game. Tulisan langsung di `on_tick` tetap ada supaya nilai langsung berlaku saat
+  fitur dinyalakan, termasuk saat Food Duration Multiplier 0 (`UpdateFood` tidak memanggil `SetMaxEitr`).
+  Saat fitur dimatikan, nilai makanan terakhir dikembalikan dan `m_eitr` dijepit ke batas itu, di thread game
+  lewat `async_run`.
 
 ### 2. Mematikan No Wave & Collision Damage mengisi nilai yang salah
 
@@ -91,6 +101,10 @@ pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki 
 - Akibat: setelah fitur dimatikan, kapal menerima damage 10x lebih kecil dari ombak dan benturan, dan 2x
   lebih kecil saat terbalik, sampai objek kapal dimuat ulang.
 - Saran: rekam nilai asli per kapal saat pertama kali ditimpa, lalu kembalikan nilai itu.
+- **Status**: diperbaiki bersama #3 dan #4. `ship_override` di [ship.cpp](../src/features/ship.cpp) mencatat
+  nilai asli setiap kapal saat pertama kali ditimpa (kapal ditahan lewat GC handle), lalu memulihkan semua kapal
+  itu saat fitur dimatikan, termasuk kapal yang sudah ditinggal. Pemulihan berjalan di thread game lewat
+  `async_run`, jadi tidak berebut data dengan `on_tick`.
 
 ### 3. Ashlands Ocean Boiling Immunity tidak bisa dimatikan
 
@@ -98,6 +112,9 @@ pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki 
 - Penyebab: `m_ashlandsReady` diset `true` setiap tick, dan class ini tidak punya `on_disable`.
 - Akibat: kapal tetap kebal terhadap air Ashlands setelah fitur dimatikan, sampai objek kapal dimuat ulang.
 - Saran: rekam nilai asli per kapal dan kembalikan di `on_disable`.
+- **Status**: diperbaiki dengan cara yang sama seperti #2. `m_ashlandsReady` hanya dibaca
+  `TakeAshlandsDamage` dan tidak pernah ditulis game, jadi nilai aslinya berasal dari prefab dan sekarang
+  dicatat sebelum ditimpa.
 
 ### 4. Ship Speed Boost memakai angka tetap untuk semua kapal (belum dipastikan)
 
@@ -109,6 +126,8 @@ pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki 
   fitur dimatikan. Hanya kapal yang sedang dikemudikan yang dipulihkan; kapal yang ditinggal saat fitur
   menyala tetap memakai nilai mod.
 - Saran: rekam nilai asli per kapal, kalikan nilai itu, dan kembalikan saat dimatikan.
+- **Status**: diperbaiki dengan cara yang sama seperti #2. Pengali sekarang dikalikan ke nilai asli kapal itu
+  (batas 3x untuk stear dan 2,5x untuk rudder tetap), jadi pengali 1x tidak mengubah handling.
 
 ### 5. Mematikan Disable Base Raids mengisi peluang raid yang salah
 
@@ -117,6 +136,8 @@ pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki 
 - Akibat: peluang raid tetap lebih rendah dari vanilla sampai world dimuat ulang. Hanya berpengaruh di host,
   karena `RandEventSystem` memutuskan raid di sana.
 - Saran: rekam nilai asli sebelum diisi 0, lalu kembalikan nilai itu.
+- **Status**: diperbaiki. Nilai asli dicatat per instance `RandEventSystem` dan dikembalikan saat fitur
+  dimatikan, atau saat instance berganti karena world dimuat ulang.
 
 ### 6. Mematikan fitur fishing mengisi nilai yang salah
 
@@ -938,11 +959,11 @@ menghentikan game sejenak saat berjalan (stutter).
 
 | # | Masalah | Kapan terasa | Lokasi |
 | --- | --- | --- | --- |
-| P1 | `get_local_player()` tanpa cache, dipanggil di hook yang sangat sering jalan | Selalu, makin berat dengan banyak musuh | `utility/unity.hpp`, banyak hook |
-| P2 | Hook stat item membuat 2 objek managed per pemanggilan | Selalu (hotbar), lebih berat saat inventory terbuka | `hooks/item_stat_overrides.cpp` |
-| P3 | ESP membaca semua karakter tanpa batas jarak dan semua drop tiap frame | Saat ESP menyala | `worker/entity_worker.cpp` |
-| P4 | Marker bangunan rusak memakai 2 panggilan Mono per marker per frame | Saat Mark Damaged Buildings menyala | `unity/base_tools.cpp` |
-| P5 | Data creature dikumpulkan tiap frame walaupun HUD inspector mati | Saat crosshair mengarah ke creature | `unity/animal_tools.cpp` |
+| P1 | `get_local_player()` tanpa cache, dipanggil di hook yang sangat sering jalan (diperbaiki) | Selalu, makin berat dengan banyak musuh | `utility/unity.hpp`, banyak hook |
+| P2 | Hook stat item membuat 2 objek managed per pemanggilan (diperbaiki) | Selalu (hotbar), lebih berat saat inventory terbuka | `hooks/item_stat_overrides.cpp` |
+| P3 | ESP membaca semua karakter tanpa batas jarak dan semua drop tiap frame (diperbaiki) | Saat ESP menyala | `worker/entity_worker.cpp` |
+| P4 | Marker bangunan rusak memakai 4 panggilan Mono per marker per frame (diperbaiki) | Saat Mark Damaged Buildings menyala | `unity/base_tools.cpp` |
+| P5 | Data creature dikumpulkan tiap frame walaupun HUD inspector mati (diperbaiki) | Saat crosshair mengarah ke creature | `unity/animal_tools.cpp` |
 | P6 | Noclip membaca dan menulis collider tiap frame walaupun mati | Selalu | `hooks/player_update.cpp` |
 | P7 | `Hud.get_instance` dicari berdasarkan nama tiap frame | Selalu | `unity/hud.cpp` |
 | P8 | Ukuran layar dibaca lewat 2 panggilan Mono tiap frame | Selalu | `worker/main_worker.cpp` |
@@ -979,6 +1000,10 @@ menghentikan game sejenak saat berjalan (stutter).
 - Saran: simpan class, field, offset, dan alamat data statis dalam variabel `static`, sehingga
   `get_local_player()` cukup satu pembacaan memori. Di hook, cek setting dulu, baru bandingkan dengan pemain
   lokal.
+- **Status**: diperbaiki. Alamat slot `Player.m_localPlayer` dihitung sekali lalu disimpan di
+  `std::atomic` (diulang kalau class belum tersedia), sehingga setiap panggilan berikutnya hanya satu pembacaan
+  memori. Hook ghost mode, god mode, debug flying, bow draw, dan `IsBlocking` sekarang mengecek setting lebih
+  dulu. Kedua hook speed factor melewati pengecekan pemain lokal saat total pengalinya 1.
 
 ### P2. Hook stat item membuat 2 objek managed per pemanggilan
 
@@ -994,6 +1019,10 @@ menghentikan game sejenak saat berjalan (stutter).
   untuk setiap item setiap kali inventory berubah.
 - Saran: baca dulu jumlah isi `m_customData` (field `_count` pada Dictionary) dan langsung kembalikan nilai
   asli kalau kosong, karena hampir semua item tidak punya override. Simpan string key managed sekali saja.
+- **Status**: diperbaiki. `get_stat_override` membaca `_count - _freeCount` dari Dictionary (nama field dicek
+  di mscorlib game) dan langsung kembali kalau hasilnya 0. Key string tidak di-cache: game sendiri tidak pernah
+  mengisi `m_customData`, hanya menyalin dan menyimpannya (`Inventory.AddItem`, `Inventory.OldSave`,
+  `ZDOMan.ConvertInventories`), jadi jalur lambat hanya jalan untuk item yang memang punya override.
 
 ### P3. ESP membaca semua karakter dan semua drop tiap frame
 
@@ -1007,14 +1036,33 @@ menghentikan game sejenak saat berjalan (stutter).
 - Saran: tambahkan batas jarak untuk karakter, simpan nama dan level per objek lalu segarkan sekitar sekali
   per detik, cache hasil `Localize` berdasarkan nama prefab, dan simpan hasil lookup di `begin_frame` di
   variabel `static`.
+- Catatan: `esp_projection::project` sendiri juga memanggil `Camera.WorldToViewportPoint` lewat Mono dan
+  mem-box hasilnya untuk setiap titik (posisi dan titik atas setiap karakter dan drop).
+- **Status**: diperbaiki.
+  - [esp_projection.cpp](../src/unity/esp_projection.cpp) sekarang membaca `worldToCameraMatrix`,
+    `projectionMatrix`, dan `rect` kamera sekali per frame (3 panggilan Mono), lalu memproyeksikan setiap titik
+    dengan hitungan matriks di C++, memakai rumus yang sama dengan Unity: posisi clip dibagi `w`, dan `z`
+    adalah jarak sepanjang arah depan kamera. Urutan field `Matrix4x4` (column-major) dicek di runtime game,
+    dan rumusnya dicek dengan kamera uji di Python.
+  - Lookup di `begin_frame` disimpan di variabel `static`.
+  - Nama karakter dan label drop (termasuk hasil `Localize`) di-cache per objek, disegarkan sekali per detik,
+    dan dibuang saat objek tidak terlihat lagi.
+  - Batas jarak karakter tidak ditambahkan, karena akan mengubah apa yang ditampilkan ESP. Karakter di luar
+    layar sudah dilewati sebelum data lain dibaca.
+  - Sisa biaya per karakter: posisi (2 panggilan Mono), serta titik atas dan HP untuk yang terlihat di layar.
 
 ### P4. Marker bangunan rusak memakai `unity::world_to_screen`
 
 - Lokasi: [base_tools.cpp:620-631](../src/unity/base_tools.cpp#L620-L631), memanggil
   [unity.hpp:882-906](../src/utility/unity.hpp#L882-L906).
-- Biaya: setiap marker (sampai 200) memanggil `Camera.get_main` dan `WorldToScreenPoint` lewat Mono, dan
-  hasil `Vector3`-nya di-box. Totalnya bisa 400 panggilan dan 200 alokasi per frame.
-- Saran: pakai `esp_projection::project`, yang sudah dipakai ESP dan hanya berupa hitungan matriks di C++.
+- Biaya: setiap marker (sampai 200) memanggil `Camera.get_main`, `WorldToScreenPoint`, `get_screen_width`,
+  dan `get_screen_height` lewat Mono, dan hasilnya di-box. Totalnya bisa 800 panggilan dan 600 alokasi per
+  frame.
+- Saran: pakai `esp_projection::project` yang dipakai ESP, setelah `esp_projection` diubah menjadi hitungan
+  matriks di C++ (lihat P3).
+- **Status**: diperbaiki. Marker memanggil `esp_projection::begin_frame` sekali, lalu `project` untuk setiap
+  bangunan, jadi biayanya 3 panggilan Mono per frame berapa pun jumlah marker. Marker sekarang menyimpan
+  koordinat viewport, dan panel mengalikannya dengan ukuran layar ImGui, sama seperti ESP.
 
 ### P5. Data creature dikumpulkan walaupun HUD inspector mati
 
@@ -1022,6 +1070,10 @@ menghentikan game sejenak saat berjalan (stutter).
 - Biaya: setiap frame, selama crosshair mengarah ke creature, sekitar 12 nilai dibaca lewat Mono (nama,
   level, HP, posisi, tameness, love points, dan lainnya), tanpa mengecek apakah Show Animal Inspector HUD menyala.
 - Saran: keluar lebih awal kalau HUD inspector dan hotkey tame sama-sama mati.
+- **Status**: diperbaiki dengan cara sedikit berbeda. Snapshot yang sama dipakai tombol menu Tame, Heal, dan
+  Breed Aimed Creature, jadi keluar lebih awal akan merusak tombol itu. Selama inspector mati, snapshot hanya
+  menyimpan creature yang dibidik, dan nilai detail hanya dibaca saat inspector menyala. Nama untuk notifikasi
+  Heal dan Breed dibaca saat aksi dijalankan.
 
 ### P6. Noclip membaca dan menulis collider tiap frame walaupun mati
 
