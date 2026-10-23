@@ -268,8 +268,14 @@ namespace big
 		return {-1, -1};
 	}
 
-	equipment_manager::~equipment_manager()
+	equipment_manager::~equipment_manager() = default;
+
+	void equipment_manager::shutdown()
 	{
+		if (m_dirty)
+		{
+			save_to_player();
+		}
 		release_handles();
 	}
 
@@ -651,7 +657,6 @@ namespace big
 			return fail();
 		}
 
-		LOG(INFO) << "[EquipmentSlots] Successfully saved equipment pages to player customData!";
 		m_saving = false;
 		m_dirty  = false;
 		return true;
@@ -734,7 +739,10 @@ namespace big
 				}
 				m_in_equip = false;
 			}
-			save_to_player();
+			if (!m_defer_save)
+			{
+				save_to_player();
+			}
 		}
 		return success;
 	}
@@ -797,7 +805,10 @@ namespace big
 		{
 			return false;
 		}
-		save_to_player();
+		if (!m_defer_save)
+		{
+			save_to_player();
+		}
 		return true;
 	}
 
@@ -912,6 +923,7 @@ namespace big
 
 		auto items_vec  = unity::list_to_vector(all_items);
 		int moved_count = 0;
+		m_defer_save    = true;
 		std::unordered_set<MonoObject*> moved_items;
 
 		// Pass 1: Prioritize currently equipped items so worn gear moves into dedicated slots first
@@ -960,8 +972,10 @@ namespace big
 			}
 		}
 
+		m_defer_save = false;
 		if (moved_count > 0)
 		{
+			save_to_player();
 			notification::success("Equipment Slots", std::format("Auto-filled {} items into dedicated slots!", moved_count));
 		}
 		else
@@ -980,6 +994,7 @@ namespace big
 		}
 
 		int deposited = 0;
+		m_defer_save  = true;
 		for (int r = 0; r < grid_height; ++r)
 		{
 			for (int c = 0; c < grid_width; ++c)
@@ -993,8 +1008,10 @@ namespace big
 				}
 			}
 		}
+		m_defer_save = false;
 		if (deposited > 0)
 		{
+			save_to_player();
 			notification::info("Equipment Slots", std::format("Deposited {} items back to inventory.", deposited));
 		}
 	}
@@ -1481,6 +1498,8 @@ namespace big
 		}
 		m_native_grid          = nullptr;
 		m_cached_inventory_gui = nullptr;
+		m_native_grid_active   = -1;
+		m_decorated.clear();
 	}
 
 	void equipment_manager::update_native_grid_position(MonoObject* gui)
@@ -1644,24 +1663,39 @@ namespace big
 		}
 
 		// Copy event delegates from player_grid so clicks/drags route to InventoryGui
-		auto f_selected = mono::get_field(grid_class, "m_onSelected");
-		auto f_right    = mono::get_field(grid_class, "m_onRightClick");
-		if (f_selected)
+		constexpr const char* delegate_fields[] = {"m_onSelected", "m_onRightClick", "CanDropDragOntoItem", "m_onReleased", "m_onEnter", "OnSetTouchSelection", "OnMoveToUpperInventoryGrid", "OnMoveToLowerInventoryGrid"};
+		for (const char* name : delegate_fields)
 		{
-			MonoObject* sel_del = nullptr;
-			mono::get_field_value(player_grid, f_selected, &sel_del);
-			if (sel_del)
+			auto field = mono::get_field(grid_class, name);
+			if (!field)
 			{
-				mono::set_field_value(clone_grid, f_selected, &sel_del);
+				continue;
+			}
+			MonoObject* handler = nullptr;
+			mono::get_field_value(player_grid, field, &handler);
+			if (handler)
+			{
+				mono::set_field_value(clone_grid, field, &handler);
 			}
 		}
-		if (f_right)
+
+		static auto child_count = mono::get_method("Transform", "get_childCount", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto get_child = mono::get_method("Transform", "GetChild", 1, "UnityEngine.CoreModule", "UnityEngine");
+		static auto child_object = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto destroy = mono::get_method("Object", "Destroy", 1, "UnityEngine.CoreModule", "UnityEngine");
+		auto count          = grid_root && child_count ? mono::invoke_method(child_count, grid_root, nullptr) : nullptr;
+		if (count && get_child && child_object && destroy)
 		{
-			MonoObject* right_del = nullptr;
-			mono::get_field_value(player_grid, f_right, &right_del);
-			if (right_del)
+			for (int i = *static_cast<int*>(mono::object_unbox(count)) - 1; i >= 0; --i)
 			{
-				mono::set_field_value(clone_grid, f_right, &right_del);
+				void* child_args[1] = {&i};
+				auto child          = mono::invoke_method(get_child, grid_root, child_args);
+				auto child_go       = child ? mono::invoke_method(child_object, child, nullptr) : nullptr;
+				if (child_go)
+				{
+					void* destroy_args[1] = {child_go};
+					mono::invoke_method(destroy, nullptr, destroy_args);
+				}
 			}
 		}
 
@@ -1675,7 +1709,7 @@ namespace big
 			return;
 		}
 
-		auto grid_class = mono::get_class("InventoryGrid", "assembly_valheim");
+		static auto grid_class = mono::get_class("InventoryGrid", "assembly_valheim");
 		if (!grid_class)
 		{
 			return;
@@ -1700,12 +1734,10 @@ namespace big
 			return;
 		}
 
-		auto elem_class      = mono::get_class("InventoryElement", "assembly_valheim");
-		bool is_mono_element = (elem_class != nullptr);
-		if (!elem_class)
-		{
-			elem_class = mono::get_class("InventoryGrid/Element", "assembly_valheim");
-		}
+		static auto mono_elem_class = mono::get_class("InventoryElement", "assembly_valheim");
+		static auto legacy_elem_class = mono_elem_class ? nullptr : mono::get_class("InventoryGrid/Element", "assembly_valheim");
+		const bool is_mono_element = mono_elem_class != nullptr;
+		auto elem_class            = is_mono_element ? mono_elem_class : legacy_elem_class;
 		if (!elem_class)
 		{
 			return;
@@ -1721,11 +1753,10 @@ namespace big
 		static auto find_child = mono::get_method("Transform", "Find", 1, "UnityEngine.CoreModule", "UnityEngine");
 		static auto get_comp = mono::get_method_overload("Component", "GetComponent", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
 
-		auto tmp_class = mono::get_class("TMP_Text", "Unity.TextMeshPro", "TMPro");
-		if (!tmp_class)
-		{
-			tmp_class = mono::get_class("TMP_Text", "assembly_valheim", "TMPro");
-		}
+		static auto tmp_class = [] {
+			auto klass = mono::get_class("TMP_Text", "Unity.TextMeshPro", "TMPro");
+			return klass ? klass : mono::get_class("TMP_Text", "assembly_valheim", "TMPro");
+		}();
 
 		static auto set_text_m = tmp_class ? mono::get_method("TMP_Text", "set_text", 1, "Unity.TextMeshPro", "TMPro") : nullptr;
 		static auto set_enabled_m = mono::get_method("Behaviour", "set_enabled", 1, "UnityEngine.CoreModule", "UnityEngine");
@@ -1736,6 +1767,18 @@ namespace big
 			{
 				continue;
 			}
+
+			bool used = false;
+			if (f_used)
+			{
+				mono::get_field_value(el, f_used, &used);
+			}
+			const int state = (used ? 1 : 0) | (g_settings.self.equipment_slots_hotkeys ? 2 : 0);
+			if (auto decorated = m_decorated.find(el); decorated != m_decorated.end() && decorated->second == state)
+			{
+				continue;
+			}
+			m_decorated[el] = state;
 
 			iVector2 pos{-1, -1};
 			if (get_pos_m)
@@ -1749,12 +1792,6 @@ namespace big
 			else if (f_pos)
 			{
 				mono::get_field_value(el, f_pos, &pos);
-			}
-
-			bool used = false;
-			if (f_used)
-			{
-				mono::get_field_value(el, f_used, &used);
 			}
 
 			MonoObject* go = nullptr;
@@ -1904,21 +1941,7 @@ namespace big
 	{
 		if (!g_settings.self.equipment_slots_enabled || !g_settings.self.equipment_slots_native_ui)
 		{
-			if (m_native_grid)
-			{
-				static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
-				static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
-				if (get_go && set_active)
-				{
-					auto go = mono::invoke_method(get_go, m_native_grid, nullptr);
-					if (go)
-					{
-						bool act       = false;
-						void* aargs[1] = {&act};
-						mono::invoke_method(set_active, go, aargs);
-					}
-				}
-			}
+			set_native_grid_active(false);
 			return;
 		}
 
@@ -1935,21 +1958,7 @@ namespace big
 		bool is_vis = unity::is_inventory_gui_visible();
 		if (!is_vis)
 		{
-			if (m_native_grid)
-			{
-				static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
-				static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
-				if (get_go && set_active)
-				{
-					auto go = mono::invoke_method(get_go, m_native_grid, nullptr);
-					if (go)
-					{
-						bool act       = false;
-						void* aargs[1] = {&act};
-						mono::invoke_method(set_active, go, aargs);
-					}
-				}
-			}
+			set_native_grid_active(false);
 			return;
 		}
 
@@ -1963,18 +1972,7 @@ namespace big
 			return;
 		}
 
-		static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
-		static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
-		if (get_go && set_active)
-		{
-			auto go = mono::invoke_method(get_go, m_native_grid, nullptr);
-			if (go)
-			{
-				bool act       = true;
-				void* aargs[1] = {&act};
-				mono::invoke_method(set_active, go, aargs);
-			}
-		}
+		set_native_grid_active(true);
 
 		update_native_grid_position(gui);
 
@@ -1994,6 +1992,23 @@ namespace big
 		}
 
 		decorate_native_slots();
+	}
+
+	void equipment_manager::set_native_grid_active(bool active)
+	{
+		if (!m_native_grid || m_native_grid_active == static_cast<int>(active))
+		{
+			return;
+		}
+		static auto get_go = mono::get_method("Component", "get_gameObject", 0, "UnityEngine.CoreModule", "UnityEngine");
+		static auto set_active = mono::get_method("GameObject", "SetActive", 1, "UnityEngine.CoreModule", "UnityEngine");
+		auto go = get_go ? mono::invoke_method(get_go, m_native_grid, nullptr) : nullptr;
+		if (go && set_active)
+		{
+			void* aargs[1] = {&active};
+			mono::invoke_method(set_active, go, aargs);
+			m_native_grid_active = static_cast<int>(active);
+		}
 	}
 
 	void equipment_manager::refresh_view()

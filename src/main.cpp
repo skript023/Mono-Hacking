@@ -11,7 +11,6 @@
 
 #include "mono/mono.hpp"
 #include "logger/logger.hpp"
-#include "plugins/plugins.hpp"
 #include <astra/host/settings.hpp>
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
@@ -21,7 +20,9 @@
 #include "unity/camera_tools.hpp"
 #include "unity/crafting_tools.hpp"
 #include "unity/world_time.hpp"
+#include "unity/equipment_slots.hpp"
 #include "javascript/javascript_manager.hpp"
+#include "javascript/bindings/trampoline_binding.hpp"
 
 #include <astra/host/notification.hpp>
 
@@ -120,6 +121,7 @@ DWORD APIENTRY main_thread(LPVOID)
 			g_shutdown_pending = true;
 			async_run([pending] {
 				commands::shutdown();
+				equipment_manager::get().shutdown();
 				async_run([pending] {
 					pending->store(false);
 				});
@@ -141,6 +143,7 @@ DWORD APIENTRY main_thread(LPVOID)
 		camera_tools::shutdown();
 		unity::hud_manager::shutdown();
 		render_vulkan::detach();
+		js::trampoline::shutdown();
 		g_hooking->disable();
 		LOG(INFO) << "Hooking disabled.";
 

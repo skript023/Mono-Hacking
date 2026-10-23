@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace big
@@ -93,6 +94,7 @@ namespace big
 		// Native Unity UI
 		void update_native_ui(MonoObject* player);
 		void destroy_native_ui();
+		void shutdown();
 		MonoObject* get_native_grid() const
 		{
 			return m_native_grid;
@@ -160,6 +162,10 @@ namespace big
 		bool m_syncing{false};
 		bool m_saving{false};
 		bool m_dirty{false};
+		bool m_defer_save{false};
+		int m_native_grid_active{-1};
+		std::unordered_map<MonoObject*, int> m_decorated;
+		void set_native_grid_active(bool active);
 		std::chrono::steady_clock::time_point m_dirty_since{};
 
 		// Ammo hotkey debounce
