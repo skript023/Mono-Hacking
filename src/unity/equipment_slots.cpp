@@ -4,6 +4,7 @@
 #include <astra/host/notification.hpp>
 #include "unity/item_icons.hpp"
 #include "unity/localization.hpp"
+#include "task_mgr.hpp"
 #include "utility/unity.hpp"
 
 #include <algorithm>
@@ -752,6 +753,28 @@ namespace big
 			return false;
 		}
 
+		auto player_inv = mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(m_cached_player);
+		if (!player_inv)
+		{
+			return false;
+		}
+
+		static auto move_m = mono::get_method("Inventory", "MoveItemToThis", 2, "assembly_valheim");
+		static auto can_add_m = mono::get_method_exact("Inventory", "CanAddItem", {"ItemDrop.ItemData", "System.Int32"}, "assembly_valheim");
+		static auto contains_m = mono::get_method("Inventory", "ContainsItem", 1, "assembly_valheim");
+		if (!move_m || !can_add_m || !contains_m)
+		{
+			return false;
+		}
+
+		int whole_stack       = -1;
+		void* can_add_args[2] = {item, &whole_stack};
+		auto can_add          = mono::invoke_method(can_add_m, player_inv, can_add_args);
+		if (!can_add || !*static_cast<bool*>(mono::object_unbox(can_add)))
+		{
+			return false;
+		}
+
 		if (is_item_equipped(item))
 		{
 			m_in_equip            = true;
@@ -765,20 +788,15 @@ namespace big
 			m_in_equip = false;
 		}
 
-		auto player_inv = mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(m_cached_player);
-		if (!player_inv)
-		{
-			return false;
-		}
-
-		static auto move_m = mono::get_method("Inventory", "MoveItemToThis", 2, "assembly_valheim");
-		if (!move_m)
-		{
-			return false;
-		}
-
 		void* args[2] = {eq, item};
 		mono::invoke_method(move_m, player_inv, args);
+
+		void* contains_args[1] = {item};
+		auto still_in_slot     = mono::invoke_method(contains_m, eq, contains_args);
+		if (still_in_slot && *static_cast<bool*>(mono::object_unbox(still_in_slot)))
+		{
+			return false;
+		}
 		save_to_player();
 		return true;
 	}
@@ -1978,18 +1996,87 @@ namespace big
 		decorate_native_slots();
 	}
 
+	void equipment_manager::refresh_view()
+	{
+		view_state view;
+		view.visible = unity::is_inventory_gui_visible();
+		if (view.visible && m_initialized && m_cached_player)
+		{
+			for (int r = 0; r < grid_height; ++r)
+			{
+				for (int c = 0; c < grid_width; ++c)
+				{
+					auto item = get_item_at(c, r);
+					if (!item)
+					{
+						continue;
+					}
+					auto& slot          = view.slots[r * grid_width + c];
+					slot.item           = item;
+					slot.prefab         = get_item_prefab_name(item);
+					slot.name           = get_item_display_name(item);
+					slot.stack          = get_item_stack(item);
+					slot.durability     = get_item_durability(item);
+					slot.max_durability = get_item_max_durability(item);
+					slot.equipped       = is_item_equipped(item);
+				}
+			}
+
+			view.player_inventory = mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(m_cached_player);
+			const int picker_slot = m_picker_slot.load();
+			static auto get_all_m = mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim");
+			if (picker_slot >= 0 && view.player_inventory && get_all_m)
+			{
+				const auto kind = get_slot_kind(picker_slot % grid_width, picker_slot / grid_width);
+				for (auto* itm : unity::list_to_vector(mono::invoke_method(get_all_m, view.player_inventory, nullptr)))
+				{
+					if (!itm || !fits_slot(kind, itm))
+					{
+						continue;
+					}
+					const std::string name = get_item_display_name(itm);
+					const int stack        = get_item_stack(itm);
+					view.picker.push_back({itm, get_item_prefab_name(itm), stack > 1 ? std::format("{} (x{})", name, stack) : name});
+				}
+			}
+		}
+
+		std::lock_guard lock(m_view_mutex);
+		m_view = std::move(view);
+	}
+
+	void equipment_manager::request_view_refresh()
+	{
+		if (m_view_refreshing.exchange(true))
+		{
+			return;
+		}
+		async_run([] {
+			get().refresh_view();
+			get().m_view_refreshing = false;
+		});
+	}
+
 	void equipment_manager::draw_ui()
 	{
-		if (!g_settings.self.equipment_slots_enabled || !g_settings.self.equipment_slots_window || !unity::is_inventory_gui_visible())
+		if (!g_settings.self.equipment_slots_enabled || !g_settings.self.equipment_slots_window)
 		{
 			return;
 		}
 
-		auto& mgr = get();
-		mgr.init_or_sync();
-
-		auto player = unity::get_local_player();
-		if (!player)
+		auto& mgr      = get();
+		const auto now = std::chrono::steady_clock::now();
+		if (now - mgr.m_view_refreshed >= std::chrono::milliseconds(250))
+		{
+			mgr.m_view_refreshed = now;
+			mgr.request_view_refresh();
+		}
+		view_state view;
+		{
+			std::lock_guard lock(mgr.m_view_mutex);
+			view = mgr.m_view;
+		}
+		if (!view.visible || !unity::get_local_player())
 		{
 			return;
 		}
@@ -2009,24 +2096,32 @@ namespace big
 
 		if (ImGui::Button("Auto-Fill", ImVec2(110.f, 0.f)))
 		{
-			mgr.auto_fill_from_inventory();
+			async_run([] {
+				get().auto_fill_from_inventory();
+				get().refresh_view();
+			});
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Return All", ImVec2(110.f, 0.f)))
 		{
-			mgr.deposit_all_to_inventory();
+			async_run([] {
+				get().deposit_all_to_inventory();
+				get().refresh_view();
+			});
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Save Loadout", ImVec2(125.f, 0.f)))
 		{
-			if (mgr.save_to_player())
-			{
-				notification::success("Equipment Slots", "Saved equipment slots to character!");
-			}
-			else
-			{
-				notification::warning("Equipment Slots", "Could not save the loadout. Join a world and try again.");
-			}
+			async_run([] {
+				if (get().save_to_player())
+				{
+					notification::success("Equipment Slots", "Saved equipment slots to character!");
+				}
+				else
+				{
+					notification::warning("Equipment Slots", "Could not save the loadout. Join a world and try again.");
+				}
+			});
 		}
 		ImGui::SameLine();
 		ImGui::Checkbox("Hotkeys", &g_settings.self.equipment_slots_hotkeys);
@@ -2038,8 +2133,9 @@ namespace big
 			{
 				return;
 			}
-			const int num = get_slot_number(kind, c, r);
-			auto item     = mgr.get_item_at(c, r);
+			const int num    = get_slot_number(kind, c, r);
+			const auto& slot = view.slots[r * grid_width + c];
+			auto item        = slot.item;
 			std::string title;
 			std::string hotkey;
 			switch (kind)
@@ -2070,7 +2166,7 @@ namespace big
 			ImGui::BeginGroup();
 			ImGui::TextUnformatted(title.c_str());
 			// The border marks the slot's state in the menu theme: equipped, holding an item, or empty.
-			const bool equipped = item && is_item_equipped(item);
+			const bool equipped = item && slot.equipped;
 			const ImVec4 border = equipped ? accent :
 			    item ? ImVec4(theme.muted.x, theme.muted.y, theme.muted.z, 0.85f) :
 			           ImVec4(theme.muted.x, theme.muted.y, theme.muted.z, 0.35f);
@@ -2079,15 +2175,14 @@ namespace big
 			bool clicked = false;
 			if (item)
 			{
-				const auto prefab  = get_item_prefab_name(item);
-				const auto texture = item_icons::get(prefab);
+				const auto texture = item_icons::get(slot.prefab);
 				if (texture)
 				{
 					clicked = ImGui::ImageButton("##slot_icon", texture, ImVec2(56.f, 56.f));
 				}
 				else
 				{
-					std::string short_name = get_item_display_name(item);
+					std::string short_name = slot.name;
 					if (short_name.size() > 8)
 					{
 						short_name = short_name.substr(0, 6) + "..";
@@ -2113,7 +2208,7 @@ namespace big
 			}
 			else if (item)
 			{
-				std::string short_name = get_item_display_name(item);
+				std::string short_name = slot.name;
 				if (short_name.size() > 7)
 				{
 					short_name = short_name.substr(0, 6) + ".";
@@ -2128,21 +2223,18 @@ namespace big
 			if (hovered && item)
 			{
 				ImGui::BeginTooltip();
-				ImGui::TextUnformatted(get_item_display_name(item).c_str());
+				ImGui::TextUnformatted(slot.name.c_str());
 				ImGui::Separator();
 				ImGui::Text("Slot: %s %d", get_slot_kind_name(kind), num);
-				const int stack = get_item_stack(item);
-				if (stack > 1)
+				if (slot.stack > 1)
 				{
-					ImGui::Text("Stack: %d", stack);
+					ImGui::Text("Stack: %d", slot.stack);
 				}
-				const float durability     = get_item_durability(item);
-				const float max_durability = get_item_max_durability(item);
-				if (max_durability > 0.f)
+				if (slot.max_durability > 0.f)
 				{
-					ImGui::Text("Durability: %.0f / %.0f", durability, max_durability);
+					ImGui::Text("Durability: %.0f / %.0f", slot.durability, slot.max_durability);
 				}
-				if (is_item_equipped(item))
+				if (slot.equipped)
 				{
 					ImGui::TextColored(accent, "Equipped");
 				}
@@ -2156,7 +2248,10 @@ namespace big
 			{
 				if (item)
 				{
-					mgr.use_slot(kind, num);
+					async_run([kind, num] {
+						get().use_slot(kind, num);
+						get().refresh_view();
+					});
 				}
 				else
 				{
@@ -2167,7 +2262,10 @@ namespace big
 			}
 			if (item && right_clicked)
 			{
-				mgr.move_from_slot_to_inventory(c, r);
+				async_run([c, r] {
+					get().move_from_slot_to_inventory(c, r);
+					get().refresh_view();
+				});
 			}
 			ImGui::EndGroup();
 			ImGui::PopID();
@@ -2211,6 +2309,11 @@ namespace big
 		if (mgr.m_show_picker && mgr.m_selected_slot_x >= 0 && mgr.m_selected_slot_y >= 0)
 		{
 			slot_kind target_kind = get_slot_kind(mgr.m_selected_slot_x, mgr.m_selected_slot_y);
+			const int picker_slot = mgr.m_selected_slot_y * grid_width + mgr.m_selected_slot_x;
+			if (mgr.m_picker_slot.exchange(picker_slot) != picker_slot)
+			{
+				mgr.m_view_refreshed = {};
+			}
 			ImGui::OpenPopup("Select Item to Place");
 
 			if (ImGui::BeginPopupModal("Select Item to Place", &mgr.m_show_picker, ImGuiWindowFlags_AlwaysAutoResize))
@@ -2218,49 +2321,30 @@ namespace big
 				ImGui::Text("Select item for slot %s:", get_slot_kind_name(target_kind));
 				ImGui::Separator();
 
-				auto player_inv       = mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(player);
-				static auto get_all_m = mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim");
-
-				if (player_inv && get_all_m)
+				for (const auto& entry : view.picker)
 				{
-					auto items_obj = mono::invoke_method(get_all_m, player_inv, nullptr);
-					auto items     = unity::list_to_vector(items_obj);
-					int count      = 0;
-
-					for (auto* itm : items)
+					ImGui::PushID(entry.item);
+					ImTextureID tex = item_icons::get(entry.prefab);
+					if (tex)
 					{
-						if (!itm)
-						{
-							continue;
-						}
-						if (fits_slot(target_kind, itm))
-						{
-							count++;
-							std::string dname = get_item_display_name(itm);
-							int stack         = get_item_stack(itm);
-							std::string label = (stack > 1) ? std::format("{} (x{})", dname, stack) : dname;
-
-							ImGui::PushID(itm);
-							std::string prefab = get_item_prefab_name(itm);
-							ImTextureID tex    = item_icons::get(prefab);
-							if (tex)
-							{
-								ImGui::Image(tex, ImVec2(24, 24));
-								ImGui::SameLine();
-							}
-							if (ImGui::Button(label.c_str()))
-							{
-								mgr.move_to_slot(player_inv, itm, mgr.m_selected_slot_x, mgr.m_selected_slot_y);
-								mgr.m_show_picker = false;
-								ImGui::CloseCurrentPopup();
-							}
-							ImGui::PopID();
-						}
+						ImGui::Image(tex, ImVec2(24, 24));
+						ImGui::SameLine();
 					}
-					if (count == 0)
+					if (ImGui::Button(entry.label.c_str()))
 					{
-						ImGui::TextDisabled("No compatible items found in main inventory.");
+						async_run(
+						    [player_inv = view.player_inventory, itm = entry.item, x = mgr.m_selected_slot_x, y = mgr.m_selected_slot_y] {
+							    get().move_to_slot(player_inv, itm, x, y);
+							    get().refresh_view();
+						    });
+						mgr.m_show_picker = false;
+						ImGui::CloseCurrentPopup();
 					}
+					ImGui::PopID();
+				}
+				if (view.picker.empty())
+				{
+					ImGui::TextDisabled("No compatible items found in main inventory.");
 				}
 
 				ImGui::Separator();
@@ -2271,6 +2355,10 @@ namespace big
 				}
 				ImGui::EndPopup();
 			}
+		}
+		else
+		{
+			mgr.m_picker_slot = -1;
 		}
 
 		canvas::end_panel();

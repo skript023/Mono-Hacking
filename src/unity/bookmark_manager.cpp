@@ -6,7 +6,10 @@
 
 #include <algorithm>
 #include <astra/host/canvas.hpp>
+#include <atomic>
+#include <chrono>
 #include <imgui.h>
+#include <mutex>
 #include <nlohmann/json.hpp>
 
 namespace big
@@ -138,11 +141,37 @@ namespace big
 			}
 			return write_custom_data(dictionary, key, data.dump());
 		}
+
+		std::mutex s_cache_mutex;
+		std::vector<bookmark> s_cache;
+		bool s_cache_ready            = false;
+		std::atomic_bool s_refreshing = false;
+		std::chrono::steady_clock::time_point s_refreshed{};
+
+		void store_cache(bool ready, std::vector<bookmark> items)
+		{
+			std::lock_guard lock(s_cache_mutex);
+			s_cache_ready = ready;
+			s_cache       = std::move(items);
+		}
+
+		void refresh_cache()
+		{
+			if (s_refreshing.exchange(true))
+			{
+				return;
+			}
+			async_run([] {
+				store_cache(unity::get_local_player() && !world_bookmark_key().empty(), load_bookmarks());
+				s_refreshing = false;
+			});
+		}
 	}
 
 	void bookmark_manager::toggle_window()
 	{
-		s_open = !s_open;
+		s_open      = !s_open;
+		s_refreshed = {};
 	}
 
 	void bookmark_manager::draw_window()
@@ -156,8 +185,20 @@ namespace big
 			canvas::end_panel();
 			return;
 		}
-		auto player = unity::get_local_player();
-		if (!player || world_bookmark_key().empty())
+		const auto now = std::chrono::steady_clock::now();
+		if (now - s_refreshed >= std::chrono::seconds(2))
+		{
+			s_refreshed = now;
+			refresh_cache();
+		}
+		bool ready = false;
+		std::vector<bookmark> bookmarks;
+		{
+			std::lock_guard lock(s_cache_mutex);
+			ready     = s_cache_ready;
+			bookmarks = s_cache;
+		}
+		if (!ready)
 		{
 			ImGui::TextDisabled("Join a world to create bookmarks.");
 			canvas::end_panel();
@@ -168,29 +209,35 @@ namespace big
 		ImGui::InputTextWithHint("##BookmarkName", "Bookmark name", s_name, sizeof(s_name));
 		if (ImGui::Button("Save Current Location", {-1.f, 0.f}) && s_name[0])
 		{
-			auto items       = load_bookmarks();
-			std::string name = s_name;
-			auto position    = unity::get_position(player);
-			auto found       = std::find_if(items.begin(), items.end(), [&](const bookmark& item) {
-				return item.name == name;
+			async_run([name = std::string(s_name)] {
+				auto player = unity::get_local_player();
+				if (!player)
+				{
+					return;
+				}
+				auto items    = load_bookmarks();
+				auto position = unity::get_position(player);
+				auto found    = std::find_if(items.begin(), items.end(), [&](const bookmark& item) {
+                    return item.name == name;
+                });
+				if (found == items.end())
+				{
+					items.push_back({name, position});
+				}
+				else
+				{
+					found->position = position;
+				}
+				if (save_bookmarks(items))
+				{
+					notification::success("World Bookmarks",
+					    std::format("Saved {} at {:.1f}, {:.1f}, {:.1f}.", name, position.x, position.y, position.z));
+					store_cache(true, std::move(items));
+				}
 			});
-			if (found == items.end())
-			{
-				items.push_back({name, position});
-			}
-			else
-			{
-				found->position = position;
-			}
-			if (save_bookmarks(items))
-			{
-				notification::success("World Bookmarks",
-				    std::format("Saved {} at {:.1f}, {:.1f}, {:.1f}.", name, position.x, position.y, position.z));
-			}
 			s_name[0] = '\0';
 		}
 		ImGui::Separator();
-		auto bookmarks = load_bookmarks();
 		ImGui::Text("Saved locations  /  %zu", bookmarks.size());
 		ImGui::BeginChild("BookmarkList", {0.f, -1.f}, true);
 		for (std::size_t i = 0; i < bookmarks.size(); ++i)
@@ -219,8 +266,16 @@ namespace big
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Delete"))
 			{
-				bookmarks.erase(bookmarks.begin() + static_cast<std::ptrdiff_t>(i));
-				save_bookmarks(bookmarks);
+				async_run([name = item.name] {
+					auto items = load_bookmarks();
+					std::erase_if(items, [&](const bookmark& entry) {
+						return entry.name == name;
+					});
+					if (save_bookmarks(items))
+					{
+						store_cache(true, std::move(items));
+					}
+				});
 			}
 			ImGui::Separator();
 			ImGui::PopID();

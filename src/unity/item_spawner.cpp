@@ -325,7 +325,7 @@ namespace big
 			}
 		}
 
-		if (unity::get_object_db() && !s_auto_scan_started.exchange(true))
+		if (!s_auto_scan_started.load() && unity::get_object_db() && !s_auto_scan_started.exchange(true))
 		{
 			refresh_impl();
 		}

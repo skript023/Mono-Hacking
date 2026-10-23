@@ -8,8 +8,11 @@
 
 #include <algorithm>
 #include <astra/host/canvas.hpp>
+#include <atomic>
 #include <cctype>
+#include <chrono>
 #include <imgui.h>
+#include <mutex>
 
 namespace big
 {
@@ -52,23 +55,76 @@ namespace big
 			return unity::list_to_vector(list);
 		}
 
-		bool matches_search(MonoObject* effect, const std::string& query)
+		struct effect_row
 		{
-			if (query.empty())
-			{
-				return true;
-			}
-			std::string text = unity::get_name(effect) + " " + effect_display_name(effect);
+			std::string name;
+			std::string prefab;
+			std::string search;
+		};
+
+		std::string lowercase(std::string text)
+		{
 			std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) {
 				return static_cast<char>(std::tolower(c));
 			});
-			return text.find(query) != std::string::npos;
+			return text;
+		}
+
+		std::vector<effect_row> to_rows(const std::vector<MonoObject*>& effects)
+		{
+			std::vector<effect_row> rows;
+			for (auto* effect : effects)
+			{
+				if (!effect)
+				{
+					continue;
+				}
+				effect_row row{effect_display_name(effect), unity::get_name(effect)};
+				row.search = lowercase(row.prefab + " " + row.name);
+				rows.push_back(std::move(row));
+			}
+			return rows;
+		}
+
+		std::mutex s_rows_mutex;
+		std::vector<effect_row> s_active_rows;
+		std::vector<effect_row> s_registered_rows;
+		std::atomic_bool s_refreshing = false;
+		std::chrono::steady_clock::time_point s_refreshed{};
+		bool s_registered_loaded = false;
+
+		bool refresh_rows(bool registered)
+		{
+			if (s_refreshing.exchange(true))
+			{
+				return false;
+			}
+			async_run([registered] {
+				auto active = to_rows(get_active_effects());
+				std::vector<effect_row> all;
+				if (registered)
+				{
+					all = to_rows(get_registered_effects());
+				}
+				{
+					std::lock_guard lock(s_rows_mutex);
+					s_active_rows = std::move(active);
+					if (registered)
+					{
+						s_registered_rows = std::move(all);
+					}
+				}
+				s_refreshing = false;
+			});
+			return true;
 		}
 	}
 
 	void status_effect_browser::toggle_window()
 	{
-		s_open = !s_open;
+		s_open              = !s_open;
+		s_registered_loaded = false;
+		s_refreshed         = {};
 	}
 
 	void status_effect_browser::draw_window()
@@ -82,35 +138,44 @@ namespace big
 			canvas::end_panel();
 			return;
 		}
+		const auto now = std::chrono::steady_clock::now();
+		if (now - s_refreshed >= std::chrono::milliseconds(500) && refresh_rows(!s_registered_loaded))
+		{
+			s_refreshed         = now;
+			s_registered_loaded = true;
+		}
+		std::vector<effect_row> active_rows;
+		std::vector<effect_row> registered_rows;
+		{
+			std::lock_guard lock(s_rows_mutex);
+			active_rows     = s_active_rows;
+			registered_rows = s_registered_rows;
+		}
+
 		ImGui::TextDisabled("Runtime ObjectDB  /  search, apply, or remove effects");
 		ImGui::SetNextItemWidth(-1.f);
 		ImGui::InputTextWithHint("##EffectSearch", "Search effect name", s_search, sizeof(s_search));
+		const std::string query = lowercase(s_search);
 		if (ImGui::BeginTabBar("EffectTabs"))
 		{
 			if (ImGui::BeginTabItem("Active"))
 			{
 				s_tab = 0;
 				ImGui::BeginChild("ActiveEffects", {0.f, -38.f}, true);
-				auto effects      = get_active_effects();
-				std::string query = s_search;
-				std::transform(query.begin(), query.end(), query.begin(), [](unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				});
-				for (auto* effect : effects)
+				for (const auto& row : active_rows)
 				{
-					if (!effect || !matches_search(effect, query))
+					if (!query.empty() && row.search.find(query) == std::string::npos)
 					{
 						continue;
 					}
-					auto prefab = unity::get_name(effect);
-					ImGui::PushID(effect);
-					ImGui::TextUnformatted(effect_display_name(effect).c_str());
+					ImGui::PushID(row.prefab.c_str());
+					ImGui::TextUnformatted(row.name.c_str());
 					ImGui::SameLine();
-					ImGui::TextDisabled("%s", prefab.c_str());
+					ImGui::TextDisabled("%s", row.prefab.c_str());
 					ImGui::SameLine();
 					if (ImGui::SmallButton("Remove"))
 					{
-						async_run([prefab] {
+						async_run([prefab = row.prefab] {
 							buff_tools::remove_status_effect(prefab);
 						});
 					}
@@ -119,15 +184,11 @@ namespace big
 				ImGui::EndChild();
 				if (ImGui::Button("Remove All Active", {-1.f, 0.f}))
 				{
-					for (auto* effect : effects)
+					for (const auto& row : active_rows)
 					{
-						if (effect)
-						{
-							auto prefab = unity::get_name(effect);
-							async_run([prefab] {
-								buff_tools::remove_status_effect(prefab);
-							});
-						}
+						async_run([prefab = row.prefab] {
+							buff_tools::remove_status_effect(prefab);
+						});
 					}
 				}
 				ImGui::EndTabItem();
@@ -136,26 +197,20 @@ namespace big
 			{
 				s_tab = 1;
 				ImGui::BeginChild("RegisteredEffects", {0.f, -38.f}, true);
-				auto effects      = get_registered_effects();
-				std::string query = s_search;
-				std::transform(query.begin(), query.end(), query.begin(), [](unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				});
-				for (auto* effect : effects)
+				for (const auto& row : registered_rows)
 				{
-					if (!effect || !matches_search(effect, query))
+					if (!query.empty() && row.search.find(query) == std::string::npos)
 					{
 						continue;
 					}
-					auto prefab = unity::get_name(effect);
-					ImGui::PushID(effect);
-					ImGui::TextUnformatted(effect_display_name(effect).c_str());
+					ImGui::PushID(row.prefab.c_str());
+					ImGui::TextUnformatted(row.name.c_str());
 					ImGui::SameLine();
-					ImGui::TextDisabled("%s", prefab.c_str());
+					ImGui::TextDisabled("%s", row.prefab.c_str());
 					ImGui::SameLine();
 					if (ImGui::SmallButton("Apply"))
 					{
-						async_run([prefab] {
+						async_run([prefab = row.prefab] {
 							if (!buff_tools::apply_registered_effect(prefab))
 							{
 								notification::warning("Status Effects", std::format("Could not apply {}.", prefab));
