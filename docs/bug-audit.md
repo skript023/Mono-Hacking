@@ -16,16 +16,16 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 | 3 | Ashlands Ocean Boiling Immunity tidak bisa dimatikan | Sedang, diperbaiki | `features/ship.cpp` |
 | 4 | Ship Speed Boost memakai angka tetap untuk semua kapal | Sedang, belum dipastikan, diperbaiki | `features/ship.cpp` |
 | 5 | Mematikan Disable Base Raids mengisi peluang raid yang salah | Rendah, diperbaiki | `features/world.cpp` |
-| 6 | Mematikan fitur fishing mengisi nilai yang salah | Rendah | `features/fishing.cpp` |
-| 7 | Never Wet berlaku untuk semua karakter dan juga menghapus efek Tar | Sedang | `hooks/update_water.cpp` |
-| 8 | Enam opsi menu tidak dipakai kode mana pun | Sedang | beberapa file |
-| 9 | Label Food Duration Multiplier terbalik dengan perilakunya | Rendah | `menu/submenu/player_menu.cpp` |
-| 10 | Max Body Armor menyala secara default dengan nilai 999 | Info | `hooks/get_body_armor.cpp` |
-| 11 | Enam hook berisiko tidak terpanggil karena inline JIT | Sedang, belum dipastikan | `hooking.cpp` |
-| 12 | Speed fermenter dan tanaman bergantung pada jarak pemain | Rendah | `hooks/base_tools.cpp` |
-| 13 | Noclip macet setelah mati atau ganti world, dan melempar exception setiap frame | Sedang | `hooks/player_update.cpp` |
-| 14 | Infinite Durability mengisi durability 1000, bukan nilai maksimal item | Sedang | `hooks/durability.cpp` |
-| 15 | Makanan dan mead dari slot food tidak pernah berkurang | Tinggi | `unity/equipment_slots.cpp` |
+| 6 | Mematikan fitur fishing mengisi nilai yang salah | Rendah, diperbaiki | `features/fishing.cpp` |
+| 7 | Never Wet berlaku untuk semua karakter dan juga menghapus efek Tar | Sedang, diperbaiki | `hooks/update_water.cpp` |
+| 8 | Enam opsi menu tidak dipakai kode mana pun | Sedang, diperbaiki | beberapa file |
+| 9 | Label Food Duration Multiplier terbalik dengan perilakunya | Rendah, diperbaiki | `menu/submenu/player_menu.cpp` |
+| 10 | Max Body Armor menyala secara default dengan nilai 999 | Info, diperbaiki | `hooks/get_body_armor.cpp` |
+| 11 | Enam hook berisiko tidak terpanggil karena inline JIT | Dicek: tidak terjadi | `hooking.cpp` |
+| 12 | Speed fermenter dan tanaman bergantung pada jarak pemain | Rendah, fermenter diperbaiki | `hooks/base_tools.cpp` |
+| 13 | Noclip macet setelah mati atau ganti world, dan melempar exception setiap frame | Sedang, diperbaiki | `hooks/player_update.cpp` |
+| 14 | Infinite Durability mengisi durability 1000, bukan nilai maksimal item | Sedang, diperbaiki | `hooks/durability.cpp` |
+| 15 | Makanan dan mead dari slot food tidak pernah berkurang | Tinggi, diperbaiki | `unity/equipment_slots.cpp` |
 | 16 | `HaveEmptySlot` selalu true untuk semua inventory, loot peti kapal bisa hilang | Sedang | `hooks/have_empty_slot.cpp` |
 | 17 | Inventory Size menyembunyikan item saat dimatikan dan membuat item jatuh saat spawn tanpa mod | Sedang | `features/inventory.cpp` |
 | 18 | Hook kosong dan log yang tidak perlu | Rendah | beberapa file |
@@ -68,8 +68,9 @@ Temuan performa ada di bagian [Performa](#performa).
 Sudah diperbaiki sebelumnya: Attack Animation Speed menimpa `Animator.speed` setiap frame walaupun
 pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki di `557a25e`.
 
-Diperbaiki pada 2026-10-23: #1 sampai #5 dan P1 sampai P5. Build `x64-Clang-Release` berhasil, tetapi
-perbaikannya belum dites di dalam game. Cara perbaikannya ada di baris **Status** pada masing-masing bagian.
+Diperbaiki pada 2026-10-23: #1 sampai #10, #12 sampai #15, dan P1 sampai P10. #11 sudah dicek dan ternyata
+tidak terjadi. Build `x64-Clang-Release` berhasil, tetapi perbaikannya belum dites di dalam game. Cara
+perbaikannya ada di baris **Status** pada masing-masing bagian.
 
 ## Detail
 
@@ -148,6 +149,10 @@ perbaikannya belum dites di dalam game. Cara perbaikannya ada di baris **Status*
 - Akibat: senar hampir tidak bisa putus dan tarikan memakan stamina 50% lebih banyak, tetapi hanya pada
   pelampung yang sedang dilempar saat fitur dimatikan. Lemparan berikutnya membuat pelampung baru.
 - Saran: rekam nilai asli per pelampung, atau biarkan pelampung yang sedang aktif tanpa diubah.
+- **Status**: diperbaiki. `ship_override` dari #2 dijadikan helper umum
+  [field_override.hpp](../src/features/field_override.hpp) dan dipakai juga oleh kedua fitur fishing: nilai
+  asli dicatat per pelampung dan dipulihkan saat fitur dimatikan. Pelampung yang sudah hilang dari
+  `FishingFloat.m_allInstances` dilepas setiap tick, jadi GC handle tidak menumpuk selama sesi memancing.
 
 ### 7. Never Wet berlaku untuk semua karakter dan juga menghapus efek Tar
 
@@ -159,6 +164,9 @@ perbaikannya belum dites di dalam game. Cara perbaikannya ada di baris **Status*
   status renang memakai `m_cashedInLiquidDepth` dan `m_swimTimer`.
 - Saran: tambahkan cek `_this == unity::get_local_player()`, lalu putuskan apakah Tar memang ikut dicegah
   (dan sesuaikan nama atau deskripsinya).
+- **Status**: diperbaiki. Hook hanya berlaku untuk pemain lokal. Atas keputusan pemilik, Tar tetap dicegah,
+  dan opsinya diganti menjadi "Never Wet or Tarred" dengan deskripsi yang menyebut Tar. Yang dicegah hanya Tar
+  dari genangan; efek Tarred dari serangan musuh tidak terpengaruh.
 
 ### 8. Enam opsi menu tidak dipakai kode mana pun
 
@@ -175,6 +183,11 @@ perbaikannya belum dites di dalam game. Cara perbaikannya ada di baris **Status*
   sampai ada kode yang memakainya.
 - Command tanpa pemakai yang tidak muncul di menu (tidak mengganggu pemain): `disable_input`,
   `draw_box_3d`, `draw_corner_box`, `draw_skeleton`, `draw_team`.
+- **Status**: diperbaiki. `keep_skills_on_death` dipindah ke `features.hpp` dan sekarang dicek di
+  `hooks::lower_all_skills`. `LowerAllSkills` hanya dipanggil `Skills.OnDeath` dari `Player.OnDeath`, jadi opsi
+  ini tidak memengaruhi penurunan skill lain. Default-nya tetap menyala, sehingga skill tidak lagi turun saat
+  mati. Lima opsi lain dihapus dari menu, tetapi command-nya tetap ada, supaya nilai di `settings.json` tidak
+  hilang.
 
 ### 9. Label Food Duration Multiplier terbalik dengan perilakunya
 
@@ -184,6 +197,10 @@ perbaikannya belum dites di dalam game. Cara perbaikannya ada di baris **Status*
   quickly food timers decay"), tetapi labelnya berbunyi "Duration".
 - Akibat: nilai 2.0 membuat makanan habis dua kali lebih cepat, kebalikan dari yang diharapkan dari label.
 - Saran: ganti label menjadi "Food Decay Speed", atau ubah rumusnya supaya 2.0 berarti dua kali lebih awet.
+- **Status**: diperbaiki dengan mengubah rumusnya, sesuai keputusan pemilik. Timer makanan sekarang maju
+  `1 / pengali` per detik, jadi 2.0 berarti makanan dua kali lebih awet, 0.5 dua kali lebih cepat habis, dan 0
+  tetap berarti tidak berkurang. Deskripsi di menu ikut diganti. Nilai yang sudah tersimpan di `settings.json`
+  berbalik artinya.
 
 ### 10. Max Body Armor menyala secara default dengan nilai 999
 
@@ -192,6 +209,12 @@ perbaikannya belum dites di dalam game. Cara perbaikannya ada di baris **Status*
 - Keterangan: ini pilihan default, bukan kesalahan kode. Di `settings.json` saat audit, opsi ini juga masih
   menyala, jadi armor pemain selalu 999 selama mod aktif.
 - Saran: pertimbangkan default mati, supaya perilaku game hanya berubah kalau pemain menyalakannya.
+- **Status**: diperbaiki. Default `max_body_armor` sekarang mati. Perubahan ini hanya berlaku kalau
+  `settings.json` belum menyimpan nilainya. Kalau sudah tersimpan menyala, opsinya tetap menyala sampai
+  dimatikan lewat menu.
+- Sudah dicek dan aman: `Player.TryGetArmorDifference` memanggil `GetBodyArmor()` dua kali lalu
+  mengurangkannya, jadi perbandingan armor di tooltip tetap benar walaupun override menyala. Damage ke pemain
+  lain dihitung di client mereka sendiri, jadi override ini hanya berlaku untuk karakter sendiri.
 
 ### 11. Enam hook berisiko tidak terpanggil karena inline JIT (belum dipastikan)
 
@@ -211,6 +234,20 @@ tidak dipanggil.
   stabilitas bangunan, biaya eitr) kadang bekerja dan kadang tidak, tergantung jalur pemanggilnya.
 - Saran: tes fitur-fitur ini di game. Kalau ada yang tidak konsisten, pindahkan hook ke method pemanggil
   yang lebih besar.
+- **Status**: dicek, dan inline itu tidak terjadi. Lewat runtime Mono milik game, setiap method target
+  di-compile JIT, lalu setiap pemanggilnya di `assembly_valheim` juga di-compile. Kode mesin pemanggil dicek
+  apakah masih memanggil target, langsung atau lewat trampoline JIT yang menyimpan pointer `MonoMethod`.
+  - Hasil: semua call site yang bisa di-compile di luar game masih berupa panggilan, tidak di-inline. Itu
+    mencakup 1 untuk `IsKnownMaterial`, 2 untuk `HaveSupport`, 3 untuk `GetAttackEitr`, 5 untuk `GetLevel`,
+    15 untuk `ContainsItem`, dan 17 untuk `GetGlobalKey(GlobalKeys)`.
+  - Pembanding: `Player.SetMaxEitr` (71 byte) tetap berupa panggilan, sedangkan `ZNet.get_instance` (6 byte)
+    di-inline di 168 call site. Jadi metode ini bisa membedakan keduanya.
+  - Keenam target sama-sama memanggil method lain di dalamnya, dan JIT Mono di build ini tidak meng-inline method
+    seperti itu. Aturan "di bawah 20 byte pasti di-inline" ternyata terlalu luas.
+  - Sisa yang belum terlihat: 3 pemanggil `ContainsItem` dan 22 pemanggil `GetGlobalKey` tidak bisa di-compile
+    di luar Unity karena membutuhkan internal call engine. Keputusan inline ditentukan oleh method target, jadi
+    hasilnya hampir pasti sama, tetapi belum terbukti langsung.
+  - Tidak ada perubahan kode.
 
 ### 12. Speed fermenter dan tanaman bergantung pada jarak pemain
 
@@ -221,6 +258,15 @@ tidak dipanggil.
 - Akibat: status "siap" bisa kembali menjadi "belum siap" saat pemain keluar dari radius. Smelter, cooking
   station, beehive, dan sap collector tidak kena, karena hook-nya mengalikan delta.
 - Saran: terima perilaku ini dan tulis di dokumentasi, atau simpan progres yang sudah dipercepat.
+- **Status**: fermenter diperbaiki dengan menyimpan progresnya.
+  - Hook `Fermenter.GetFermentationTime` dihapus. Sebagai gantinya, sekali per detik `base_tools` memundurkan
+    `ZDOVars.s_startTime` setiap fermenter dalam radius yang dipegang client ini, sebesar
+    `(pengali - 1) x waktu berlalu` dalam tick (`ZNet.m_netTime x 10^7`, sama dengan yang dipakai game).
+  - Progres tetap ada saat pemain pergi, dan ikut tersinkron ke pemain lain karena tersimpan di ZDO.
+  - Bedanya dengan perilaku lama: pengali sekarang hanya mempercepat waktu berikutnya. Waktu yang sudah lewat
+    sebelum pemain datang tidak ikut dikalikan.
+  - Tanaman tidak diubah. Begitu `Plant.Grow` berjalan, tanaman tidak bisa mundur lagi. Namun percepatannya
+    tetap hanya berlaku selama pemain berada dalam radius.
 
 ### 13. Noclip macet setelah mati atau ganti world
 
@@ -233,6 +279,8 @@ tidak dipanggil.
   jadi kalau objeknya sudah dikoleksi GC, memanggil method padanya berisiko crash.
 - Saran: kalau restore gagal, tetap lepaskan pointer lama dan lanjut ke collider baru. Simpan collider
   dengan GC handle, seperti `retain_impl` di `hud.cpp`.
+- **Status**: diperbaiki bersama P6. Collider disimpan lewat GC handle. Saat collider berganti, mod mencoba
+  memulihkan yang lama, lalu melepasnya walaupun pemulihan gagal, dan langsung lanjut ke collider baru.
 
 ### 14. Infinite Durability mengisi durability 1000, bukan nilai maksimal item
 
@@ -244,6 +292,13 @@ tidak dipanggil.
   atas batas. Nilai ini ikut tersimpan di data item, jadi tetap awet setelah fitur dimatikan. Item yang
   maksimalnya di atas 1000 (misalnya lewat Item Overrides) justru turun ke 1000.
 - Saran: jangan menulis apa pun dan cukup lewati pengurasan, atau isi dengan `GetMaxDurability` item itu.
+- **Status**: diperbaiki.
+  - Hook `DrainEquipedItemDurability` sekarang hanya melewati pengurasan.
+  - Setelah serangan mengenai sesuatu, senjata diisi ke durability maksimalnya sendiri (`item_data::get_max_durability`,
+    termasuk override `ew_max_durability`). Pengurasan senjata ada di dalam `Attack.DoMeleeAttack`,
+    `DoAreaAttack`, dan `ProjectileAttackTriggered`, jadi tidak bisa dilewati dari hook yang ada.
+  - Item yang sudah terlanjur bernilai 1000 tidak dikoreksi otomatis. Memperbaikinya di workbench
+    mengembalikannya ke nilai maksimal.
 
 ### 15. Makanan dan mead dari slot food tidak pernah berkurang
 
@@ -256,6 +311,9 @@ tidak dipanggil.
 - Akibat: makanan dimakan dan mead diminum, tetapi stack di slot tidak berkurang. Ini duplikasi item.
 - Saran: kirim inventory equipment sebagai argumen pertama `UseItem`, atau hapus satu item dari inventory
   equipment setelah `UseItem` berhasil.
+- **Status**: diperbaiki. Hotkey slot food sekarang mengirim inventory equipment ke `UseItem`. `UseItem` hanya
+  memakai `m_inventory` kalau argumennya null, dan `Player.ConsumeItem` memanggil `RemoveOneItem` pada inventory
+  yang diterimanya, jadi stack di slot berkurang. `use_slot` lalu menyimpan halaman equipment seperti biasa.
 
 ### 16. `HaveEmptySlot` selalu true untuk semua inventory
 
@@ -964,11 +1022,11 @@ menghentikan game sejenak saat berjalan (stutter).
 | P3 | ESP membaca semua karakter tanpa batas jarak dan semua drop tiap frame (diperbaiki) | Saat ESP menyala | `worker/entity_worker.cpp` |
 | P4 | Marker bangunan rusak memakai 4 panggilan Mono per marker per frame (diperbaiki) | Saat Mark Damaged Buildings menyala | `unity/base_tools.cpp` |
 | P5 | Data creature dikumpulkan tiap frame walaupun HUD inspector mati (diperbaiki) | Saat crosshair mengarah ke creature | `unity/animal_tools.cpp` |
-| P6 | Noclip membaca dan menulis collider tiap frame walaupun mati | Selalu | `hooks/player_update.cpp` |
-| P7 | `Hud.get_instance` dicari berdasarkan nama tiap frame | Selalu | `unity/hud.cpp` |
-| P8 | Ukuran layar dibaca lewat 2 panggilan Mono tiap frame | Selalu | `worker/main_worker.cpp` |
-| P9 | Inventory Size mengubah ukuran UI dan membuat 2 string setiap frame | Saat Inventory Size menyala | `features/inventory.cpp` |
-| P10 | Setiap item yang diambil dari slot equipment menyimpan ulang semua halaman | Setiap tembakan kalau ammo di slot equipment | `hooks/equipment_hooks.cpp` |
+| P6 | Noclip membaca dan menulis collider tiap frame walaupun mati (diperbaiki) | Selalu | `hooks/player_update.cpp` |
+| P7 | `Hud.get_instance` dicari berdasarkan nama tiap frame (diperbaiki) | Selalu | `unity/hud.cpp` |
+| P8 | Ukuran layar dibaca lewat 2 panggilan Mono tiap frame (diperbaiki) | Selalu | `worker/main_worker.cpp` |
+| P9 | Inventory Size mengubah ukuran UI dan membuat 2 string setiap frame (diperbaiki) | Saat Inventory Size menyala | `features/inventory.cpp` |
+| P10 | Setiap item yang diambil dari slot equipment menyimpan ulang semua halaman (diperbaiki) | Setiap tembakan kalau ammo di slot equipment | `hooks/equipment_hooks.cpp` |
 | P11 | Override cuaca membuat string managed baru setiap frame | Saat cuaca dipaksa | `hooks/base_tools.cpp` |
 | P12 | Forsaken Power Always Ready mencari class dan field setiap frame | Saat fitur menyala | `hooks/update_guardian_power.cpp` |
 | P13 | Hash nama efek dihitung lewat Mono setiap kali dipakai | Saat Auto-Purge atau Prevent Freezing/Cold/Wet menyala | `unity/buff_tools.cpp` |
@@ -1081,18 +1139,23 @@ menghentikan game sejenak saat berjalan (stutter).
 - Biaya: setiap frame, `GetCollider`, `get_enabled` (hasil di-box), dan `set_enabled` dipanggil, karena
   `active_collider` dikosongkan di akhir setiap frame saat noclip mati.
 - Saran: kalau noclip mati dan tidak ada collider yang perlu dipulihkan, langsung keluar.
+- **Status**: diperbaiki bersama #13. Saat noclip mati dan tidak ada collider yang ditahan, fungsi langsung
+  keluar tanpa panggilan Mono.
 
 ### P7. `Hud.get_instance` dicari tiap frame
 
 - Lokasi: [hud.cpp:361](../src/unity/hud.cpp#L361) (dan [hud.cpp:60](../src/unity/hud.cpp#L60)).
 - Biaya: `mono::get_method` tanpa `static`, jadi daftar method `Hud` ditelusuri berdasarkan nama setiap frame.
 - Saran: jadikan `static`, seperti pola di file lain.
+- **Status**: diperbaiki. Lookup `Hud.get_instance`, `m_userHidden`, dan `SetVisible` sekarang `static`.
 
 ### P8. Ukuran layar dibaca tiap frame
 
 - Lokasi: [main_worker.cpp:35-36](../src/worker/main_worker.cpp#L35-L36).
 - Biaya: 2 panggilan Mono dan 2 alokasi box per frame. Kecil, tetapi tidak perlu.
 - Saran: baca sekali per detik, misalnya di `slow_run`.
+- **Status**: diperbaiki. Ukuran layar dibaca di `safe_slow_update`, sekali per detik. Setelah resolusi
+  diganti, menu memakai ukuran lama paling lama 1 detik.
 
 ### P9. Inventory Size bekerja penuh setiap frame
 
@@ -1102,6 +1165,11 @@ menghentikan game sejenak saat berjalan (stutter).
   `InventoryGui.m_instance` dicari berdasarkan nama tanpa cache, dan `AddUniqueKeyValue` dipanggil dengan 2
   string managed baru.
 - Saran: terapkan ukuran hanya saat setting berubah atau saat inventory berganti, bukan setiap frame.
+- **Status**: diperbaiki. Ukuran inventory, `invrows`, dan ukuran panel hanya diterapkan saat setting berubah,
+  inventory berganti, atau ukuran inventory saat ini berbeda dari yang terakhir diterapkan. Kasus terakhir itu
+  mencakup game yang mengubahnya lewat `Player.SetInventorySize` saat spawn atau saat membeli baris di trader.
+  Panel juga diterapkan ulang saat instance `InventoryGui` berganti. Hanya `SetInventorySize` yang menulis
+  ukuran panel itu, jadi cukup diterapkan sekali. Setiap frame sisa dua pembacaan field ukuran.
 
 ### P10. Item dari slot equipment memicu `save_to_player()` setiap kali diambil
 
@@ -1112,6 +1180,10 @@ menghentikan game sejenak saat berjalan (stutter).
   method ini dipakai `Attack.UseAmmo`, jadi kalau ammo ditaruh di slot equipment, ini terjadi di setiap
   tembakan. Hal yang sama berlaku saat memasukkan bahan bakar atau bijih satu per satu.
 - Saran: tandai sebagai kotor dan simpan sekali per beberapa detik, atau saat game menyimpan (`player_save`).
+- **Status**: diperbaiki. Hook `RemoveItem` sekarang hanya memanggil `mark_dirty()`. `equipment_manager::tick`
+  menyimpan paling cepat 2 detik setelah perubahan pertama. `player_save` tetap menyimpan langsung, dan setiap
+  penyimpanan yang berhasil menghapus tanda kotor. Kalau mod di-unload kurang dari 2 detik setelah item terakhir
+  diambil dan game tidak sempat menyimpan, perubahan terakhir itu tidak ikut tersimpan.
 
 ### P11. Override cuaca membuat string managed baru setiap frame
 
