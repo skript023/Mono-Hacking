@@ -33,7 +33,7 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 | 20 | Toggle fitur dan beberapa tombol menu memanggil API Unity dari thread render | Sedang, sebagian belum dipastikan, diperbaiki | `gui.cpp`, beberapa menu |
 | 21 | Prevent Freezing/Cold/Wet dan Auto-Purge bertarung dengan game setiap frame | Sedang, diperbaiki | `hooks/player_update.cpp`, `features/buffs.cpp` |
 | 22 | Exception Mono ditelan tanpa log | Rendah, diperbaiki | `services/mono/mono.cpp` |
-| 23 | Jendela Equipment, Bookmark, dan menu skrip JS menjalankan aksi game dari thread render | Sedang, belum dipastikan, diperbaiki kecuali JS | `unity/equipment_slots.cpp`, `unity/bookmark_manager.cpp`, `services/javascript` |
+| 23 | Jendela Equipment, Bookmark, dan menu skrip JS menjalankan aksi game dari thread render | Sedang, belum dipastikan, diperbaiki | `unity/equipment_slots.cpp`, `unity/bookmark_manager.cpp`, `services/javascript` |
 | 24 | Hook aimbot tidak mengecek penembak, jadi serangan creature dan semua proyektil ikut diarahkan | Sedang, diperbaiki | `hooks/start_attack.cpp`, `hooks/on_hit.cpp` |
 | 25 | Item di slot equipment tidak pernah masuk tombstone, dan tidak terlihat tanpa mod | Sedang, disengaja (deskripsi ditambah) | `unity/equipment_slots.cpp` |
 | 26 | Return All melaporkan berhasil walaupun inventory penuh, dan armor sudah terlepas | Rendah, diperbaiki | `unity/equipment_slots.cpp` |
@@ -41,35 +41,35 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 | 28 | Makanan di slot tambahan (Max Food Slots) tidak dihitung ke stat makanan | Rendah, diperbaiki | `hooks/eat_food.cpp` |
 | 29 | Remote Trader memasang animator karakter ke prefab trader, lalu beli dan jual melempar exception setelah mati | Sedang, sebagian belum dipastikan, diperbaiki | `unity/world_tools.cpp` |
 | 30 | Allow Picking Up Fish mengubah fisika dan gerak semua ikan | Rendah, diperbaiki | `hooks/is_out_of_water.cpp` |
-| 31 | No Weight baru berlaku setelah isi inventory berubah, dan membuat gerobak tanpa bobot | Rendah | `hooks/get_weight.cpp` |
-| 32 | Builder submenu berjalan setiap frame: Custom Teleport membocorkan memori, Guardian Powers punya race dengan thread game | Sedang | `menu/submenu/teleport_submenu.cpp`, `menu/submenu/player_menu.cpp`, Astra |
-| 33 | `ItemData.m_worldLevel` dibaca dan ditulis sebagai 1 byte, padahal `int` | Rendah | `unity/item_spawner.cpp`, `unity/inventory_editor.cpp` |
-| 34 | Tiga lookup memakai nama field yang sudah tidak ada di game | Rendah | `unity/procreation.cpp`, `unity/tameable.cpp`, `utility/unity.hpp` |
-| 35 | Masalah kecil di Prefab Spawner, Creature Spawner, dan custom teleport | Rendah | `unity/prefab_spawner.cpp`, `unity/creature_spawner.cpp`, `services/custom_teleport` |
-| 36 | Grid equipment native kemungkinan hanya menampilkan item pertama di build sekarang | Sedang, belum dites di game | `unity/equipment_slots.cpp` |
-| 37 | Unload tidak menghapus grid equipment, dan item yang dipindah lewat grid itu bisa hilang atau terduplikasi | Sedang | `unity/equipment_slots.cpp`, `main.cpp` |
-| 38 | Tame All in Radius dan Tame Aimed Creature ikut mengambil alih karakter pemain lain | Tinggi di multiplayer | `unity/character.cpp`, `unity/animal_tools.cpp` |
-| 39 | Teleport XYZ, crosshair, dan pin mengabaikan nilai Y | Rendah | `utility/unity.hpp` |
-| 40 | Kesalahan kecil di helper: `can_pickup`/`can_eat` tidak di-unbox, dan pin type salah di fungsi yang tidak dipakai | Rendah | `unity/item_drop.cpp`, `utility/unity.hpp` |
-| 41 | Consolidate Stacks di Inventory Editor tidak pernah jalan | Rendah | `unity/inventory_editor.cpp` |
-| 42 | Masalah kecil di exploration, breeding, dan fishing: pin The Queen ikut di Infested Mine, Breeding Speed hanya separuh berlaku | Rendah | `unity/exploration.cpp`, `unity/procreation.cpp`, `unity/fishing_tools.cpp` |
-| 43 | World Time Scale dan Pause Time hilang setiap kali menu ESC ditutup, dan label menu tidak ikut berubah | Rendah | `unity/world_time.cpp` |
-| 44 | Sepuluh nama prefab tidak ada di game: sebagian Quick Spawn dan pin Sealed Tower tidak pernah berhasil | Rendah | `menu/submenu/player_menu.cpp`, `unity/item_spawner.cpp`, `unity/exploration.cpp` |
-| 45 | Task async yang kena exception SEH dijalankan ulang setiap frame | Rendah, belum dipastikan | `task_mgr.cpp`, `logger/exception_handler.cpp`, `logger/stack_trace.cpp` |
-| 46 | Masalah kecil di World Modifiers, Tame All, scanner pattern JS, settings, dan kode mati | Rendah | beberapa file |
-| 47 | Login dan WebSocket server mematikan verifikasi sertifikat TLS, jadi token dan data hardware bisa disadap | Sedang (keamanan), hanya build `PRODUCTION` | `server/auth_client.hpp`, `server/socket_client.hpp` |
-| 48 | Hook dari skrip JS dihapus dua kali saat unload, dan callback-nya memakai QuickJS dari thread mana saja | Sedang, hanya kalau skrip memakai `detour.add` | `services/javascript/bindings/trampoline_binding.cpp`, `hooking.cpp` |
-| 49 | Bug di binding JS: `set_field_string`, `get_field_value`, argumen float, slider integer, dan `canvas.add_submenu` | Rendah | `services/javascript/bindings/` |
-| 50 | Tombol Exit di Settings menutup game tanpa menyimpan world dan karakter | Sedang | `menu/submenu/setting_menu.cpp` |
-| 51 | Masalah kecil di server, input, teleport, dan renderer Vulkan | Rendah, sebagian belum dipastikan | beberapa file |
+| 31 | No Weight baru berlaku setelah isi inventory berubah, dan membuat gerobak tanpa bobot | Rendah, diperbaiki | `hooks/get_weight.cpp` |
+| 32 | Builder submenu berjalan setiap frame: Custom Teleport membocorkan memori, Guardian Powers punya race dengan thread game | Sedang, diperbaiki | `menu/submenu/teleport_submenu.cpp`, `menu/submenu/player_menu.cpp`, Astra |
+| 33 | `ItemData.m_worldLevel` dibaca dan ditulis sebagai 1 byte, padahal `int` | Rendah, diperbaiki | `unity/item_spawner.cpp`, `unity/inventory_editor.cpp` |
+| 34 | Tiga lookup memakai nama field yang sudah tidak ada di game | Rendah, diperbaiki | `unity/procreation.cpp`, `unity/tameable.cpp`, `utility/unity.hpp` |
+| 35 | Masalah kecil di Prefab Spawner, Creature Spawner, dan custom teleport | Rendah, diperbaiki | `unity/prefab_spawner.cpp`, `unity/creature_spawner.cpp`, `services/custom_teleport` |
+| 36 | Grid equipment native kemungkinan hanya menampilkan item pertama di build sekarang | Sedang, belum dites di game, diperbaiki | `unity/equipment_slots.cpp` |
+| 37 | Unload tidak menghapus grid equipment, dan item yang dipindah lewat grid itu bisa hilang atau terduplikasi | Sedang, diperbaiki | `unity/equipment_slots.cpp`, `main.cpp` |
+| 38 | Tame All in Radius dan Tame Aimed Creature ikut mengambil alih karakter pemain lain | Tinggi di multiplayer, diperbaiki | `unity/character.cpp`, `unity/animal_tools.cpp` |
+| 39 | Teleport XYZ, crosshair, dan pin mengabaikan nilai Y | Rendah, diperbaiki | `utility/unity.hpp` |
+| 40 | Kesalahan kecil di helper: `can_pickup`/`can_eat` tidak di-unbox, dan pin type salah di fungsi yang tidak dipakai | Rendah, diperbaiki | `unity/item_drop.cpp`, `utility/unity.hpp` |
+| 41 | Consolidate Stacks di Inventory Editor tidak pernah jalan | Rendah, diperbaiki | `unity/inventory_editor.cpp` |
+| 42 | Masalah kecil di exploration, breeding, dan fishing: pin The Queen ikut di Infested Mine, Breeding Speed hanya separuh berlaku | Rendah, diperbaiki | `unity/exploration.cpp`, `unity/procreation.cpp`, `unity/fishing_tools.cpp` |
+| 43 | World Time Scale dan Pause Time hilang setiap kali menu ESC ditutup, dan label menu tidak ikut berubah | Rendah, diperbaiki | `unity/world_time.cpp` |
+| 44 | Sepuluh nama prefab tidak ada di game: sebagian Quick Spawn dan pin Sealed Tower tidak pernah berhasil | Rendah, diperbaiki | `menu/submenu/player_menu.cpp`, `unity/item_spawner.cpp`, `unity/exploration.cpp` |
+| 45 | Task async yang kena exception SEH dijalankan ulang setiap frame | Rendah, belum dipastikan, diperbaiki | `task_mgr.cpp`, `logger/exception_handler.cpp`, `logger/stack_trace.cpp` |
+| 46 | Masalah kecil di World Modifiers, Tame All, scanner pattern JS, settings, dan kode mati | Rendah, diperbaiki | beberapa file |
+| 47 | Login dan WebSocket server mematikan verifikasi sertifikat TLS, jadi token dan data hardware bisa disadap | Sedang (keamanan), hanya build `PRODUCTION`, diperbaiki | `server/auth_client.hpp`, `server/socket_client.hpp` |
+| 48 | Hook dari skrip JS dihapus dua kali saat unload, dan callback-nya memakai QuickJS dari thread mana saja | Sedang, hanya kalau skrip memakai `detour.add`, diperbaiki | `services/javascript/bindings/trampoline_binding.cpp`, `hooking.cpp` |
+| 49 | Bug di binding JS: `set_field_string`, `get_field_value`, argumen float, slider integer, dan `canvas.add_submenu` | Rendah, diperbaiki | `services/javascript/bindings/` |
+| 50 | Tombol Exit di Settings menutup game tanpa menyimpan world dan karakter | Sedang, diperbaiki | `menu/submenu/setting_menu.cpp` |
+| 51 | Masalah kecil di server, input, teleport, dan renderer Vulkan | Rendah, sebagian belum dipastikan, diperbaiki kecuali Vulkan | beberapa file |
 
 Temuan performa ada di bagian [Performa](#performa).
 
 Sudah diperbaiki sebelumnya: Attack Animation Speed menimpa `Animator.speed` setiap frame walaupun
 pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki di `557a25e`.
 
-Diperbaiki pada 2026-10-23: #1 sampai #10, #12 sampai #16, #18 sampai #30, dan P1 sampai P15. #11 sudah dicek
-dan ternyata tidak terjadi. #17 tidak dikerjakan atas keputusan pemilik. Sebagian #23 dan #27 sengaja dilewati;
+Diperbaiki pada 2026-10-23: #1 sampai #10, #12 sampai #16, #18 sampai #51, dan P1 sampai P21. #11 sudah dicek
+dan ternyata tidak terjadi. #17 tidak dikerjakan atas keputusan pemilik. Sebagian #27 dan #51 sengaja dilewati;
 alasannya ada di bagian masing-masing. Build `x64-Clang-Release` berhasil, tetapi perbaikannya belum dites di
 dalam game. Cara perbaikannya ada di baris **Status** pada masing-masing bagian.
 
@@ -475,14 +475,13 @@ tidak dipanggil.
   tidak terlihat karena bug 22.
 - Saran: bungkus aksi tombol di jendela-jendela ini dengan `queue_job`, seperti yang sudah dilakukan
   `global_key_editor` dan `status_effect_browser` untuk aksinya.
-- **Status**: diperbaiki, kecuali opsi menu dari skrip JS.
+- **Status**: diperbaiki.
   - Equipment: Auto-Fill, Return All, Save Loadout, klik slot, klik kanan slot, dan pilihan di picker sekarang
     berjalan lewat `async_run`.
   - Bookmark: Save dan Delete juga lewat `async_run`.
   - Animal Inspector: Instant Tame dan Heal Full juga lewat `async_run`.
-  - Callback JS sengaja tidak dipindah. QuickJS dipakai dari thread render untuk `eval` dan JS GUI, jadi
-    memindahkan callback ke thread game akan membuat QuickJS lebih sering dipakai dari dua thread, dan QuickJS
-    tidak thread-safe. Ini perlu diselesaikan bersama #48 dengan satu thread untuk semua JS.
+  - Opsi menu dari skrip JS sekarang juga menjalankan callback di thread game. Ini dikerjakan bersama #48, yang
+    juga memasang kunci untuk QuickJS.
   - Catatan terkait #20: `on_enable`/`on_disable` dari command buatan skrip JS sekarang ikut berjalan di thread
     game, sama seperti `on_tick` yang memang sudah di sana.
 
@@ -636,6 +635,12 @@ tidak dipanggil.
 - Saran: batasi ke inventory pemain lokal, misalnya lewat hook `Inventory.UpdateTotalWeight` yang mengecek
   `this`. Panggil `Inventory.Changed` milik pemain (private, tetapi bisa dipanggil lewat Mono) saat setting
   berubah supaya total langsung dihitung ulang.
+- **Status**: diperbaiki.
+  - Cabang No Weight di hook `GetWeight` dihapus. Gantinya hook baru `Inventory.UpdateTotalWeight` mengisi
+    `m_totalWeight = 0` hanya untuk inventory pemain lokal, jadi gerobak dan container lain tidak ikut berubah.
+  - Saat setting berubah, `player_update` memanggil `UpdateTotalWeight` pada inventory pemain, jadi total
+    langsung dihitung ulang.
+  - Override `ew_weight` dari Inventory Editor sudah memicu `Inventory.Changed`, jadi tidak perlu diubah.
 
 ### 32. Builder submenu berjalan setiap frame
 
@@ -670,6 +675,14 @@ tidak dipanggil.
   salinannya. Muat file teleport sekali saat menu dibuka atau setelah disimpan. Daftarkan submenu kategori
   sekali, atau buat `add_submenu_impl` di Astra mengganti submenu yang ID-nya sama. Buat `get_boss_powers`
   mengembalikan salinan, bukan referensi ke vector `static`.
+- **Status**: diperbaiki di sisi mod. Astra tidak diubah.
+  - Helper baru [game_snapshot.hpp](../src/game_snapshot.hpp) membaca data di thread game paling sering sekali
+    per interval, dan builder hanya membaca salinannya. Guardian Powers, Individual Boss Powers, dan Base Raids
+    disegarkan setiap 2 detik; Objectives dan Waypoints setiap 1 detik.
+  - `get_boss_powers` sekarang mengembalikan salinan, jadi vector tidak lagi dipakai bersama antar-thread.
+  - Custom Teleport membaca file paling sering sekali per 5 detik. Submenu tiap kategori didaftarkan sekali per
+    nama, jadi `m_all_submenu` tidak lagi bertambah setiap frame. Submenu kategori memakai `find`, bukan `at`,
+    jadi kategori yang dihapus tidak melempar exception.
 
 ### 33. `ItemData.m_worldLevel` dibaca dan ditulis sebagai 1 byte
 
@@ -685,6 +698,8 @@ tidak dipanggil.
   save, jadi item yang sudah diambil biasanya kembali benar, tetapi selama masih di tanah nilainya bisa salah.
   Ini undefined behavior, jadi akibat persisnya bergantung pada susunan stack hasil compile.
 - Saran: pakai `int` di semua tempat itu.
+- **Status**: diperbaiki. Semua pembacaan dan penulisan `m_worldLevel` di Item Spawner dan Inventory Editor
+  sekarang memakai `int`.
 
 ### 34. Tiga lookup memakai nama field yang sudah tidak ada di game
 
@@ -702,6 +717,8 @@ tidak dipanggil.
     tetapi `getZoneSystem` di binding JS selalu 0, dan log Item Spawner selalu menulis `ZoneSystem: false`.
 - Saran: panggil `GetLovePoints()`, hapus `set_tame_time_left`, dan cari `s_instance` lebih dulu di
   `get_zone_system()`.
+- **Status**: diperbaiki sesuai saran. `get_love_points` memanggil `Procreation.GetLovePoints()`,
+  `set_tame_time_left` dihapus, dan `get_zone_system()` mencari `s_instance` lebih dulu, lalu `m_instance`.
 
 ### 35. Masalah kecil di Prefab Spawner, Creature Spawner, dan custom teleport
 
@@ -723,6 +740,14 @@ tidak dipanggil.
   dipakai.
 - Saran: isi ulang posisi Prefab Spawner saat jendela dibuka (dari thread game), cek hasil `Destroy`, cukup
   panggil `Tame()` tanpa `set_tamed` lebih dulu, dan kembalikan salinan dari `get_saved_location_by_name`.
+- **Status**: diperbaiki sesuai saran.
+  - Posisi Prefab Spawner diisi ulang setiap kali jendela dibuka. Posisinya dibaca di thread game, lalu dikirim
+    ke UI lewat `render_queue`.
+  - Undo Last mengecek objek masih hidup dan menangkap exception `Destroy`. Pesan "Removed" hanya muncul kalau
+    penghapusan berhasil.
+  - Creature Spawner hanya memanggil `Tame()` kalau ada `Tameable`. `set_tamed` dipakai hanya untuk creature
+    tanpa `Tameable`.
+  - `get_saved_location_by_name` mengembalikan `std::optional<teleport_location>`.
 
 ### 36. Grid equipment native kemungkinan hanya menampilkan item pertama (belum dites di game)
 
@@ -751,6 +776,8 @@ tidak dipanggil.
 - Saran: di `create_native_grid`, salin juga `CanDropDragOntoItem`, `m_onReleased`, `m_onEnter`,
   `OnSetTouchSelection`, dan dua `OnMoveTo...` dari `m_playerGrid`, lalu hapus anak `m_gridRoot` hasil salinan
   sebelum `UpdateInventory` pertama.
+- **Status**: diperbaiki sesuai saran. Kedelapan delegate disalin dalam satu loop, dan semua anak `m_gridRoot`
+  pada grid salinan dihancurkan saat grid dibuat. Belum dites di game; cara cek cepat di atas tetap berlaku.
 
 ### 37. Unload tidak menghapus grid equipment
 
@@ -772,6 +799,9 @@ tidak dipanggil.
   - Memanggil Mono dari destructor saat loader lock dipegang juga berisiko hang saat unload.
 - Saran: panggil `equipment_manager::get().release_handles()` lewat task di thread game sebelum
   `g_hooking->disable()`, seperti pola `world_time::shutdown`, dan buang panggilan Mono dari destructor.
+- **Status**: diperbaiki. `equipment_manager::shutdown()` menyimpan halaman equipment kalau masih ada perubahan
+  yang belum tersimpan (P10), lalu menghapus grid dan melepas handle. Fungsi ini dipanggil di thread game
+  bersama `commands::shutdown()` saat unload (#19). Destructor tidak lagi memanggil Mono.
 
 ### 38. Tame All in Radius dan Tame Aimed Creature ikut mengambil alih karakter pemain lain
 
@@ -794,6 +824,12 @@ tidak dipanggil.
     pemain.
 - Saran: di `character::is_player()`, panggil `Character.IsPlayer()` (method ini sudah dipakai `player::is_player`).
   Di `tame_creature`, tolak target yang tidak punya `Tameable` atau `MonsterAI` sebelum `ClaimOwnership`.
+- **Status**: diperbaiki.
+  - `character::is_player()` sekarang menelusuri class objek dan parent-nya terhadap class `Player`, tanpa
+    panggilan Mono. Memanggil `Character.IsPlayer` lewat `mono_runtime_invoke` tidak bisa dipakai, karena tidak
+    ada virtual dispatch: yang jalan tetap versi `Character`, yang selalu false.
+  - `tame_creature` menolak pemain, dan menolak target yang tidak punya `Tameable` maupun `MonsterAI`, sebelum
+    `ClaimOwnership`.
 
 ### 39. Teleport XYZ, crosshair, dan pin mengabaikan nilai Y
 
@@ -815,6 +851,12 @@ tidak dipanggil.
   - Bookmark dan Custom Teleport memakai `Player.TeleportTo` langsung, jadi tidak terkena.
 - Saran: pakai `Player.TeleportTo` dengan Y asli untuk XYZ, crosshair, dan pin. Biarkan game menyesuaikan
   tinggi lewat `FindFloor` saat teleport jauh.
+- **Status**: diperbaiki sesuai saran. Jalur `Minimap.DebugTeleport` dihapus, jadi `teleport_to_world_point`
+  selalu memakai `Player.TeleportTo` dengan Y asli + 2.
+  - Di IL `Player.UpdateTeleport`, game melakukan raycast ke bawah dari titik tujuan (`FindFloor`). Kalau tidak
+    ada yang kena, game memakai `GetSolidHeight` + 0,5.
+  - Akibatnya, pin peta dengan Y 0 tetap mendarat di permukaan, dan tujuan di dalam dungeon mendarat di lantai
+    dungeon.
 
 ### 40. Kesalahan kecil di helper
 
@@ -829,6 +871,8 @@ tidak dipanggil.
   sudah benar (14, 15, 16).
 - Saran: pakai `object_unbox` di kedua fungsi itu, dan hapus atau samakan `discover_bosses_and_traders` dengan
   katalog di `exploration.cpp`.
+- **Status**: diperbaiki. `can_pickup` dan `can_eat` sekarang memakai `object_unbox`, dan
+  `discover_bosses_and_traders` yang tidak dipakai dihapus.
 
 ### 41. Consolidate Stacks di Inventory Editor tidak pernah jalan
 
@@ -840,6 +884,7 @@ tidak dipanggil.
   methods are unavailable." dan tidak mengubah apa pun.
 - Saran: pakai `"ItemDrop.ItemData"`, atau `get_method("Inventory", "RemoveItem", 1)` lalu cek tipe parameternya.
   Dari 32 pemanggilan `get_method_exact` di seluruh kode, hanya yang ini yang gagal.
+- **Status**: diperbaiki. Tipe parameter ditulis `"ItemDrop.ItemData"`.
 
 ### 42. Masalah kecil di exploration, breeding, dan fishing
 
@@ -864,6 +909,13 @@ tidak dipanggil.
 - Saran: buang `Mistlands_DvergrTownEntrance1` dari kandidat The Queen dan berhenti di kandidat pertama yang
   berhasil. Untuk interval breeding, panggil `CancelInvoke("Procreate")` lalu `InvokeRepeating` dengan interval
   baru, atau hapus bagian itu dari deskripsi fitur. Cek `GetCatch` sebelum menampilkan pesan.
+- **Status**: diperbaiki.
+  - `Mistlands_DvergrTownEntrance1` dikeluarkan dari kandidat The Queen, dan pencarian lokal berhenti di
+    kandidat pertama yang berhasil.
+  - Breeding Speed sekarang memanggil `CancelInvoke("Procreate")` lalu `InvokeRepeating("Procreate", interval,
+    interval)` dengan interval baru. Nilai asli disimpan per creature lewat GC handle, dan entri untuk creature
+    yang sudah dihancurkan dibuang, jadi alamat yang dipakai ulang tidak lagi tertukar.
+  - Instant Catch mengecek `GetCatch` lebih dulu dan menampilkan "No fish is hooked yet." kalau belum ada ikan.
 
 ### 43. World Time Scale dan Pause Time hilang setiap kali menu ESC ditutup
 
@@ -879,6 +931,12 @@ tidak dipanggil.
   untuk pause lagi. Hal yang sama terjadi saat pemain lain bergabung.
 - Saran: baca status untuk label dan toggle dari `Game.m_timeScale`. Kalau kecepatan harus bertahan, pasang
   ulang nilainya setelah `Game.Unpause`, misalnya lewat pengecekan di `Game.Update`.
+- **Status**: diperbaiki.
+  - `world_time::maintain()` dipanggil setiap frame dari `main_worker`. Kalau kecepatan pilihan bukan 1,
+    game tidak sedang di-pause menu (`Game.m_pause`), dan `Game.m_timeScale` berbeda, nilainya dipasang ulang.
+    Percobaan diulang paling sering sekali per 0,5 detik.
+  - Label Pause/Resume sekarang juga membaca `Game.m_timeScale`.
+  - Selama ada pemain lain yang tersambung, game tetap memaksa kecepatan 1, sama seperti sebelumnya.
 
 ### 44. Sepuluh nama prefab tidak ada di game
 
@@ -915,6 +973,14 @@ tidak dipanggil.
     `discover_location` selalu mengembalikan true dan pesan di menu tidak mengecek hasilnya.
 - Saran: ganti nama sesuai tabel. Untuk Item Spawner, tampilkan "prefab tidak ditemukan" saat
   `ObjectDB.GetItemPrefab` mengembalikan null, supaya tidak tertukar dengan inventory penuh.
+- **Status**: diperbaiki.
+  - Sepuluh nama diganti sesuai tabel. "Full Flametal Armor Set" dan entri katalog "Flametal ..." sekarang
+    memakai `HelmetFlametal`, `ArmorFlametalChest`, dan `ArmorFlametalLegs`.
+  - Label `StaffLightning` diganti "Dundr".
+  - Kalau penambahan item gagal dan `ObjectDB.GetItemPrefab` mengembalikan null, pesannya sekarang
+    "Item prefab '…' was not found".
+  - Semua nama baru dicek ada di manifest asset game.
+  - Notifikasi "Pin requested" untuk lokasi yang tidak ditemukan belum diubah.
 
 ### 45. Task async yang kena exception SEH dijalankan ulang setiap frame
 
@@ -937,6 +1003,12 @@ tidak dipanggil.
 - Saran: di `EXCEPT_CLAUSE` milik `tick_impl`, tandai task yang gagal dan buang dari daftar tanpa me-resume lagi.
   Cek hash alamat crash sebelum membuat stack trace lengkap, dan kosongkan `m_frame_pointers` di awal
   `grab_stacktrace`.
+- **Status**: diperbaiki sesuai saran.
+  - `tick_impl` menandai task yang kena SEH dan mengosongkan handle-nya, jadi task itu dibuang dan tidak
+    di-resume lagi. Frame coroutine sengaja tidak di-destroy, karena state-nya tidak valid.
+  - `vectored_exception_handler` mengecek pasangan alamat crash dan kode exception lebih dulu (dijaga mutex),
+    dan stack trace lengkap hanya dibuat untuk kombinasi yang baru.
+  - `grab_stacktrace` mengosongkan `m_frame_pointers` di awal.
 
 ### 46. Masalah kecil di World Modifiers, Tame All, scanner pattern JS, settings, dan kode mati
 
@@ -971,6 +1043,20 @@ tidak dipanggil.
   `$enemy_deer`) atau nama prefab. Pakai `r.size` di `fullscan`, dan cek ulang byte pattern sebelum memakai
   offset dari cache. Tulis settings ke file sementara lalu rename. Hapus `call_hook` dan jalur OpenGL kalau
   memang tidak dipakai.
+- **Status**: diperbaiki sesuai saran.
+  - World Modifiers: setiap daftar sekarang punya `Default`. Saat world berjalan, `SetPreset` milik game hanya
+    menambah global key dan tidak menghapus key dari nilai sebelumnya (perintah konsol `setworldmodifier` juga
+    begitu). Karena itu, sebelum nilai baru dipasang, mod menghapus semua key milik slider modifier itu lewat
+    `ZoneSystem.RemoveGlobalKey`. Combat bisa kembali ke Default tanpa menyentuh modifier lain.
+  - Tame All Deer, Boar, dan Wolf mencocokkan `Character.m_name` (`$enemy_deer`, `$enemy_boar`, `$enemy_wolf`),
+    jadi tidak bergantung pada bahasa game.
+  - `range::fullscan` memakai `r.size`.
+  - Pattern cache: loop baca berhenti saat `read` gagal. Offset dari cache hanya dipakai kalau byte pattern di
+    alamat itu masih cocok; kalau tidak, pattern dipindai ulang.
+  - Settings ditulis ke `menu_settings.json.tmp` lalu di-rename. Kalau file gagal dibaca saat load, salinannya
+    disimpan ke `menu_settings.json.bak` sebelum diganti default.
+  - `call_hook` dihapus. Jalur OpenGL memakai `resize`, bukan `reserve`. Jalur itu dibiarkan, karena tetap tidak
+    dipanggil.
 
 ### 47. Login dan WebSocket server mematikan verifikasi sertifikat TLS
 
@@ -991,6 +1077,15 @@ tidak dipanggil.
 - Saran: hapus flag `IGNORE_*` untuk produksi (kalau perlu, sisakan hanya untuk `env_type` lokal), pakai
   `verify_certificate = true` untuk WSS, kirim token lewat header, bukan query string, dan jangan menulis HWID ke
   log.
+- **Status**: diperbaiki dengan mengikuti launcher, yang selalu memverifikasi sertifikat dan mengirim token lewat
+  query string.
+  - Flag `SECURITY_FLAG_IGNORE_*` dihapus dari `http_post`. WinHTTP memverifikasi sertifikat seperti biasa, juga
+    untuk `env_type` CUSTOM.
+  - Client WSS dibuat dengan `verify_certificate = true`. OpenSSL statis di mod tidak membaca store sertifikat
+    Windows, jadi sertifikat dari store `ROOT` Windows dimuat ke `SSL_CTX` sebelum koneksi dibuka.
+  - Token dan HWID tetap di query string URL WebSocket, sama seperti launcher, jadi server tidak perlu diubah.
+  - HWID tidak lagi ditulis ke log. Log koneksi `socket_client` juga hanya menulis host dan path, tanpa query
+    string, karena query string itu berisi token dan HWID.
 
 ### 48. Hook dari skrip JS dihapus dua kali saat unload
 
@@ -1017,6 +1112,21 @@ tidak dipanggil.
 - Saran: hapus hook JS di `g_hooks` sebelum `g_hooking->disable()` (misalnya panggil
   `javascript_manager::unload_all_modules` dan `trampoline::shutdown` di urutan unload `main.cpp`). Simpan nama
   hook sebagai `std::string`. Antre callback JS ke satu thread, atau kunci runtime QuickJS dengan mutex.
+- **Status**: diperbaiki.
+  - Unload: `main.cpp` memanggil `js::trampoline::shutdown()` sebelum `g_hooking->disable()`. Fungsi itu mematikan
+    semua hook JS, menunggu callback yang sedang berjalan selesai (paling lama 1 detik), lalu menghapusnya. Jadi
+    `delete_disabled_hooks` tidak lagi melihat hook JS, dan destructor `static` tidak menghapus apa pun dua kali.
+  - `detour.enable` memakai `detour_hook::enable()`, jadi `is_enabled()` sesuai keadaan sebenarnya. Hook JS yang
+    tidak bisa dimatikan karena tertimpa hook program lain dibiarkan di tempat dengan callback dilepas, sama
+    seperti hook mod yang lain, dan DLL tetap dimuat.
+  - Nama hook di `detour_base` disimpan sebagai `std::string`.
+  - QuickJS dikunci dengan satu `std::recursive_mutex` (`g_js_mutex`). Kunci ini dipakai untuk eval, load dan
+    unload module, callback command, dan dispatch hook JS.
+  - Menu JS: thread render tidak lagi menyentuh nilai QuickJS. `register_gui` menyalin data menu ke snapshot
+    tanpa nilai JS. Ia memakai `try_lock`, jadi thread render tidak menunggu saat JS sedang berjalan. Klik opsi
+    menjalankan callback JS di thread game lewat `async_run`. Ini juga menyelesaikan bagian JS dari #23.
+  - `detour.disable(name)` dari dalam callback hook itu sendiri tidak langsung membebaskan hook. Hook dimatikan
+    dulu, lalu dihapus setelah callback-nya selesai.
 
 ### 49. Bug di binding JavaScript
 
@@ -1041,6 +1151,20 @@ tidak dipanggil.
 - Saran: pakai `mono::to_mono_string` di `set_field_string`, baca field ke buffer seukuran
   `mono_field_get_type`, terima tipe argumen dari skrip, simpan nilai slider integer ke tempat yang dibaca
   callback, naikkan `build_version` di `add_submenu`, dan eval REPL sebagai script global.
+- **Status**: diperbaiki sesuai saran.
+  - `set_field_string` menulis `MonoString` dari `mono::to_mono_string`.
+  - `get_field_value` membaca ke buffer seukuran tipe field (`mono_field_get_type` dan `mono_type_size`), lalu
+    mengembalikan 8 byte pertama seperti sebelumnya.
+  - `invoke_method` membaca tipe parameter dari signature method. Argumen untuk `System.Single` dikirim sebagai
+    `float` 4 byte, `System.Double` sebagai `double`, dan `System.Int32` sebagai `int` 4 byte. Parameter tipe lain
+    tetap memakai tebakan lama.
+  - Slider: setiap perubahan ditulis ke `store` di thread game, jadi skrip membaca nilai terbaru lewat
+    `store.get_int` (slider integer) atau `store.get_float` (slider float). `add_slider` tidak menerima callback,
+    jadi `store` adalah satu-satunya cara skrip membaca slider. `precision` slider float dihitung dari `step`.
+  - `canvas.add_submenu` mengosongkan opsi lama dan menaikkan `build_version`. Submenu dari skrip didaftarkan ke
+    Astra sekali, dan isinya selalu mengikuti versi terbaru.
+  - REPL: kode dievaluasi sebagai script global, kecuali `JS_DetectModule` menemukan `import` atau `export`. Hasil
+    ekspresi tampil, dan `const` tetap ada untuk eval berikutnya.
 
 ### 50. Tombol Exit di Settings menutup game tanpa menyimpan
 
@@ -1052,6 +1176,9 @@ tidak dipanggil.
   Mono (bug 37).
 - Saran: panggil jalur keluar game di thread game, misalnya `Menu.OnQuitYes` atau `Application.Quit` lewat
   `queue_job`, atau hapus tombol ini.
+- **Status**: diperbaiki. Tombol Exit memanggil `UnityEngine.Application.Quit()` di thread game. Valheim lalu
+  menjalankan `Game.OnApplicationQuit` dan `Game.Shutdown`, yang menyimpan profil karakter dan world (lewat
+  `ZNet.Save`) kalau ruang disk cukup. Ini jalur yang sama dengan menutup game biasa, dan juga jalan di menu utama.
 
 ### 51. Masalah kecil di server, input, teleport, dan renderer Vulkan
 
@@ -1084,6 +1211,29 @@ tidak dipanggil.
   `Rotator` (dengan `operator+` dan `operator/` yang salah), `command_arguments`, `checkbox_texture`,
   `alpha_service::send_hardware`, `list_get` di `mono_binding`, `home()`, `stats_submenu()`, dan
   `main_script.hpp` tidak dipakai.
+- **Status**: diperbaiki, kecuali Vulkan.
+  - Server: heartbeat `dll_session_client` menunggu dengan `condition_variable`, jadi destructor membangunkannya
+    langsung dan unload tidak tertahan 20 detik. Request `/dll-session/close` tetap dikirim dengan timeout 5
+    detik per tahap seperti sebelumnya, jadi unload masih bisa tertahan beberapa detik kalau server tidak bisa
+    dihubungi.
+  - `socket_client::connect` mengisi `m_shutdown_requested = false` setelah `disconnect()`, jadi log koneksi
+    tertutup dan error thread I/O muncul lagi.
+  - `FORCE_LOGOUT` hanya dikenali dari field `event`, `type`, atau `action` (huruf besar atau kecil sama saja),
+    atau dari pesan yang isinya persis `FORCE_LOGOUT`, sama seperti launcher. Alasannya diambil dari `message`
+    atau `reason`.
+  - Selama belum terautentikasi, jeda antar percobaan login berlipat dua mulai 15 detik sampai paling lama 5
+    menit, lalu kembali ke 15 detik setelah berhasil. HWID dikumpulkan sekali per proses.
+  - Input: `execute` berjalan di thread render, tempat kotak input digambar. Teks dan callback diambil di sana,
+    kotak ditutup, lalu callback dijalankan di thread game. Kotak input bisa ditutup dengan Esc, dan judul yang
+    terlalu panjang dipotong, bukan ditulis melewati buffer.
+  - Teleport: Objectives tidak lagi memasukkan pin `Memorial`. Pencocokan nama hanya dipakai untuk pin yang
+    namanya token lokalisasi (diawali `$`), jadi pin buatan pemain tidak ikut. "Add Teleport" sudah menyimpan ke
+    kategori submenu yang dibuka sejak `5fc8292`; variabel global `category` yang tersisa dihapus.
+  - Vulkan tidak diubah. Format swapchain yang sudah ada tidak bisa dibaca lewat API Vulkan, dan tebakan lain
+    (BGRA8 atau sRGB) sama tidak pastinya dengan RGBA8. Ini perlu dites dengan game yang berjalan di Vulkan.
+  - Kode mati dihapus: `plugins`, `spoof_call` (`return_address.hpp` dan `.asm`) beserta scan `FF 23` saat
+    startup, `Rotator`, `command_arguments`, `checkbox_texture`, `alpha_service::send_hardware`, `list_get`,
+    `home()`, `stats_submenu()`, dan `main_script.hpp`.
 
 ## Performa
 
@@ -1108,12 +1258,12 @@ menghentikan game sejenak saat berjalan (stutter).
 | P13 | Hash nama efek dihitung lewat Mono setiap kali dipakai (diperbaiki) | Saat Auto-Purge atau Prevent Freezing/Cold/Wet menyala | `unity/buff_tools.cpp` |
 | P14 | Scan objek sekitar memakai `FindObjectsOfType` dan sort dengan panggilan Mono, setiap detik (diperbaiki sebagian) | Saat monitor Base Tools terbuka atau marker bangunan menyala | `unity/base_tools.cpp` |
 | P15 | Jendela ImGui membaca data game lewat Mono setiap frame (diperbaiki) | Saat Status Effect Browser, Equipment, Item Spawner, Global Key Editor, atau World Bookmarks terbuka | `unity/status_effect_browser.cpp`, `unity/equipment_slots.cpp`, `unity/item_spawner.cpp`, `unity/global_key_editor.cpp`, `unity/bookmark_manager.cpp` |
-| P16 | UI equipment native bekerja setiap frame, termasuk saat inventory tertutup | Selalu (Equipment Slots default menyala) | `unity/equipment_slots.cpp` |
-| P17 | `save_to_player()` menulis log setiap kali, dan dipanggil per item saat Auto-Fill atau Return All | Setiap simpan | `unity/equipment_slots.cpp` |
-| P18 | Information Overlay membaca 8 nilai lewat Mono setiap frame | Saat overlay menyala (menyala di setting Anda) | `menu/submenu/player_menu.cpp` |
-| P19 | Spawn in World membuat satu objek jaringan per unit untuk item yang tidak bisa ditumpuk, sampai 10.000 dalam satu frame | Saat spawn item non-stack dalam jumlah besar | `unity/item_spawner.cpp` |
-| P20 | `set_health` mencari method berdasarkan nama setiap kali dipanggil | Saat Maintain Health atau Health Regen menyala | `unity/character.cpp`, `hooks/player_update.cpp` |
-| P21 | Pratinjau skrip di Javascript Console membaca file dari disk setiap frame | Saat tab Script Manager terbuka dan ada skrip yang dipilih | `menu/core/js_scripts.cpp` |
+| P16 | UI equipment native bekerja setiap frame, termasuk saat inventory tertutup (diperbaiki) | Selalu (Equipment Slots default menyala) | `unity/equipment_slots.cpp` |
+| P17 | `save_to_player()` menulis log setiap kali, dan dipanggil per item saat Auto-Fill atau Return All (diperbaiki) | Setiap simpan | `unity/equipment_slots.cpp` |
+| P18 | Information Overlay membaca 8 nilai lewat Mono setiap frame (diperbaiki) | Saat overlay menyala (menyala di setting Anda) | `menu/submenu/player_menu.cpp` |
+| P19 | Spawn in World membuat satu objek jaringan per unit untuk item yang tidak bisa ditumpuk, sampai 10.000 dalam satu frame (diperbaiki) | Saat spawn item non-stack dalam jumlah besar | `unity/item_spawner.cpp` |
+| P20 | `set_health` mencari method berdasarkan nama setiap kali dipanggil (diperbaiki) | Saat Maintain Health atau Health Regen menyala | `unity/character.cpp`, `hooks/player_update.cpp` |
+| P21 | Pratinjau skrip di Javascript Console membaca file dari disk setiap frame (diperbaiki) | Saat tab Script Manager terbuka dan ada skrip yang dipilih | `menu/core/js_scripts.cpp` |
 
 ### P1. `get_local_player()` tanpa cache
 
@@ -1354,6 +1504,13 @@ menghentikan game sejenak saat berjalan (stutter).
     `InventoryGrid`, `InventoryElement`, dan `TMP_Text` juga diulang setiap frame.
 - Saran: simpan status aktif terakhir dan panggil `SetActive` hanya saat berubah. Hias slot sekali saat grid
   dibuat atau saat isi slot berubah, dan simpan komponen teks per slot.
+- **Status**: diperbaiki.
+  - `set_native_grid_active` menyimpan status aktif terakhir dan hanya memanggil `SetActive` saat berubah.
+  - `decorate_native_slots` hanya menghias elemen yang status `m_used`-nya atau setting hotkey-nya berubah.
+    Ini aman, karena di IL `InventoryGrid.UpdateGui` teks binding hanya ditulis saat elemen dibuat, dan
+    `SetActive` per frame hanya mengenai objek anak (durability, selected), bukan objek elemen.
+  - Lookup class (`InventoryGrid`, `InventoryElement`, `TMP_Text`) sekarang `static`.
+  - Saat inventory tertutup, sisa biaya per frame adalah `get_inventory_gui` dan `IsVisible`.
 
 ### P17. `save_to_player()` menulis log setiap kali dan dipanggil per item
 
@@ -1363,6 +1520,9 @@ menghentikan game sejenak saat berjalan (stutter).
   berarti satu baris log per tembakan kalau ammo ada di slot equipment. Auto-Fill dan Return All memanggil
   `move_to_slot` atau `move_from_slot_to_inventory` per item, dan masing-masing menyimpan semua halaman.
 - Saran: hapus log sukses, dan simpan sekali di akhir Auto-Fill atau Return All.
+- **Status**: diperbaiki. Log sukses dihapus. Selama Auto-Fill dan Return All, `m_defer_save` menunda simpan
+  per item, lalu semua halaman disimpan sekali di akhir kalau ada item yang pindah. Pemindahan satu item tetap
+  langsung disimpan.
 
 ### P18. Information Overlay membaca 8 nilai lewat Mono setiap frame
 
@@ -1371,6 +1531,8 @@ menghentikan game sejenak saat berjalan (stutter).
   gambar (thread render, lihat bug 20), ditambah 4 `std::format`. Default-nya mati, tetapi di setting Anda
   menyala.
 - Saran: ambil nilai ini di thread game (misalnya di `main_worker`) dan biarkan overlay hanya menggambar.
+- **Status**: diperbaiki. Nilai overlay dibaca di thread game setiap 100 ms, dan overlay menggambar dari salinan
+  itu.
 
 ### P19. Spawn in World tanpa batas jumlah objek
 
@@ -1380,6 +1542,8 @@ menghentikan game sejenak saat berjalan (stutter).
   dunia (+X dan +Z, bukan arah hadap pemain) sampai sekitar 1,6 km panjangnya. Game berhenti lama, dan semua
   ZDO baru dikirim ke server. Spawn objek non-item di fungsi yang sama sudah dibatasi 20.
 - Saran: batasi jumlah drop per spawn, atau sebar pembuatannya ke beberapa frame dengan `co_await`.
+- **Status**: diperbaiki dengan batas: satu Spawn in World membuat paling banyak 200 drop. Kalau batas tercapai,
+  pesan yang sudah ada melaporkan "Spawned X of Y requested". Susunan drop ke arah sumbu dunia tidak diubah.
 
 ### P20. `set_health` mencari method berdasarkan nama setiap kali dipanggil
 
@@ -1394,6 +1558,9 @@ menghentikan game sejenak saat berjalan (stutter).
   Health Regen menyala, ini terjadi setiap frame. Biayanya kecil per frame, tetapi perbaikannya cukup menambah
   `static`.
 - Saran: simpan hasil `get_method` di variabel `static`, seperti fungsi lain di file yang sama.
+- **Status**: diperbaiki. `SetHealth`, `SetMaxHealth`, dan `SetTamed` di `character.cpp`, `SetMaxHealth`,
+  `SetMaxStamina`, `AddEitr`, dan `AddStamina` di `player.cpp`, serta tiga lookup di
+  `crafting_tools::refresh_ui` sekarang disimpan di variabel `static`.
 
 ### P21. Pratinjau skrip membaca file dari disk setiap frame
 
@@ -1402,6 +1569,8 @@ menghentikan game sejenak saat berjalan (stutter).
   seluruh file, dan `std::filesystem::file_size` dipanggil, setiap frame di thread render. Untuk skrip kecil
   biayanya kecil, tetapi tetap I/O disk per frame.
 - Saran: baca isi file sekali saat skrip dipilih atau saat tombol Reload ditekan.
+- **Status**: diperbaiki sesuai saran. Isi dan ukuran file disimpan per path, dan dibaca ulang hanya saat
+  skrip lain dipilih atau tombol Reload ditekan.
 
 ## Sudah dicek dan aman
 
