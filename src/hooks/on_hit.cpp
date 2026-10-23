@@ -99,8 +99,10 @@ namespace big
 			}
 
 			auto local = unity::get_local_player();
-			if (!local)
+			if (!local || mono::get_field_value<"Projectile", "m_owner", MonoObject*>(Projectile) != local)
+			{
 				return detour_base::get_original<on_hit>()(Projectile, collider, hitPoint, water, normal);
+			}
 
 			Vector3 shooter = unity::get_position(local);
 			auto best = find_best_target(shooter);
