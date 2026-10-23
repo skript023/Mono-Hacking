@@ -1,6 +1,7 @@
 #include "trampoline_binding.hpp"
 
 #include "hooking/detour_hook.hpp"
+#include "../js_lock.hpp"
 
 namespace js::trampoline
 {
@@ -34,6 +35,7 @@ namespace js::trampoline
 		std::optional<qjs::Value> callback;
 		void* original{};
 		uint32_t argument_count{};
+		std::atomic<uint32_t> active{};
 	};
 
 	struct HookEntry
@@ -44,10 +46,15 @@ namespace js::trampoline
 
 		~HookEntry()
 		{
-			if (hook)
+			if (hook && !hook->disable())
 			{
-				hook->disable_immediately();
+				LOG(WARNING) << "JS hook '" << hook->name() << "' is covered by another program's hook; it stays in place.";
+				state->callback.reset();
+				(void)hook.release();
+				(void)state.release();
+				return;
 			}
+			hook.reset();
 			if (entry_stub)
 			{
 				VirtualFree(entry_stub, 0, MEM_RELEASE);
@@ -247,6 +254,23 @@ namespace js::trampoline
 	};
 
 	static std::unordered_map<std::string, std::unique_ptr<HookEntry>> g_hooks;
+	static std::vector<std::unique_ptr<HookEntry>> g_retired;
+
+	static void prune_retired()
+	{
+		std::erase_if(g_retired, [](const auto& entry) {
+			return entry->state->active == 0;
+		});
+	}
+
+	static bool hooks_active()
+	{
+		std::lock_guard lock(big::g_js_mutex);
+		const auto active = [](const auto& entry) {
+			return entry->state->active > 0;
+		};
+		return std::ranges::any_of(g_hooks | std::views::values, active) || std::ranges::any_of(g_retired, active);
+	}
 
 	static void* make_entry_stub(HookState* state)
 	{
@@ -276,6 +300,7 @@ namespace js::trampoline
 	public:
 		static bool add(std::string const& name, double address, uint32_t argument_count, qjs::Value callback)
 		{
+			prune_retired();
 			auto* target = reinterpret_cast<void*>(static_cast<uintptr_t>(address));
 			if (!target || !callback.isFunction() || g_hooks.contains(name) || argument_count > 256)
 			{
@@ -311,7 +336,7 @@ namespace js::trampoline
 		{
 			if (auto it = g_hooks.find(name); it != g_hooks.end())
 			{
-				it->second->hook->enable_immediately();
+				it->second->hook->enable();
 			}
 		}
 
@@ -319,13 +344,30 @@ namespace js::trampoline
 		{
 			if (auto it = g_hooks.find(name); it != g_hooks.end())
 			{
+				auto entry = std::move(it->second);
 				g_hooks.erase(it);
+				if (entry->state->active > 0)
+				{
+					entry->hook->disable();
+					g_retired.push_back(std::move(entry));
+				}
 			}
+			prune_retired();
 		}
 	};
 
 	extern "C" uintptr_t __fastcall JsDetourDispatch(AbiContext* raw_context, HookState* state)
 	{
+		++state->active;
+		struct active_scope
+		{
+			HookState* state;
+			~active_scope()
+			{
+				--state->active;
+			}
+		} scope{state};
+
 		auto context = std::make_shared<AbiContext>();
 		std::memcpy(context.get(), raw_context, offsetof(AbiContext, stack_copy));
 		context->argument_count = state->argument_count;
@@ -341,25 +383,28 @@ namespace js::trampoline
 		}
 		context->stack_copy = stack_args->data();
 
-		if (state->callback && state->callback->isFunction())
 		{
-			try
+			std::lock_guard lock(big::g_js_mutex);
+			if (state->callback && state->callback->isFunction())
 			{
-				auto argument = state->context->newValue(std::make_shared<NativeContext>(context, stack_args));
-				auto result   = state->callback->call(std::vector<qjs::Value>{std::move(argument)});
-				if (result.isInt() || result.isFloat())
+				try
 				{
-					return static_cast<uintptr_t>(result.as<double>());
+					auto argument = state->context->newValue(std::make_shared<NativeContext>(context, stack_args));
+					auto result   = state->callback->call(std::vector<qjs::Value>{std::move(argument)});
+					if (result.isInt() || result.isFloat())
+					{
+						return static_cast<uintptr_t>(result.as<double>());
+					}
+					if (context->original_called)
+					{
+						return context->return_value;
+					}
 				}
-				if (context->original_called)
+				catch (const qjs::exception&)
 				{
-					return context->return_value;
+					auto error = state->context->getException();
+					LOG(WARNING) << "[JS Detour Error] " << error.as<std::string>();
 				}
-			}
-			catch (const qjs::exception&)
-			{
-				auto error = state->context->getException();
-				LOG(WARNING) << "[JS Detour Error] " << error.as<std::string>();
 			}
 		}
 
@@ -395,6 +440,20 @@ namespace js::trampoline
 
 	void shutdown()
 	{
+		{
+			std::lock_guard lock(big::g_js_mutex);
+			for (auto& entry : g_hooks | std::views::values)
+			{
+				entry->hook->disable();
+			}
+		}
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+		while (hooks_active() && std::chrono::steady_clock::now() < deadline)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+		std::lock_guard lock(big::g_js_mutex);
 		g_hooks.clear();
+		g_retired.clear();
 	}
 }

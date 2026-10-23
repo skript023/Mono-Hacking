@@ -44,6 +44,10 @@ namespace big
 			std::ifstream file(path, std::ios::binary);
 			return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 		}
+
+		std::filesystem::path s_preview_path;
+		std::string s_preview;
+		std::uintmax_t s_preview_size = 0;
 	}
 
 	void view::js_scripts()
@@ -263,6 +267,7 @@ namespace big
 						if (ImGui::Button("Reload"))
 						{
 							scan_js_scripts();
+							s_preview_path.clear();
 						}
 						ImGui::SameLine();
 						if (ImGui::Button("Open Folder"))
@@ -294,18 +299,23 @@ namespace big
 						}
 						else
 						{
-							const auto path          = script_files[selected_script];
-							const auto filename      = path.filename().string();
-							std::uintmax_t file_size = 0;
-							try
+							const auto path     = script_files[selected_script];
+							const auto filename = path.filename().string();
+							if (s_preview_path != path)
 							{
-								file_size = std::filesystem::file_size(path);
-							}
-							catch (...)
-							{
+								s_preview_path = path;
+								s_preview      = read_script(path);
+								try
+								{
+									s_preview_size = std::filesystem::file_size(path);
+								}
+								catch (...)
+								{
+									s_preview_size = 0;
+								}
 							}
 							ImGui::Text("Script: %s", filename.c_str());
-							ImGui::TextDisabled("%s  ·  %.1f KB", path.string().c_str(), file_size / 1024.0);
+							ImGui::TextDisabled("%s  ·  %.1f KB", path.string().c_str(), s_preview_size / 1024.0);
 							ImGui::Spacing();
 							if (ImGui::Button("Execute Script"))
 							{
@@ -325,13 +335,11 @@ namespace big
 							}
 							ImGui::Separator();
 							ImGui::TextDisabled("Source Preview (read only)");
-							static std::string preview;
-							preview = read_script(path);
 							if (g_renderer && g_renderer->m_monospace_font)
 							{
 								ImGui::PushFont(g_renderer->m_monospace_font);
 							}
-							ImGui::InputTextMultiline("##script_code", &preview, {-FLT_MIN, -FLT_MIN}, ImGuiInputTextFlags_ReadOnly);
+							ImGui::InputTextMultiline("##script_code", &s_preview, {-FLT_MIN, -FLT_MIN}, ImGuiInputTextFlags_ReadOnly);
 							if (g_renderer && g_renderer->m_monospace_font)
 							{
 								ImGui::PopFont();

@@ -38,16 +38,33 @@ namespace js::mono
 
 		std::vector<void*> args;
 
-		std::vector<std::variant<int64_t, double, bool, big::MonoString*>> storage;
+		const auto parameter_types = big::mono::get_param_type_names(method);
+		std::vector<std::variant<int64_t, int32_t, double, float, bool, big::MonoString*>> storage;
 		storage.reserve(argv.size());
-		for (auto& s : argv)
+		for (std::size_t i = 0; i < argv.size(); ++i)
 		{
+			const auto& s = argv[i];
+			const std::string_view type = i < parameter_types.size() ? std::string_view(parameter_types[i]) : std::string_view();
 			int64_t iv;
 			double dv;
 			bool bv;
-			std::string ms;
 
-			if (big::unity::is_bool(s, bv))
+			if (type == "System.Single" && big::unity::is_double(s, dv))
+			{
+				storage.emplace_back(static_cast<float>(dv));
+				args.push_back(&std::get<float>(storage.back()));
+			}
+			else if (type == "System.Double" && big::unity::is_double(s, dv))
+			{
+				storage.emplace_back(dv);
+				args.push_back(&std::get<double>(storage.back()));
+			}
+			else if (type == "System.Int32" && big::unity::is_int(s, iv))
+			{
+				storage.emplace_back(static_cast<int32_t>(iv));
+				args.push_back(&std::get<int32_t>(storage.back()));
+			}
+			else if (big::unity::is_bool(s, bv))
 			{
 				storage.emplace_back(bv);
 				args.push_back(&std::get<bool>(storage.back()));
@@ -104,9 +121,7 @@ namespace js::mono
 	{
 		auto obj   = reinterpret_cast<MonoObject*>((uintptr_t)obj_val);
 		auto field = reinterpret_cast<MonoClassField*>((uintptr_t)field_val);
-		auto value = argv.c_str();
-
-		big::mono::set_field_value(obj, field, &value);
+		big::mono::set_field_value(obj, field, big::mono::to_mono_string(argv));
 	}
 
 	static double js_mono_get_field_value(double obj_val, double field_val)
@@ -114,10 +129,12 @@ namespace js::mono
 		auto obj   = reinterpret_cast<MonoObject*>((uintptr_t)obj_val);
 		auto field = reinterpret_cast<MonoClassField*>((uintptr_t)field_val);
 
-		void* out_value = nullptr;
-		big::mono::get_field_value(obj, field, &out_value);
+		std::vector<std::uint8_t> out_value(std::max<std::size_t>(big::mono::get_field_size(field), sizeof(uintptr_t)));
+		big::mono::get_field_value(obj, field, out_value.data());
 
-		return (double)(uintptr_t)out_value;
+		uintptr_t value{};
+		std::memcpy(&value, out_value.data(), sizeof(value));
+		return (double)value;
 	}
 	static double js_mono_get_field_offset(double field_u64)
 	{
@@ -202,24 +219,6 @@ namespace js::mono
 		big::Vector3* v = (big::Vector3*)big::mono::object_unbox(obj);
 		return v ? std::make_shared<big::Vector3>(*v) : std::shared_ptr<big::Vector3>{};
 	}
-	static MonoObject* list_get(MonoObject* list, int index)
-	{
-		MonoClass* klass = mono_object_get_class(list);
-
-		MonoMethod* getItem = mono_class_get_method_from_name(klass, "get_Item", 1);
-
-		if (!getItem)
-		{
-			return nullptr;
-		}
-
-		void* args[1];
-		args[0] = &index;
-
-		MonoObject* exc = nullptr;
-		return mono_runtime_invoke(getItem, list, args, &exc);
-	}
-
 	struct MonoBindings
 	{
 		static double get_class(std::string const& name, std::string const& assembly)

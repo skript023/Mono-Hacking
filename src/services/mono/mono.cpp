@@ -55,6 +55,8 @@ namespace big
 		mono_signature_get_return_type = require_export("mono_signature_get_return_type").as<mono_signature_get_return_type_t>();
 		mono_signature_get_params = require_export("mono_signature_get_params").as<mono_signature_get_params_t>();
 		mono_type_get_name        = require_export("mono_type_get_name").as<mono_type_get_name_t>();
+		mono_field_get_type       = require_export("mono_field_get_type").as<mono_field_get_type_t>();
+		mono_type_size            = require_export("mono_type_size").as<mono_type_size_t>();
 		mono_compile_method       = require_export("mono_compile_method").as<mono_compile_method_t>();
 		mono_runtime_invoke       = require_export("mono_runtime_invoke").as<mono_runtime_invoke_t>();
 		mono_object_unbox         = require_export("mono_object_unbox").as<mono_object_unbox_t>();
@@ -375,6 +377,27 @@ namespace big
 		return sig ? mono_signature_get_param_count(sig) : 0;
 	}
 
+	std::vector<std::string> mono::get_param_type_names_impl(MonoMethod* method) const
+	{
+		std::vector<std::string> names;
+		auto signature = method ? mono_method_signature(method) : nullptr;
+		if (!signature)
+		{
+			return names;
+		}
+		void* iterator = nullptr;
+		while (auto parameter = mono_signature_get_params(signature, &iterator))
+		{
+			auto name = mono_type_get_name(parameter);
+			names.emplace_back(name ? name : "");
+			if (name)
+			{
+				mono_free(name);
+			}
+		}
+		return names;
+	}
+
 	MonoMethod* mono::get_method_exact_impl(const char* type, const char* name, std::initializer_list<const char*> parameters, const char* assembly, const char* name_space)
 	{
 		auto klass = get_class_impl(type, assembly, name_space);
@@ -515,6 +538,17 @@ namespace big
 		}
 
 		return mono_field_get_offset(field);
+	}
+
+	uint32_t mono::get_field_size_impl(MonoClassField* field) const
+	{
+		auto type = field ? mono_field_get_type(field) : nullptr;
+		if (!type)
+		{
+			return 0u;
+		}
+		int alignment = 0;
+		return static_cast<uint32_t>(mono_type_size(type, &alignment));
 	}
 
 	void mono::get_field_value_impl(void* instance, MonoClassField* field, void* out) const

@@ -47,11 +47,13 @@ namespace big
 		MonoMethod* get_method_impl(const char* className, const char* methodName, int param_count, const char* assemblyName, const char* nameSpace) const;
 		MonoMethod* get_method_overload_impl(const char* className, const char* methodName, int param_count, const char* returnTypeName, const char* paramTypeName, const char* assemblyName, const char* nameSpace) const;
 		uint32_t get_param_count_impl(MonoMethod* method) const;
+		std::vector<std::string> get_param_type_names_impl(MonoMethod* method) const;
 		MonoClass* get_class_impl(const char* className, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
 		MonoClass* get_class_from_method_impl(MonoMethod* method) const;
 		MonoClassField* get_field_impl(const char* className, const char* fieldName, const char* assemblyName = "Assembly-CSharp", const char* nameSpace = "") const;
 		MonoClassField* get_field_impl(MonoClass* pKlass, const char* fieldName) const;
 		uint32_t get_field_offset_impl(MonoClassField* field) const;
+		uint32_t get_field_size_impl(MonoClassField* field) const;
 		void get_field_value_impl(void* instance, MonoClassField* field, void* out) const;
 		void set_field_value_impl(MonoObject* obj, MonoClassField* field, void* value);
 		MonoArray* new_reference_array_impl(MonoArray* source, int length);
@@ -127,6 +129,10 @@ namespace big
 		{
 			return get_instance().get_param_count_impl(method);
 		}
+		static std::vector<std::string> get_param_type_names(MonoMethod* method)
+		{
+			return get_instance().get_param_type_names_impl(method);
+		}
 		template<typename Return, typename... Args>
 		static Return invoke_compiled_method(void* compiledMethod, Args... args)
 		{
@@ -180,6 +186,10 @@ namespace big
 		static uint32_t get_field_offset(MonoClassField* field)
 		{
 			return get_instance().get_field_offset_impl(field);
+		};
+		static uint32_t get_field_size(MonoClassField* field)
+		{
+			return get_instance().get_field_size_impl(field);
 		};
 		static void get_field_value(void* instance, MonoClassField* field, void* out)
 		{
@@ -488,6 +498,8 @@ namespace big
 		mono_signature_get_return_type_t mono_signature_get_return_type   = nullptr;
 		mono_signature_get_params_t mono_signature_get_params             = nullptr;
 		mono_type_get_name_t mono_type_get_name                           = nullptr;
+		mono_field_get_type_t mono_field_get_type                         = nullptr;
+		mono_type_size_t mono_type_size                                   = nullptr;
 		mono_compile_method_t mono_compile_method                         = nullptr;
 		mono_runtime_invoke_t mono_runtime_invoke                         = nullptr;
 		mono_object_unbox_t mono_object_unbox                             = nullptr;
