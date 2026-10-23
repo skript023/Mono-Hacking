@@ -32,8 +32,6 @@ namespace big
 	{
 		update();
 		commands::run_looped_command();
-		g_pointers->m_resolution.x = unity::get_screen_width();
-		g_pointers->m_resolution.y = unity::get_screen_height();
 	}
 
 	task<void> main_worker::run()
@@ -51,6 +49,8 @@ namespace big
 
 	static void safe_slow_update()
 	{
+		g_pointers->m_resolution.x = unity::get_screen_width();
+		g_pointers->m_resolution.y = unity::get_screen_height();
 		online_players::update();
 		base_tools::update();
 	}

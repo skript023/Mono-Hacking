@@ -57,14 +57,14 @@ namespace big::unity
 	void hud_manager::queue_toggle_visibility_impl()
 	{
 		async_run([] {
-			auto getter = mono::get_method("Hud", "get_instance", 0, "assembly_valheim");
-			auto hud    = getter ? mono::invoke_method(getter, nullptr) : nullptr;
+			static auto getter = mono::get_method("Hud", "get_instance", 0, "assembly_valheim");
+			auto hud           = getter ? mono::invoke_method(getter, nullptr) : nullptr;
 			if (!hud)
 			{
 				return;
 			}
-			auto field       = mono::get_field("Hud", "m_userHidden", "assembly_valheim");
-			auto set_visible = mono::get_method("Hud", "SetVisible", 1, "assembly_valheim");
+			static auto field       = mono::get_field("Hud", "m_userHidden", "assembly_valheim");
+			static auto set_visible = mono::get_method("Hud", "SetVisible", 1, "assembly_valheim");
 			if (!field || !set_visible)
 			{
 				return;
@@ -358,8 +358,8 @@ namespace big::unity
 	{
 		try
 		{
-			auto getter = mono::get_method("Hud", "get_instance", 0, "assembly_valheim");
-			auto hud    = call_impl(getter);
+			static auto getter = mono::get_method("Hud", "get_instance", 0, "assembly_valheim");
+			auto hud           = call_impl(getter);
 			if (!hud || !unity::get_local_player())
 			{
 				if (m_hud)

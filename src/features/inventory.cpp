@@ -10,34 +10,19 @@ namespace big::features
 	int_command _inventory_width("inventory_width", "Inventory Width", "Width of the inventory.", 8, 1000, 8);
 	int_command _inventory_height("inventory_height", "Inventory Height", "Height of the inventory.", 4, 1000, 4);
 
-	static void update_gui_size(int rows)
+	static MonoObject* inventory_gui()
 	{
-		MonoClass* gui_class = mono::get_class("InventoryGui", "assembly_valheim");
-		if (!gui_class)
-			return;
+		static auto slot = static_cast<MonoObject**>(mono::get_static_field_value("InventoryGui", "m_instance", "assembly_valheim"));
+		return slot ? *slot : nullptr;
+	}
 
-		MonoClassField* inst_field = mono::get_field(gui_class, "m_instance");
-		if (!inst_field)
-			return;
-
-		void* static_data = mono::get_static_field_data(gui_class);
-		if (!static_data)
-			return;
-
-		uint32_t offset = mono::get_field_offset(inst_field);
-		void* ptr_addr = (void*)((uintptr_t)static_data + offset);
-		if (!ptr_addr)
-			return;
-
-		MonoObject* gui_inst = *(MonoObject**)ptr_addr;
-		if (!gui_inst)
-			return;
-
+	static void update_gui_size(MonoObject* gui, int rows)
+	{
 		static auto set_size_method = mono::get_method("InventoryGui", "SetInventorySize", 1, "assembly_valheim");
-		if (!set_size_method)
-			return;
-
-		mono::invoke(set_size_method, gui_inst, rows);
+		if (gui && set_size_method)
+		{
+			mono::invoke(set_size_method, gui, rows);
+		}
 	}
 
 	static int get_max_occupied_y(MonoObject* inv_obj)
@@ -84,6 +69,11 @@ namespace big::features
 	class inventory_size : public looped_command
 	{
 		using looped_command::looped_command;
+		MonoObject* m_inventory = nullptr;
+		MonoObject* m_gui       = nullptr;
+		int m_width             = 0;
+		int m_height            = 0;
+		int m_applied_height    = 0;
 
 		virtual void on_tick() override
 		{
@@ -95,21 +85,35 @@ namespace big::features
 			if (!inventory.get_object())
 				return;
 
-			int height = _inventory_height.get_state();
-			int width = _inventory_width.get_state();
+			const int height = _inventory_height.get_state();
+			const int width  = _inventory_width.get_state();
+			if (inventory.get_object() != m_inventory || width != m_width || height != m_height || inventory.get_width() != width
+			    || inventory.get_height() != m_applied_height)
+			{
+				const int target_height = std::max(height, get_max_occupied_y(inventory.get_object()) + 1);
+				inventory.set_height(target_height);
+				inventory.set_width(width);
+				sync_player_invrows(player.get_object(), target_height);
 
-			int max_y = get_max_occupied_y(inventory.get_object());
-			int target_height = std::max(height, max_y + 1);
+				m_inventory      = inventory.get_object();
+				m_width          = width;
+				m_height         = height;
+				m_applied_height = target_height;
+				m_gui            = nullptr;
+			}
 
-			inventory.set_height(target_height);
-			inventory.set_width(width);
-
-			update_gui_size(target_height);
-			sync_player_invrows(player.get_object(), target_height);
+			auto gui = inventory_gui();
+			if (gui && gui != m_gui)
+			{
+				update_gui_size(gui, m_applied_height);
+				m_gui = gui;
+			}
 		}
 
 		virtual void on_disable() override
 		{
+			m_inventory = nullptr;
+			m_gui       = nullptr;
 			auto player = self::get_player();
 			if (player.get_object())
 			{
@@ -121,7 +125,7 @@ namespace big::features
 
 					inventory.set_height(safe_height);
 					inventory.set_width(8);
-					update_gui_size(safe_height);
+					update_gui_size(inventory_gui(), safe_height);
 					sync_player_invrows(player.get_object(), safe_height);
 				}
 			}
