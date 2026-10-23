@@ -286,10 +286,9 @@ namespace big
 		return method;
 	}
 
-	const std::vector<buff_tools::boss_power>& buff_tools::get_boss_powers_impl()
+	std::vector<buff_tools::boss_power> buff_tools::get_boss_powers_impl()
 	{
-		static std::vector<boss_power> registered_powers;
-		registered_powers.clear();
+		std::vector<boss_power> registered_powers;
 
 		auto database    = unity::get_object_db();
 		auto db_class    = database ? mono::object_get_class(database) : nullptr;

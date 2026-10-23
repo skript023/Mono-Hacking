@@ -22,13 +22,14 @@ namespace big
 		}
 		void callback(input_callback_t callback);
 		void execute();
+		void cancel();
 		bool is_open()
 		{
 			return g_settings.window.input;
 		}
 
 	private:
-		char m_input[64];
+		char m_input[64]{};
 		char m_title[64] = "Input Here";
 		std::stack<input_callback_t> m_callback;
 	};

@@ -3,6 +3,7 @@
 #include <astra/host/notification.hpp>
 #include "item_spawner.hpp"
 #include "task_mgr.hpp"
+#include "render_queue.hpp"
 #include "utility/unity.hpp"
 #include "services/mono/array.hpp"
 
@@ -47,6 +48,7 @@ namespace big
 		Vector3 s_position{};
 		Vector3 s_rotation{};
 		bool s_position_initialized                       = false;
+		std::atomic_bool s_position_requested             = false;
 		constexpr std::array<const char*, 6> s_categories = {"All", "Creatures", "Items", "Building", "World", "Other"};
 
 		void reset_history_for_scene(MonoObject* scene)
@@ -460,11 +462,18 @@ namespace big
 				auto scene            = unity::get_znet_scene();
 				auto object           = mono::retained_object(last.object_handle);
 				static auto destroy   = mono::get_method("ZNetScene", "Destroy", 1, "assembly_valheim");
+				static auto is_alive = mono::get_method_exact("Object", "op_Implicit", {"UnityEngine.Object"}, "UnityEngine.CoreModule", "UnityEngine");
 				const bool same_scene = scene && mono::retained_object(last.scene_handle) == scene;
-				if (same_scene && destroy && object)
+				void* alive_args[1]   = {object};
+				auto alive = object && is_alive ? mono::invoke_method(is_alive, nullptr, alive_args) : nullptr;
+				MonoObject* exception = nullptr;
+				if (same_scene && destroy && alive && *static_cast<bool*>(mono::object_unbox(alive)))
 				{
 					void* args[1] = {object};
-					mono::invoke_method(destroy, scene, args);
+					mono::invoke_method(destroy, scene, args, &exception);
+				}
+				if (same_scene && destroy && alive && *static_cast<bool*>(mono::object_unbox(alive)) && !exception)
+				{
 					notification::success("Prefab Spawner", std::format("Removed {}.", last.name));
 				}
 				else
@@ -479,7 +488,8 @@ namespace big
 
 	void prefab_spawner::toggle_window()
 	{
-		s_open = !s_open;
+		s_open                 = !s_open;
+		s_position_initialized = false;
 		if (s_open && get_prefabs().empty())
 		{
 			scan_prefabs();
@@ -549,14 +559,23 @@ namespace big
 		ImGui::EndChild();
 		if (s_selected >= 0 && s_selected < static_cast<int>(prefabs.size()))
 		{
-			if (!s_position_initialized)
+			if (!s_position_initialized && !s_position_requested.exchange(true))
 			{
-				if (auto player = unity::get_local_player())
-				{
-					s_position             = unity::get_position(player) + unity::get_forward(player) * 4.f;
-					s_rotation             = Vector3{};
-					s_position_initialized = true;
-				}
+				async_run([] {
+					auto player = unity::get_local_player();
+					if (!player)
+					{
+						s_position_requested = false;
+						return;
+					}
+					const Vector3 position = unity::get_position(player) + unity::get_forward(player) * 4.f;
+					render_queue::post([position] {
+						s_position             = position;
+						s_rotation             = Vector3{};
+						s_position_initialized = true;
+						s_position_requested   = false;
+					});
+				});
 			}
 			ImGui::Text("Selected  %s", prefabs[s_selected].name.c_str());
 			if (prefabs[s_selected].category == "Building" && ImGui::Button("Find Matching Build Tool", {-1.f, 0.f}))

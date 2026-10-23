@@ -16,7 +16,7 @@ namespace big
 			std::string effect_description;
 		};
 
-		static const std::vector<boss_power>& get_boss_powers()
+		static std::vector<boss_power> get_boss_powers()
 		{
 			return instance().get_boss_powers_impl();
 		}
@@ -75,7 +75,7 @@ namespace big
 			return value;
 		}
 
-		const std::vector<boss_power>& get_boss_powers_impl();
+		std::vector<boss_power> get_boss_powers_impl();
 		void apply_rested_impl(int comfort, bool notify);
 		void activate_guardian_power_impl(const std::string& power_name);
 		bool discover_guardian_powers_impl();

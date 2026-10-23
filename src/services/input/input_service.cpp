@@ -1,16 +1,17 @@
 #include "input_service.hpp"
+#include "task_mgr.hpp"
 
 namespace big
 {
 	void input_service::show(std::string title)
 	{
-		strcpy(m_title, title.c_str());
+		strncpy_s(m_title, title.c_str(), _TRUNCATE);
 		g_settings.window.input = true;
 		g_settings.window.mouse_active = true;
 	}
 	void input_service::show(std::string const& title, input_callback_t cb)
 	{
-		strcpy(m_title, title.c_str());
+		strncpy_s(m_title, title.c_str(), _TRUNCATE);
 		g_settings.window.input = true;
 		g_settings.window.mouse_active = true;
 
@@ -38,8 +39,16 @@ namespace big
 			input_callback_t job = std::move(m_callback.top());
 			m_callback.pop();
 
-			std::invoke(std::move(job), std::string(m_input));
+			std::string text(m_input);
 			this->hide();
+			async_run([job = std::move(job), text = std::move(text)] {
+				std::invoke(job, text);
+			});
 		}
+	}
+	void input_service::cancel()
+	{
+		m_callback = {};
+		this->hide();
 	}
 }

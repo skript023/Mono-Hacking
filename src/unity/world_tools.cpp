@@ -692,6 +692,42 @@ namespace big
 		{
 			return false;
 		}
+		if (auto zone = zone_system::get_instance(); zone.get_object())
+		{
+			static auto modifiers_field       = mono::get_field(gui_class, "m_modifiers");
+			static auto slider_class          = mono::get_class("KeySlider", "assembly_valheim");
+			static MonoClassField* keys_field = nullptr;
+			auto modifiers = modifiers_field ? *reinterpret_cast<MonoArray**>(reinterpret_cast<uintptr_t>(gui_static) + mono::get_field_offset(modifiers_field)) : nullptr;
+			const int target = *static_cast<int*>(mono::object_unbox(parsed_modifier));
+			for (auto key_ui : mono_array_view<MonoObject*>(modifiers))
+			{
+				if (!key_ui || mono::object_get_class(key_ui) != slider_class || mono::get_field_value<"KeySlider", "m_modifier", int>(key_ui) != target)
+				{
+					continue;
+				}
+				for (auto setting : unity::list_to_vector(mono::get_field_value<"KeySlider", "m_settings", MonoObject*>(key_ui)))
+				{
+					if (!setting)
+					{
+						continue;
+					}
+					if (!keys_field)
+					{
+						keys_field = mono::get_field(mono::object_get_class(setting), "m_keys");
+					}
+					MonoObject* keys = nullptr;
+					if (keys_field)
+					{
+						mono::get_field_value(setting, keys_field, &keys);
+					}
+					for (auto key : unity::list_to_vector(keys))
+					{
+						const auto name = mono::from_mono_string(reinterpret_cast<MonoString*>(key));
+						zone.remove_global_key(name.substr(0, name.find(' ')));
+					}
+				}
+			}
+		}
 		void* modifier_set_args[] = {world, mono::object_unbox(parsed_modifier), mono::object_unbox(parsed_option)};
 		mono::invoke_method(set_modifier, gui, modifier_set_args, &exception);
 		return exception == nullptr;

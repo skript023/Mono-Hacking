@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 
 namespace big
 {
@@ -18,7 +19,7 @@ namespace big
 		bool fetch_saved_locations();
 		bool save_new_location(const std::string& category, teleport_location t);
 		bool delete_saved_location(const std::string& category, const std::string& location_name);
-		teleport_location* get_saved_location_by_name(std::string);
+		std::optional<teleport_location> get_saved_location_by_name(std::string);
 		std::vector<teleport_location> saved_locations_filtered_list(std::string filter = "");
 
 	private:
