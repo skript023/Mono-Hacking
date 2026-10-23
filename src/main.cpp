@@ -3,6 +3,7 @@
 #include "pointers.hpp"
 #include "renderer.hpp"
 #include "task_mgr.hpp"
+#include "commands/commands.hpp"
 #include "thread_pool.hpp"
 #include "benchmark.hpp"
 #include "file_manager.hpp"
@@ -114,6 +115,26 @@ DWORD APIENTRY main_thread(LPVOID)
 			std::this_thread::sleep_for(1s);
 		}
 
+		{
+			auto pending       = std::make_shared<std::atomic_bool>(true);
+			g_shutdown_pending = true;
+			async_run([pending] {
+				commands::shutdown();
+				async_run([pending] {
+					pending->store(false);
+				});
+			});
+			const auto deadline = std::chrono::steady_clock::now() + 2s;
+			while (pending->load() && std::chrono::steady_clock::now() < deadline)
+			{
+				std::this_thread::sleep_for(10ms);
+			}
+			g_shutdown_pending = false;
+			if (pending->load())
+			{
+				LOG(WARNING) << "Game thread unavailable to turn off looped features before unload.";
+			}
+		}
 		crafting_tools::shutdown();
 		animal_tools::shutdown();
 		world_time::shutdown();
