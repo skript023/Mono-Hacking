@@ -8,6 +8,7 @@ namespace big
 		static bool set_time_scale(float value);
 		static bool reset_time_scale();
 		static bool is_time_paused();
+		static void maintain();
 		static bool set_day_fraction(float fraction);
 		static bool next_morning();
 		static bool save_world();

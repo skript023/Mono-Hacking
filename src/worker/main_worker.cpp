@@ -8,6 +8,7 @@
 #include "unity/online_players.hpp"
 #include "unity/base_tools.hpp"
 #include "unity/animal_tools.hpp"
+#include "unity/world_time.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
 #include <astra/host/hotkeys.hpp>
@@ -24,6 +25,7 @@ namespace big
 		base_tools::hotkey_tick();
 		animal_tools::update();
 		animal_tools::hotkey_tick();
+		world_time::maintain();
 		settings::apply_external();
 		hotkeys::tick(g_pointers->m_hwnd);
 	}
