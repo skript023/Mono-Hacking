@@ -203,6 +203,18 @@ namespace big
 		{
 			equipment_manager::get().tick(player);
 
+			static bool last_no_weight = false;
+			if (last_no_weight != g_settings.self.no_weight)
+			{
+				last_no_weight            = g_settings.self.no_weight;
+				static auto update_weight = mono::get_method("Inventory", "UpdateTotalWeight", 0, "assembly_valheim");
+				auto inventory            = mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(local_player);
+				if (update_weight && inventory)
+				{
+					mono::invoke_method(update_weight, inventory, nullptr);
+				}
+			}
+
 			if (last_pickup_player != local_player || last_pickup_range != g_settings.self.pickup_range)
 			{
 				last_pickup_player = local_player;

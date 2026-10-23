@@ -34,6 +34,7 @@ namespace big
 		static void create_tomb_stone(MonoObject* player);
 		static void on_selected_item(void* this_ptr, void* grid_ptr, MonoObject* item_data_obj, iVector2 pos, int mod);
 		static float get_weight(void* _thisint, int stackOverride);
+		static void inventory_update_total_weight(MonoObject* inventory);
 		static float item_get_armor(MonoObject* item, int quality, float world_level);
 		static float item_get_max_durability(MonoObject* item, int quality);
 		static float item_get_base_block_power(MonoObject* item, int quality);

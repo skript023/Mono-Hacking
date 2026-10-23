@@ -98,6 +98,7 @@ namespace big
 		add_mono_hook_overload<hooks::seman_add_status_effect>("SEMan::AddStatusEffect(StatusEffect)", "SEMan", "AddStatusEffect", 5, nullptr, "StatusEffect", "assembly_valheim");
 		add_mono_hook<hooks::on_selected_item>("InventoryGui::OnSelectedItem", "InventoryGui", "OnSelectedItem", 4, "assembly_valheim");
 		add_mono_hook<hooks::get_weight>("ItemDrop::ItemData::GetWeight", "ItemDrop/ItemData", "GetWeight", 1, "assembly_valheim");
+		add_mono_hook<hooks::inventory_update_total_weight>("Inventory::UpdateTotalWeight", "Inventory", "UpdateTotalWeight", 0, "assembly_valheim");
 		add_mono_hook<hooks::item_get_armor>("ItemDrop::ItemData::GetArmor", "ItemDrop/ItemData", "GetArmor", 2, "assembly_valheim");
 		add_mono_hook<hooks::item_get_max_durability>("ItemDrop::ItemData::GetMaxDurability", "ItemDrop/ItemData", "GetMaxDurability", 1, "assembly_valheim");
 		add_mono_hook<hooks::item_get_base_block_power>("ItemDrop::ItemData::GetBaseBlockPower", "ItemDrop/ItemData", "GetBaseBlockPower", 1, "assembly_valheim");

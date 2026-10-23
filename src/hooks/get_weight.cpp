@@ -1,16 +1,12 @@
 #include "hooking.hpp"
 #include <script_mgr.hpp>
 #include "unity/item_data.hpp"
+#include "utility/unity.hpp"
 
 namespace big
 {
 	float hooks::get_weight(void* _this, int stackOverride)
 	{
-		if (g_settings.self.no_weight)
-		{
-			return 0.f;
-		}
-
 		float override_weight = 0.f;
 		if (item_data(static_cast<MonoObject*>(_this)).get_stat_override("ew_weight", override_weight))
 		{
@@ -20,5 +16,20 @@ namespace big
 		}
 
 		return detour_base::get_original<get_weight>()(_this, stackOverride);
+	}
+
+	void hooks::inventory_update_total_weight(MonoObject* inventory)
+	{
+		detour_base::get_original<inventory_update_total_weight>()(inventory);
+		if (!g_running || !g_settings.self.no_weight || !inventory)
+		{
+			return;
+		}
+
+		auto player = unity::get_local_player();
+		if (player && inventory == mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(player))
+		{
+			mono::set_field_value<"Inventory", "m_totalWeight">(inventory, 0.f);
+		}
 	}
 }
