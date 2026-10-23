@@ -280,6 +280,28 @@ namespace big
 			mono::invoke_method(add_method, foods_list, params);
 		}
 
+		static auto get_game       = mono::get_method("Game", "get_instance", 0, "assembly_valheim");
+		static auto increment_stat = mono::get_method("Game", "IncrementPlayerStat", 3, "assembly_valheim");
+		static auto get_profile    = mono::get_method("Game", "GetPlayerProfile", 0, "assembly_valheim");
+		static auto food_eaten     = mono::get_method("PlayerProfile", "IncrementStatFoodEaten", 3, "assembly_valheim");
+		auto game                  = get_game ? mono::invoke_method(get_game, nullptr, nullptr) : nullptr;
+		if (game && increment_stat && get_profile && food_eaten)
+		{
+			constexpr int food_eaten_stat = 49;
+			int stat                      = food_eaten_stat;
+			float amount                  = 1.f;
+			bool not_cheat                = false;
+			void* stat_args[3]            = {&stat, &amount, &not_cheat};
+			mono::invoke_method(increment_stat, game, stat_args);
+
+			if (auto profile = mono::invoke_method(get_profile, game, nullptr))
+			{
+				bool cheated       = mono::get_field_value<"ItemDrop/ItemData", "m_cheated", bool>(item);
+				void* food_args[3] = {item_name_mono, &amount, &cheated};
+				mono::invoke_method(food_eaten, profile, food_args);
+			}
+		}
+
 		// Update food stats
 		static auto update_food = mono::get_method("Player", "UpdateFood", 2, "assembly_valheim");
 		if (update_food)
