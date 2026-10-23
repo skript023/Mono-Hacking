@@ -12,6 +12,7 @@ namespace big
 		void init_impl();
 		void ensure_thread_attached_impl() const;
 		MonoObject* invoke_method_impl(MonoMethod* method, void* obj, void** params, MonoObject** exception = nullptr) const;
+		void log_unhandled_exception_impl(MonoMethod* method, MonoObject* exception) const;
 		template<typename Return, typename... Args>
 		Return invoke_compiled_method_impl(void* compiledMethod, Args... args) const
 		{

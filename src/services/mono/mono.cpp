@@ -160,7 +160,34 @@ namespace big
 		{
 			*exception = execution;
 		}
+		else if (execution)
+		{
+			log_unhandled_exception_impl(method, execution);
+		}
 		return execution ? nullptr : result;
+	}
+
+	void mono::log_unhandled_exception_impl(MonoMethod* method, MonoObject* exception) const
+	{
+		static std::mutex logged_mutex;
+		static std::unordered_map<MonoMethod*, int> logged;
+		{
+			std::lock_guard lock(logged_mutex);
+			if (++logged[method] > 3)
+			{
+				return;
+			}
+		}
+
+		auto method_class    = mono_method_get_class(method);
+		auto exception_class = mono_object_get_class(exception);
+		auto message_field   = exception_class ? mono_class_get_field_from_name(exception_class, "_message") : nullptr;
+		MonoString* message  = nullptr;
+		if (message_field)
+		{
+			mono_field_get_value(exception, message_field, &message);
+		}
+		LOG(WARNING) << "[Mono] " << (method_class ? mono_class_get_name(method_class) : "?") << "." << mono_method_get_name(method) << " threw " << (exception_class ? mono_class_get_name(exception_class) : "an exception") << ": " << from_mono_string_impl(message);
 	}
 
 	MonoImage* mono::get_image_impl(const char* assemblyName) const
