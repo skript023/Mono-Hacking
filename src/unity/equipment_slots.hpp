@@ -4,6 +4,7 @@
 #include "imgui.h"
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -58,6 +59,7 @@ namespace big
 		// Lifecycle & Persistence
 		void init_or_sync();
 		bool save_to_player();
+		void mark_dirty();
 		void tick(MonoObject* player);
 
 		// Slot actions
@@ -123,6 +125,8 @@ namespace big
 		bool m_in_equip{false};
 		bool m_syncing{false};
 		bool m_saving{false};
+		bool m_dirty{false};
+		std::chrono::steady_clock::time_point m_dirty_since{};
 
 		// Ammo hotkey debounce
 		bool m_r_key_down{false};

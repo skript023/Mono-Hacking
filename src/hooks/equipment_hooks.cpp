@@ -129,7 +129,7 @@ namespace big
 						bool removed = detour_base::get_original<inventory_remove_item>()(eq, item, amount);
 						if (removed)
 						{
-							equipment_manager::get().save_to_player();
+							equipment_manager::get().mark_dirty();
 						}
 						return removed;
 					}

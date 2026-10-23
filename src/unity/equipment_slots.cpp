@@ -652,7 +652,17 @@ namespace big
 
 		LOG(INFO) << "[EquipmentSlots] Successfully saved equipment pages to player customData!";
 		m_saving = false;
+		m_dirty  = false;
 		return true;
+	}
+
+	void equipment_manager::mark_dirty()
+	{
+		if (!m_dirty)
+		{
+			m_dirty       = true;
+			m_dirty_since = std::chrono::steady_clock::now();
+		}
 	}
 
 	MonoObject* equipment_manager::get_equipment_inventory()
@@ -811,10 +821,10 @@ namespace big
 			// Food / Consumables (item_type == 2)
 			if (item_type == 2)
 			{
-				if (use_m && player_inv)
+				if (use_m)
 				{
 					bool from_gui = true;
-					void* args[3] = {player_inv, item, &from_gui};
+					void* args[3] = {eq, item, &from_gui};
 					mono::invoke_method(use_m, m_cached_player, args);
 				}
 			}
@@ -1009,6 +1019,12 @@ namespace big
 		if (!m_initialized || player != m_cached_player)
 		{
 			return;
+		}
+
+		if (m_dirty && std::chrono::steady_clock::now() - m_dirty_since >= std::chrono::seconds(2))
+		{
+			m_dirty_since = std::chrono::steady_clock::now();
+			save_to_player();
 		}
 
 		// Update Native Unity UI
