@@ -89,6 +89,7 @@ namespace big
 		add_mono_hook<hooks::game_update>("Game::Update", "Game", "Update", 0, "assembly_valheim");
 		add_mono_hook<hooks::update>("Player::Update", "Player", "Update", 0, "assembly_valheim");
 		add_mono_hook<hooks::update_food>("Player::UpdateFood", "Player", "UpdateFood", 2, "assembly_valheim");
+		add_mono_hook<hooks::player_set_max_eitr>("Player::SetMaxEitr", "Player", "SetMaxEitr", 2, "assembly_valheim");
 		add_mono_hook<hooks::create_tomb_stone>("Player::CreateTombStone", "Player", "CreateTombStone", 0, "assembly_valheim");
 		add_mono_hook<hooks::is_debug_flying>("Player::IsDebugFlying", "Player", "IsDebugFlying", 0, "assembly_valheim");
 		add_mono_hook<hooks::is_encumbered>("Player::IsEncumbered", "Player", "IsEncumbered", 0, "assembly_valheim");

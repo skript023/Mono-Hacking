@@ -1,99 +1,144 @@
 #include "commands/looped_command.hpp"
 #include "commands/float_command.hpp"
 #include "mono/mono.hpp"
+#include "task_mgr.hpp"
 #include "unity/ship_tools.hpp"
 
 #include <algorithm>
+#include <array>
+#include <vector>
 
 namespace big::features
 {
+	template<typename T, size_t N>
+	class ship_override
+	{
+		struct entry
+		{
+			uintptr_t handle{};
+			std::array<T, N> original{};
+		};
+
+		std::array<const char*, N> m_names;
+		std::array<MonoClassField*, N> m_fields{};
+		bool m_resolved = false;
+		std::vector<entry> m_entries;
+
+		bool resolve()
+		{
+			if (!m_resolved)
+			{
+				auto ship_class = mono::get_class("Ship", "assembly_valheim");
+				if (!ship_class)
+				{
+					return false;
+				}
+				for (size_t i = 0; i < N; ++i)
+				{
+					m_fields[i] = mono::get_field(ship_class, m_names[i]);
+				}
+				m_resolved = true;
+			}
+			return std::ranges::all_of(m_fields, [](MonoClassField* field) {
+				return field != nullptr;
+			});
+		}
+
+	public:
+		explicit ship_override(std::array<const char*, N> names) :
+		    m_names(names)
+		{
+		}
+
+		const std::array<T, N>* original(MonoObject* ship)
+		{
+			if (!ship || !resolve())
+			{
+				return nullptr;
+			}
+			for (const auto& recorded : m_entries)
+			{
+				if (mono::retained_object(recorded.handle) == ship)
+				{
+					return &recorded.original;
+				}
+			}
+
+			entry recorded{mono::retain(ship)};
+			if (!recorded.handle)
+			{
+				return nullptr;
+			}
+			for (size_t i = 0; i < N; ++i)
+			{
+				mono::get_field_value(ship, m_fields[i], &recorded.original[i]);
+			}
+			return &m_entries.emplace_back(recorded).original;
+		}
+
+		void write(MonoObject* ship, std::array<T, N> values)
+		{
+			for (size_t i = 0; i < N; ++i)
+			{
+				mono::set_field_value(ship, m_fields[i], &values[i]);
+			}
+		}
+
+		void restore()
+		{
+			for (const auto& recorded : m_entries)
+			{
+				if (auto ship = mono::retained_object(recorded.handle))
+				{
+					write(ship, recorded.original);
+				}
+				mono::release(recorded.handle);
+			}
+			m_entries.clear();
+		}
+	};
+
 	class ship_ashlands_immune : public looped_command
 	{
 		using looped_command::looped_command;
+		ship_override<bool, 1> m_override{{"m_ashlandsReady"}};
 
 		virtual void on_tick() override
 		{
 			auto ship = ship_tools::get_local_ship();
-			if (!ship)
-				return;
-
-			auto ship_class = mono::get_class("Ship", "assembly_valheim");
-			if (!ship_class)
-				return;
-
-			static auto f_ashlands = mono::get_field(ship_class, "m_ashlandsReady");
-			if (f_ashlands)
+			if (m_override.original(ship))
 			{
-				bool ready = true;
-				mono::set_field_value(ship, f_ashlands, &ready);
+				m_override.write(ship, {true});
 			}
+		}
+
+		virtual void on_disable() override
+		{
+			async_run([this] {
+				m_override.restore();
+			});
 		}
 	};
 
 	class ship_no_wave_damage : public looped_command
 	{
 		using looped_command::looped_command;
+		ship_override<float, 3> m_override{{"m_waterImpactDamage", "m_minWaterImpactForce", "m_upsideDownDmg"}};
 
 		virtual void on_tick() override
 		{
 			auto ship = ship_tools::get_local_ship();
-			if (!ship)
-				return;
-
-			auto ship_class = mono::get_class("Ship", "assembly_valheim");
-			if (!ship_class)
-				return;
-
-			static auto f_impact_dmg = mono::get_field(ship_class, "m_waterImpactDamage");
-			static auto f_impact_force = mono::get_field(ship_class, "m_minWaterImpactForce");
-			static auto f_upside_dmg = mono::get_field(ship_class, "m_upsideDownDmg");
-
-			if (f_impact_dmg)
+			if (m_override.original(ship))
 			{
-				float zero = 0.f;
-				mono::set_field_value(ship, f_impact_dmg, &zero);
-			}
-			if (f_impact_force)
-			{
-				float max_force = 999999.f;
-				mono::set_field_value(ship, f_impact_force, &max_force);
-			}
-			if (f_upside_dmg)
-			{
-				float zero = 0.f;
-				mono::set_field_value(ship, f_upside_dmg, &zero);
+				m_override.write(ship, {0.f, 999999.f, 0.f});
 			}
 		}
 
 		virtual void on_disable() override
 		{
-			auto ship = ship_tools::get_local_ship();
-			if (!ship)
-				return;
-
-			auto ship_class = mono::get_class("Ship", "assembly_valheim");
-			if (!ship_class)
-				return;
-
-			static auto f_impact_dmg = mono::get_field(ship_class, "m_waterImpactDamage");
-			static auto f_impact_force = mono::get_field(ship_class, "m_minWaterImpactForce");
-			static auto f_upside_dmg = mono::get_field(ship_class, "m_upsideDownDmg");
-
-			if (f_impact_dmg)
-			{
-				float default_dmg = 1.f;
-				mono::set_field_value(ship, f_impact_dmg, &default_dmg);
-			}
-			if (f_impact_force)
-			{
-				float default_force = 2.5f;
-				mono::set_field_value(ship, f_impact_force, &default_force);
-			}
-			if (f_upside_dmg)
-			{
-				float default_upside = 10.f;
-				mono::set_field_value(ship, f_upside_dmg, &default_upside);
-			}
+			async_run([this] {
+				m_override.restore();
+			});
 		}
 	};
 
@@ -102,66 +147,28 @@ namespace big::features
 	class ship_speed : public looped_command
 	{
 		using looped_command::looped_command;
+		ship_override<float, 4> m_override{{"m_sailForceFactor", "m_stearForce", "m_backwardForce", "m_rudderSpeed"}};
 
 		virtual void on_tick() override
 		{
-			auto ship = ship_tools::get_local_ship();
-			if (!ship)
+			auto ship     = ship_tools::get_local_ship();
+			auto original = m_override.original(ship);
+			if (!original)
+			{
 				return;
+			}
 
-			auto ship_class = mono::get_class("Ship", "assembly_valheim");
-			if (!ship_class)
-				return;
+			const auto& [sail_force, stear_force, back_force, rudder_spd] = *original;
 
-			float mult = _ship_speed_multiplier.get_state();
-			static auto f_sail_force = mono::get_field(ship_class, "m_sailForceFactor");
-			static auto f_stear_force = mono::get_field(ship_class, "m_stearForce");
-			static auto f_back_force = mono::get_field(ship_class, "m_backwardForce");
-			static auto f_rudder_spd = mono::get_field(ship_class, "m_rudderSpeed");
-
-			float sail_force = 0.1f * mult;
-			float stear_force = 0.5f * std::min(mult, 3.f);
-			float back_force = 50.f * mult;
-			float rudder_spd = 0.5f * std::min(mult, 2.5f);
-
-			if (f_sail_force)
-				mono::set_field_value(ship, f_sail_force, &sail_force);
-			if (f_stear_force)
-				mono::set_field_value(ship, f_stear_force, &stear_force);
-			if (f_back_force)
-				mono::set_field_value(ship, f_back_force, &back_force);
-			if (f_rudder_spd)
-				mono::set_field_value(ship, f_rudder_spd, &rudder_spd);
+			const float mult = _ship_speed_multiplier.get_state();
+			m_override.write(ship, {sail_force * mult, stear_force * std::min(mult, 3.f), back_force * mult, rudder_spd * std::min(mult, 2.5f)});
 		}
 
 		virtual void on_disable() override
 		{
-			auto ship = ship_tools::get_local_ship();
-			if (!ship)
-				return;
-
-			auto ship_class = mono::get_class("Ship", "assembly_valheim");
-			if (!ship_class)
-				return;
-
-			static auto f_sail_force = mono::get_field(ship_class, "m_sailForceFactor");
-			static auto f_stear_force = mono::get_field(ship_class, "m_stearForce");
-			static auto f_back_force = mono::get_field(ship_class, "m_backwardForce");
-			static auto f_rudder_spd = mono::get_field(ship_class, "m_rudderSpeed");
-
-			float sail_force = 0.1f;
-			float stear_force = 0.5f;
-			float back_force = 50.f;
-			float rudder_spd = 0.5f;
-
-			if (f_sail_force)
-				mono::set_field_value(ship, f_sail_force, &sail_force);
-			if (f_stear_force)
-				mono::set_field_value(ship, f_stear_force, &stear_force);
-			if (f_back_force)
-				mono::set_field_value(ship, f_back_force, &back_force);
-			if (f_rudder_spd)
-				mono::set_field_value(ship, f_rudder_spd, &rudder_spd);
+			async_run([this] {
+				m_override.restore();
+			});
 		}
 	};
 
@@ -169,4 +176,3 @@ namespace big::features
 	static ship_no_wave_damage _ship_no_wave_damage("ship_no_wave_damage", "No Wave & Collision Damage", "Ships take zero impact damage from crashing waves, rocks, or capsizing.");
 	static ship_speed _ship_speed("ship_speed", "Ship Speed Boost", "Multiply sail speed, reverse thrust, and rudder responsiveness.");
 }
-

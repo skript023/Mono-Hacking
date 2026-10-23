@@ -46,6 +46,7 @@ namespace big
 		static void game_update(MonoObject* game);
 		static void update(MonoObject* player);
 		static void update_food(MonoObject* player, float dt, bool force_update);
+		static void player_set_max_eitr(MonoObject* player, float max_eitr, bool flash);
 		static void set_alerted(MonoObject* player, bool alerted);
 		static bool is_wind_controll_active(MonoObject* player);
 		static bool is_out_of_water(MonoObject* player);

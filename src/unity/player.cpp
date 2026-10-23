@@ -30,6 +30,13 @@ namespace big
 			LOG(FATAL) << "Failed to set max eitr value";
 		}
 	}
+	void player::set_eitr(float eitr)
+	{
+		if (!mono::set_field_value<"Player", "m_eitr">(m_character, eitr))
+		{
+			LOG(FATAL) << "Failed to set eitr value";
+		}
+	}
 	void player::set_base_stamina(float stamina)
 	{
 		if (!mono::set_field_value<"Player", "m_baseStamina">(m_character, stamina))
@@ -160,6 +167,10 @@ namespace big
 	float player::get_max_eitr()
 	{
 		return mono::get_field_value<"Player", "m_maxEitr", float>(m_character);
+	}
+	float player::get_eitr()
+	{
+		return mono::get_field_value<"Player", "m_eitr", float>(m_character);
 	}
 	float player::get_stamina_regen()
 	{
