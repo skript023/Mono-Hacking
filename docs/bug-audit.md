@@ -26,21 +26,21 @@ ini; temuan yang bergantung pada nilai prefab ditandai **belum dipastikan**. Bel
 | 13 | Noclip macet setelah mati atau ganti world, dan melempar exception setiap frame | Sedang, diperbaiki | `hooks/player_update.cpp` |
 | 14 | Infinite Durability mengisi durability 1000, bukan nilai maksimal item | Sedang, diperbaiki | `hooks/durability.cpp` |
 | 15 | Makanan dan mead dari slot food tidak pernah berkurang | Tinggi, diperbaiki | `unity/equipment_slots.cpp` |
-| 16 | `HaveEmptySlot` selalu true untuk semua inventory, loot peti kapal bisa hilang | Sedang | `hooks/have_empty_slot.cpp` |
-| 17 | Inventory Size menyembunyikan item saat dimatikan dan membuat item jatuh saat spawn tanpa mod | Sedang | `features/inventory.cpp` |
-| 18 | Hook kosong dan log yang tidak perlu | Rendah | beberapa file |
-| 19 | Unload tidak mematikan fitur looped, jadi nilai yang diubah tetap tertinggal di game | Tinggi | `main.cpp`, `commands/commands.cpp` |
-| 20 | Toggle fitur dan beberapa tombol menu memanggil API Unity dari thread render | Sedang, sebagian belum dipastikan | `gui.cpp`, beberapa menu |
-| 21 | Prevent Freezing/Cold/Wet dan Auto-Purge bertarung dengan game setiap frame | Sedang | `hooks/player_update.cpp`, `features/buffs.cpp` |
-| 22 | Exception Mono ditelan tanpa log | Rendah | `services/mono/mono.cpp` |
-| 23 | Jendela Equipment, Bookmark, dan menu skrip JS menjalankan aksi game dari thread render | Sedang, belum dipastikan | `unity/equipment_slots.cpp`, `unity/bookmark_manager.cpp`, `services/javascript` |
-| 24 | Hook aimbot tidak mengecek penembak, jadi serangan creature dan semua proyektil ikut diarahkan | Sedang | `hooks/start_attack.cpp`, `hooks/on_hit.cpp` |
-| 25 | Item di slot equipment tidak pernah masuk tombstone, dan tidak terlihat tanpa mod | Sedang | `unity/equipment_slots.cpp` |
-| 26 | Return All melaporkan berhasil walaupun inventory penuh, dan armor sudah terlepas | Rendah | `unity/equipment_slots.cpp` |
-| 27 | Jalur exception SEH di `drop_item` dan `parry_hooks` | Rendah | `hooks/drop_item.cpp`, `hooks/parry_hooks.cpp` |
-| 28 | Makanan di slot tambahan (Max Food Slots) tidak dihitung ke stat makanan | Rendah | `hooks/eat_food.cpp` |
-| 29 | Remote Trader memasang animator karakter ke prefab trader, lalu beli dan jual melempar exception setelah mati | Sedang, sebagian belum dipastikan | `unity/world_tools.cpp` |
-| 30 | Allow Picking Up Fish mengubah fisika dan gerak semua ikan | Rendah | `hooks/is_out_of_water.cpp` |
+| 16 | `HaveEmptySlot` selalu true untuk semua inventory, loot peti kapal bisa hilang | Sedang, diperbaiki | `hooks/have_empty_slot.cpp` |
+| 17 | Inventory Size menyembunyikan item saat dimatikan dan membuat item jatuh saat spawn tanpa mod | Sedang, tidak dikerjakan | `features/inventory.cpp` |
+| 18 | Hook kosong dan log yang tidak perlu | Rendah, diperbaiki | beberapa file |
+| 19 | Unload tidak mematikan fitur looped, jadi nilai yang diubah tetap tertinggal di game | Tinggi, diperbaiki | `main.cpp`, `commands/commands.cpp` |
+| 20 | Toggle fitur dan beberapa tombol menu memanggil API Unity dari thread render | Sedang, sebagian belum dipastikan, diperbaiki | `gui.cpp`, beberapa menu |
+| 21 | Prevent Freezing/Cold/Wet dan Auto-Purge bertarung dengan game setiap frame | Sedang, diperbaiki | `hooks/player_update.cpp`, `features/buffs.cpp` |
+| 22 | Exception Mono ditelan tanpa log | Rendah, diperbaiki | `services/mono/mono.cpp` |
+| 23 | Jendela Equipment, Bookmark, dan menu skrip JS menjalankan aksi game dari thread render | Sedang, belum dipastikan, diperbaiki kecuali JS | `unity/equipment_slots.cpp`, `unity/bookmark_manager.cpp`, `services/javascript` |
+| 24 | Hook aimbot tidak mengecek penembak, jadi serangan creature dan semua proyektil ikut diarahkan | Sedang, diperbaiki | `hooks/start_attack.cpp`, `hooks/on_hit.cpp` |
+| 25 | Item di slot equipment tidak pernah masuk tombstone, dan tidak terlihat tanpa mod | Sedang, disengaja (deskripsi ditambah) | `unity/equipment_slots.cpp` |
+| 26 | Return All melaporkan berhasil walaupun inventory penuh, dan armor sudah terlepas | Rendah, diperbaiki | `unity/equipment_slots.cpp` |
+| 27 | Jalur exception SEH di `drop_item` dan `parry_hooks` | Rendah, parry diperbaiki | `hooks/drop_item.cpp`, `hooks/parry_hooks.cpp` |
+| 28 | Makanan di slot tambahan (Max Food Slots) tidak dihitung ke stat makanan | Rendah, diperbaiki | `hooks/eat_food.cpp` |
+| 29 | Remote Trader memasang animator karakter ke prefab trader, lalu beli dan jual melempar exception setelah mati | Sedang, sebagian belum dipastikan, diperbaiki | `unity/world_tools.cpp` |
+| 30 | Allow Picking Up Fish mengubah fisika dan gerak semua ikan | Rendah, diperbaiki | `hooks/is_out_of_water.cpp` |
 | 31 | No Weight baru berlaku setelah isi inventory berubah, dan membuat gerobak tanpa bobot | Rendah | `hooks/get_weight.cpp` |
 | 32 | Builder submenu berjalan setiap frame: Custom Teleport membocorkan memori, Guardian Powers punya race dengan thread game | Sedang | `menu/submenu/teleport_submenu.cpp`, `menu/submenu/player_menu.cpp`, Astra |
 | 33 | `ItemData.m_worldLevel` dibaca dan ditulis sebagai 1 byte, padahal `int` | Rendah | `unity/item_spawner.cpp`, `unity/inventory_editor.cpp` |
@@ -68,9 +68,10 @@ Temuan performa ada di bagian [Performa](#performa).
 Sudah diperbaiki sebelumnya: Attack Animation Speed menimpa `Animator.speed` setiap frame walaupun
 pengalinya 1.0, sehingga tempo serangan dan hit-stop vanilla hilang. Diperbaiki di `557a25e`.
 
-Diperbaiki pada 2026-10-23: #1 sampai #10, #12 sampai #15, dan P1 sampai P10. #11 sudah dicek dan ternyata
-tidak terjadi. Build `x64-Clang-Release` berhasil, tetapi perbaikannya belum dites di dalam game. Cara
-perbaikannya ada di baris **Status** pada masing-masing bagian.
+Diperbaiki pada 2026-10-23: #1 sampai #10, #12 sampai #16, #18 sampai #30, dan P1 sampai P15. #11 sudah dicek
+dan ternyata tidak terjadi. #17 tidak dikerjakan atas keputusan pemilik. Sebagian #23 dan #27 sengaja dilewati;
+alasannya ada di bagian masing-masing. Build `x64-Clang-Release` berhasil, tetapi perbaikannya belum dites di
+dalam game. Cara perbaikannya ada di baris **Status** pada masing-masing bagian.
 
 ## Detail
 
@@ -317,7 +318,7 @@ tidak dipanggil.
 
 ### 16. `HaveEmptySlot` selalu true untuk semua inventory
 
-- Lokasi: [have_empty_slot.cpp:6-14](../src/hooks/have_empty_slot.cpp#L6-L14).
+- Lokasi: `hooks/have_empty_slot.cpp:6-14` (file sudah dihapus).
 - Penyebab: hook berisi `if (true) return true;`, tanpa mengecek setting, `g_running`, atau inventory mana.
 - Akibat, berdasarkan pemanggil di game:
   - `Piece.DropResources`: untuk piece yang loot-nya dimasukkan ke peti (`m_destroyedLootPrefab`, misalnya
@@ -326,6 +327,8 @@ tidak dipanggil.
   - `StoreGui.UpdateBuyButton`: tombol Buy tetap aktif walaupun inventory penuh. Pembelian tetap aman karena
     koin baru dipotong kalau `AddItem` berhasil.
 - Saran: hapus hook ini, atau kaitkan dengan setting yang jelas dan batasi ke inventory pemain lokal.
+- **Status**: diperbaiki. Hook dihapus. Di build game sekarang, `HaveEmptySlot` hanya dipanggil
+  `StoreGui.UpdateBuyButton`, jadi tidak ada fitur mod yang bergantung padanya.
 
 ### 17. Inventory Size menyembunyikan item dan membuat item jatuh saat spawn tanpa mod
 
@@ -345,18 +348,24 @@ tidak dipanggil.
     `invrows` baris dijatuhkan ke tanah di lokasi spawn.
 - Saran: saat dimatikan, pindahkan item di luar grid vanilla ke slot kosong (atau tolak mematikan kalau tidak
   muat), dan beri tahu pemain kalau inventory lebih besar dari 8x9 berisiko saat bermain tanpa mod.
+- **Status**: tidak dikerjakan, atas keputusan pemilik. Catatan tambahan dari pengecekan: `Player.OnSpawned`
+  vanilla tidak membatasi nilai `invrows`, jadi baris tambahan sebenarnya bisa dipertahankan tanpa mod kalau
+  nilai aslinya disimpan. Lebar selalu 8 di vanilla, jadi kolom ke-9 ke atas tetap dijatuhkan.
 
 ### 18. Hook kosong dan log yang tidak perlu
 
-- [hud_update_food.cpp:5-8](../src/hooks/hud_update_food.cpp#L5-L8): hook `Hud.UpdateFood` hanya memanggil
+- `hooks/hud_update_food.cpp:5-8` (file sudah dihapus): hook `Hud.UpdateFood` hanya memanggil
   fungsi aslinya. Tidak ada efek, tetapi tetap menambah biaya detour setiap frame.
-- [is_wet.cpp:5](../src/hooks/is_wet.cpp#L5): hook `Cover.IsUnderRoof` juga hanya memanggil fungsi aslinya,
+- `hooks/is_wet.cpp:5` (file sudah dihapus): hook `Cover.IsUnderRoof` juga hanya memanggil fungsi aslinya,
   padahal method ini sering dipanggil game (cek atap untuk Wet, api, dan istirahat).
-- [have_empty_slot.cpp:10](../src/hooks/have_empty_slot.cpp#L10): `LOG(VERBOSE)` di setiap pemanggilan.
+- `hooks/have_empty_slot.cpp:10` (file sudah dihapus): `LOG(VERBOSE)` di setiap pemanggilan.
 - [start_attack.cpp:217](../src/hooks/start_attack.cpp#L217): `LOG(FATAL) << "No target found within FOV"`
   ditulis setiap kali aimbot menembak tanpa target. Level FATAL di AsyncLogger tidak menghentikan game, jadi
   ini hanya log berlebih, bukan crash.
 - Saran: hapus hook kosong, dan turunkan atau hapus log di jalur yang sering dipanggil.
+- **Status**: diperbaiki. Hook `Cover.IsUnderRoof` dan `Inventory.HaveEmptySlot` dihapus beserta filenya.
+  `hooks::hud_update_food` ternyata tidak pernah didaftarkan (jadi bukan biaya per frame, hanya kode mati), dan
+  ikut dihapus. Log FATAL "No target found within FOV" dihapus.
 
 ### 19. Unload tidak mematikan fitur looped
 
@@ -371,6 +380,12 @@ tidak dipanggil.
   luar grid vanilla juga bisa dijatuhkan saat spawn berikutnya (lihat bug 17).
 - Saran: panggil `commands::shutdown()` di thread game sebelum `g_hooking->disable()`, misalnya lewat task
   terakhir seperti pola `world_time::shutdown`.
+- **Status**: diperbaiki. `main.cpp` menjalankan `commands::shutdown()` lewat `async_run`, lalu menunggu
+  maksimal 2 detik sebelum shutdown lain dan sebelum hook dimatikan. Penanda selesai dikirim sebagai task baru
+  setelah `commands::shutdown()`, dan antrean task berjalan berurutan, jadi pemulihan yang ditunda di dalam
+  `on_disable` (kapal, raid, eitr, fishing) ikut selesai sebelum unload berlanjut. Saat itu `g_running` sudah
+  false, padahal `game_update` hanya men-tick `task_mgr` selama `g_running` atau ada cleanup yang tertunda, jadi
+  `g_shutdown_pending` dinyalakan selama menunggu supaya task ini tetap berjalan.
 
 ### 20. Toggle fitur dan beberapa tombol menu memanggil API Unity dari thread render
 
@@ -390,6 +405,17 @@ tidak dipanggil.
   berlomba dengan thread game. Belum dipastikan di dalam game apakah Valheim memakai thread render terpisah.
 - Saran: jalankan `on_enable`, `on_disable`, dan aksi tombol lewat `queue_job` ke thread game, seperti yang
   sudah dilakukan 130 tombol lainnya.
+- **Status**: diperbaiki.
+  - `bool_command::set_state` sekarang menjalankan `on_enable`/`on_disable` lewat `async_run`, setelah
+    `m_state` diganti.
+  - Tombol yang memanggil Mono langsung sekarang membaca data game di thread game: Set Tailwind from Boat
+    Heading, Copy Current Coordinates, Add Map Pin Here, Add Category, dan Add Teleport.
+  - Hasilnya dikirim balik ke thread render lewat `render_queue` baru, yang dijalankan sekali per frame
+    sebagai dx callback pertama. Ini dipakai untuk clipboard dan untuk menyimpan lokasi teleport, karena daftar
+    lokasi dibaca menu setiap frame. Arah tailwind dikirim lewat `std::atomic`.
+  - Add Teleport sekarang menyimpan ke kategori submenu yang sedang dibuka, bukan ke variabel global
+    `category` (bagian dari #51).
+  - Tombol menu Cheat Status tidak disentuh.
 
 ### 21. Prevent Freezing/Cold/Wet dan Auto-Purge bertarung dengan game setiap frame
 
@@ -405,6 +431,16 @@ tidak dipanggil.
   tick.
 - Saran: cegah efek ditambahkan (hook `SEMan.AddStatusEffect` untuk hash tertentu milik pemain lokal), bukan
   menghapusnya setelah ada. Keluarkan `SoftDeath` dan `Encumbered` dari daftar Auto-Purge.
+- **Status**: diperbaiki.
+  - Hook baru [add_status_effect.cpp](../src/hooks/add_status_effect.cpp) dipasang pada
+    `SEMan.AddStatusEffect(StatusEffect, …)`. Overload berbasis hash juga berakhir di sini lewat
+    `Internal_AddStatusEffect`, jadi semua sumber efek tertangkap.
+  - Hook mengembalikan null untuk `SEMan` milik pemain lokal kalau hash-nya Freezing, Cold, atau Wet (sesuai
+    setting) atau termasuk debuff saat Auto-Purge menyala. Hash dibaca dari `StatusEffect.m_nameHash`, dan
+    `NameHash()` hanya dipanggil kalau nilainya masih 0.
+  - Penghapusan per frame di `player_update` sekarang hanya terjadi sekali saat opsinya dinyalakan.
+  - Auto-Purge menjadi `bool_command` yang membersihkan debuff sekali di `on_enable`.
+  - `Encumbered` dan `SoftDeath` dikeluarkan dari daftar debuff.
 
 ### 22. Exception Mono ditelan tanpa log
 
@@ -414,6 +450,8 @@ tidak dipanggil.
 - Akibat: kegagalan seperti di bug 13 dan bug 20 tidak meninggalkan jejak di log, sehingga sulit dilacak.
 - Saran: catat exception yang tidak diminta pemanggil, dengan batas jumlah log per method supaya tidak
   membanjiri.
+- **Status**: diperbaiki. Kalau pemanggil tidak meminta parameter exception, `invoke_method_impl` mencatat
+  class dan nama method, tipe exception, dan isi `Exception._message`, maksimal 3 kali per method.
 
 ### 23. Jendela ImGui menjalankan aksi game dari thread render
 
@@ -437,6 +475,16 @@ tidak dipanggil.
   tidak terlihat karena bug 22.
 - Saran: bungkus aksi tombol di jendela-jendela ini dengan `queue_job`, seperti yang sudah dilakukan
   `global_key_editor` dan `status_effect_browser` untuk aksinya.
+- **Status**: diperbaiki, kecuali opsi menu dari skrip JS.
+  - Equipment: Auto-Fill, Return All, Save Loadout, klik slot, klik kanan slot, dan pilihan di picker sekarang
+    berjalan lewat `async_run`.
+  - Bookmark: Save dan Delete juga lewat `async_run`.
+  - Animal Inspector: Instant Tame dan Heal Full juga lewat `async_run`.
+  - Callback JS sengaja tidak dipindah. QuickJS dipakai dari thread render untuk `eval` dan JS GUI, jadi
+    memindahkan callback ke thread game akan membuat QuickJS lebih sering dipakai dari dua thread, dan QuickJS
+    tidak thread-safe. Ini perlu diselesaikan bersama #48 dengan satu thread untuk semua JS.
+  - Catatan terkait #20: `on_enable`/`on_disable` dari command buatan skrip JS sekarang ikut berjalan di thread
+    game, sama seperti `on_tick` yang memang sudah di sana.
 
 ### 24. Hook aimbot tidak mengecek penembak
 
@@ -451,6 +499,9 @@ tidak dipanggil.
   proyektil yang ditembakkan dan setiap proyektil yang mengenai sesuatu.
 - Saran: cek `Attack.m_character` (dan pemilik proyektil di `OnHit`) sama dengan pemain lokal sebelum
   mengubah apa pun.
+- **Status**: diperbaiki. `GetProjectileSpawnPoint` sekarang mengecek `Attack.m_character`, dan `OnHit`
+  mengecek `Projectile.m_owner`. Keduanya hanya mengubah arah atau titik kena kalau penembaknya pemain lokal.
+  `find_best_target` juga tidak lagi dijalankan untuk proyektil milik karakter lain.
 
 ### 25. Item di slot equipment tidak pernah masuk tombstone
 
@@ -465,6 +516,9 @@ tidak dipanggil.
   muncul tanpa armor sampai mod dipasang lagi.
 - Saran: saat `CreateTombStone`, pindahkan isi halaman equipment ke tombstone kecuali "Don't Drop Items when
   Dead" menyala. Tulis juga di dokumentasi bahwa item di slot equipment bergantung pada mod.
+- **Status**: perilaku dipertahankan atas keputusan pemilik: item di slot equipment memang selalu aman saat mati.
+  Deskripsi opsi Equipment Slots sekarang menyebut bahwa item di slot ini tidak pernah jatuh saat mati dan hanya
+  terlihat selama mod aktif.
 
 ### 26. Return All melaporkan berhasil walaupun inventory penuh
 
@@ -475,6 +529,10 @@ tidak dipanggil.
 - Akibat: kalau inventory utama penuh, item tetap di slot tetapi armor sudah terlepas dari karakter, dan
   notifikasi "Deposited N items" menghitung item yang sebenarnya tidak pindah.
 - Saran: cek hasil `MoveItemToThis` sebelum unequip, dan kembalikan `false` kalau gagal.
+- **Status**: diperbaiki. `MoveItemToThis(Inventory, ItemData)` mengembalikan `void`, jadi sebelum unequip
+  fungsi ini sekarang mengecek `Inventory.CanAddItem(item, -1)` pada inventory utama. Setelah dipindah, fungsi
+  mengecek lagi lewat `ContainsItem` bahwa item sudah tidak ada di slot. Kalau gagal, fungsi mengembalikan
+  `false`, armor tidak dilepas, dan item tidak dihitung di "Deposited N items".
 
 ### 27. Jalur exception SEH di `drop_item` dan `parry_hooks`
 
@@ -487,6 +545,9 @@ tidak dipanggil.
 - Akibat: kalau exception SEH terjadi (jarang), `drop_item` mengembalikan pointer sampah ke game sebagai
   `ItemDrop`, yang hampir pasti membuat crash. Di parry, satu serangan bisa diproses dua kali.
 - Saran: tambahkan `return nullptr;` setelah blok di `drop_item`, dan `return` di dalam handler parry.
+- **Status**: parry diperbaiki: setelah exception di blok auto parry, fungsi sekarang `return` dan tidak lagi
+  memanggil fungsi asli untuk kedua kalinya. Bagian `drop_item` tidak dikerjakan, karena hook itu juga
+  menangani flag `m_cheated` pada item, dan tooling seperti itu berada di luar cakupan perbaikan ini.
 
 ### 28. Makanan di slot tambahan tidak dihitung ke stat makanan
 
@@ -497,6 +558,9 @@ tidak dipanggil.
   untuk makanan di slot tambahan.
 - Saran: panggil `PlayerProfile.IncrementStatFoodEaten` di jalur ini, atau panggil `EatFood` asli setelah
   memberi ruang di `m_foods`.
+- **Status**: diperbaiki. Jalur slot tambahan sekarang memanggil hal yang sama seperti `EatFood` vanilla:
+  `Game.IncrementPlayerStat(FoodEaten = 49, 1, false)` dan `PlayerProfile.IncrementStatFoodEaten(m_name, 1,
+  item.m_cheated)`.
 
 ### 29. Remote Trader memasang animator karakter ke prefab trader
 
@@ -528,10 +592,18 @@ tidak dipanggil.
   `UnityEngine.Object.op_Implicit`, bukan pointer. Cocokkan trader lewat nama `GameObject` (prefab `Haldor`,
   `Hildir`, `BogWitch`) atau kunci `$npc_` dengan huruf kecil. Simpan `m_hideDistance` asli dan kembalikan
   saat toko ditutup.
+- **Status**: diperbaiki.
+  - Trader dicocokkan lewat nama `GameObject` yang diawali nama prefab (`Haldor`, `Hildir`, `BogWitch`).
+    Fallback ke "trader pertama yang ditemukan" dihapus. Kalau tidak ada yang cocok, mod memakai prefab.
+  - Animator karakter pemain tidak lagi dipasang. Kalau `m_animator` kosong atau objeknya sudah dihancurkan
+    (dicek lewat `UnityEngine.Object.op_Implicit`), mod mengisinya dengan animator milik trader itu sendiri lewat
+    `GetComponentInChildren(Animator, includeInactive: true)`.
+  - `m_hideDistance` asli disimpan, lalu sebuah task menunggu sampai `StoreGui.IsVisible()` bernilai false dan
+    mengembalikan nilainya.
 
 ### 30. Allow Picking Up Fish mengubah fisika dan gerak semua ikan
 
-- Lokasi: [is_out_of_water.cpp:8](../src/hooks/is_out_of_water.cpp#L8), hook `Fish.IsOutOfWater`.
+- Lokasi: `hooks/is_out_of_water.cpp:8` (file sudah dihapus), hook `Fish.IsOutOfWater`.
 - Penyebab: hook mengembalikan `true` untuk semua ikan selama setting menyala. Fungsi ini tidak hanya dipakai
   `Interact` dan `GetHoverText`, tetapi juga oleh fisika ikan di `Fish.CustomFixedUpdate`, `ConsiderJump`, dan
   `Jump`.
@@ -543,6 +615,10 @@ tidak dipanggil.
   - Posisi ikan ini disinkronkan, jadi pemain lain juga melihat gerakan yang sama.
 - Saran: biarkan `IsOutOfWater` asli. Hook `Fish.Interact` dan `Fish.GetHoverText`, lalu panggil `Pickup`
   langsung saat setting menyala.
+- **Status**: diperbaiki sesuai saran. Hook `IsOutOfWater` dihapus. [fish_pickup.cpp](../src/hooks/fish_pickup.cpp)
+  memasang hook `Fish.Interact`, yang memanggil `Fish.Pickup` langsung kecuali saat tombol ditahan, dan hook
+  `Fish.GetHoverText`, yang memakai teks pickup yang sama dengan vanilla saat ikan di luar air. Fisika ikan
+  tidak lagi terpengaruh.
 
 ### 31. No Weight baru berlaku setelah isi inventory berubah
 
@@ -1027,11 +1103,11 @@ menghentikan game sejenak saat berjalan (stutter).
 | P8 | Ukuran layar dibaca lewat 2 panggilan Mono tiap frame (diperbaiki) | Selalu | `worker/main_worker.cpp` |
 | P9 | Inventory Size mengubah ukuran UI dan membuat 2 string setiap frame (diperbaiki) | Saat Inventory Size menyala | `features/inventory.cpp` |
 | P10 | Setiap item yang diambil dari slot equipment menyimpan ulang semua halaman (diperbaiki) | Setiap tembakan kalau ammo di slot equipment | `hooks/equipment_hooks.cpp` |
-| P11 | Override cuaca membuat string managed baru setiap frame | Saat cuaca dipaksa | `hooks/base_tools.cpp` |
-| P12 | Forsaken Power Always Ready mencari class dan field setiap frame | Saat fitur menyala | `hooks/update_guardian_power.cpp` |
-| P13 | Hash nama efek dihitung lewat Mono setiap kali dipakai | Saat Auto-Purge atau Prevent Freezing/Cold/Wet menyala | `unity/buff_tools.cpp` |
-| P14 | Scan objek sekitar memakai `FindObjectsOfType` dan sort dengan panggilan Mono, setiap detik | Saat monitor Base Tools terbuka atau marker bangunan menyala | `unity/base_tools.cpp` |
-| P15 | Jendela ImGui membaca data game lewat Mono setiap frame | Saat Status Effect Browser, Equipment, Item Spawner, Global Key Editor, atau World Bookmarks terbuka | `unity/status_effect_browser.cpp`, `unity/equipment_slots.cpp`, `unity/item_spawner.cpp`, `unity/global_key_editor.cpp`, `unity/bookmark_manager.cpp` |
+| P11 | Override cuaca membuat string managed baru setiap frame (diperbaiki) | Saat cuaca dipaksa | `hooks/base_tools.cpp` |
+| P12 | Forsaken Power Always Ready mencari class dan field setiap frame (diperbaiki) | Saat fitur menyala | `hooks/update_guardian_power.cpp` |
+| P13 | Hash nama efek dihitung lewat Mono setiap kali dipakai (diperbaiki) | Saat Auto-Purge atau Prevent Freezing/Cold/Wet menyala | `unity/buff_tools.cpp` |
+| P14 | Scan objek sekitar memakai `FindObjectsOfType` dan sort dengan panggilan Mono, setiap detik (diperbaiki sebagian) | Saat monitor Base Tools terbuka atau marker bangunan menyala | `unity/base_tools.cpp` |
+| P15 | Jendela ImGui membaca data game lewat Mono setiap frame (diperbaiki) | Saat Status Effect Browser, Equipment, Item Spawner, Global Key Editor, atau World Bookmarks terbuka | `unity/status_effect_browser.cpp`, `unity/equipment_slots.cpp`, `unity/item_spawner.cpp`, `unity/global_key_editor.cpp`, `unity/bookmark_manager.cpp` |
 | P16 | UI equipment native bekerja setiap frame, termasuk saat inventory tertutup | Selalu (Equipment Slots default menyala) | `unity/equipment_slots.cpp` |
 | P17 | `save_to_player()` menulis log setiap kali, dan dipanggil per item saat Auto-Fill atau Return All | Setiap simpan | `unity/equipment_slots.cpp` |
 | P18 | Information Overlay membaca 8 nilai lewat Mono setiap frame | Saat overlay menyala (menyala di setting Anda) | `menu/submenu/player_menu.cpp` |
@@ -1192,6 +1268,11 @@ menghentikan game sejenak saat berjalan (stutter).
   `to_mono_string(cfg.weather)` setiap kali. Selain itu, semua hook produksi dan cuaca memanggil
   `get_options()`, yang mengunci mutex dan menyalin seluruh struct opsi termasuk string.
 - Saran: simpan string managed cuaca sekali (dengan GC handle) dan buat ulang hanya saat pilihannya berubah.
+- **Status**: diperbaiki. String cuaca ditahan dengan GC handle dan baru dibuat ulang kalau nama cuacanya
+  berubah. Hook produksi (smelter, beehive, plant, cooking, sap) dan `multiplier()` sekarang memakai
+  `base_tools::option(&options::field)`, yang hanya menyalin satu field di bawah mutex, bukan seluruh struct
+  beserta stringnya. `environment_update` tetap menyalin struct karena butuh beberapa field, tetapi hanya sekali
+  per FixedUpdate.
 
 ### P12. Forsaken Power Always Ready mencari class dan field setiap frame
 
@@ -1199,6 +1280,8 @@ menghentikan game sejenak saat berjalan (stutter).
 - Biaya: `mono::get_class` dan `mono::get_field` dipanggil tanpa `static` di setiap `UpdateGuardianPower`,
   dan `get_local_player()` dihitung sebelum setting dicek.
 - Saran: jadikan lookup `static`, dan cek setting lebih dulu.
+- **Status**: diperbaiki. Field `m_guardianPowerCooldown` disimpan di `static`, dan setting dicek sebelum
+  pemain lokal.
 
 ### P13. Hash nama efek dihitung lewat Mono setiap kali dipakai
 
@@ -1211,6 +1294,9 @@ menghentikan game sejenak saat berjalan (stutter).
   frame.
 - Saran: hash nama efek tidak berubah, jadi hitung sekali dan simpan. `SEMan` punya field statis seperti
   `s_statusEffectWet` yang sudah berisi hash-nya.
+- **Status**: diperbaiki. `get_stable_hash` menyimpan hasil per nama dalam cache yang dijaga mutex, jadi
+  setiap nama hanya dihitung sekali. Berkat hook #21, Auto-Purge dan Prevent Freezing/Cold/Wet juga tidak lagi
+  menghapus efek setiap frame.
 
 ### P14. Scan objek sekitar memakai `FindObjectsOfType` setiap detik
 
@@ -1222,6 +1308,11 @@ menghentikan game sejenak saat berjalan (stutter).
   sampai 9 tipe. Di base besar dengan banyak `WearNTear`, ini membuat game tersendat sekali per detik.
 - Saran: pakai daftar instance milik game (misalnya `WearNTear.s_allInstances`), baca posisi sekali per objek
   sebelum mengurutkan, dan pisahkan scan per tipe sesuai monitor yang terbuka.
+- **Status**: diperbaiki sebagian.
+  - `WearNTear` dan `ShieldGenerator` sekarang dibaca dari daftar instance game (`s_allInstances` dan
+    `m_instances`). Hanya dua class itu yang punya daftar statis; tipe lain tetap memakai `FindObjectsOfType`.
+  - Posisi setiap objek dibaca sekali sebelum diurutkan.
+  - Scan belum dipisah per monitor yang terbuka.
 
 ### P15. Jendela ImGui membaca data game lewat Mono setiap frame
 
@@ -1240,6 +1331,15 @@ menghentikan game sejenak saat berjalan (stutter).
   render (bug 20).
 - Saran: ambil daftar nama dan isi slot sekali saat jendela dibuka atau saat inventory berubah, lalu gambar
   dari data yang sudah disimpan.
+- **Status**: diperbaiki. Setiap jendela sekarang menggambar dari salinan data yang diisi di thread game:
+  - Status Effect Browser: efek aktif disegarkan setiap 500 ms, efek terdaftar sekali setiap jendela dibuka.
+  - Equipment: isi slot, status equipped, stack, durability, visibilitas inventory, dan daftar picker
+    disegarkan setiap 250 ms dan langsung setelah setiap aksi. `init_or_sync()` tidak lagi dipanggil dari
+    thread render, karena `tick()` sudah menjalankannya.
+  - Global Key Editor: daftar key disegarkan sekali per detik.
+  - World Bookmarks: daftar bookmark disegarkan saat jendela dibuka, sekali per 2 detik, dan setelah Save atau
+    Delete.
+  - Item Spawner: `ObjectDB.get_instance` tidak lagi dipanggil setiap frame setelah scan otomatis dimulai.
 
 ### P16. UI equipment native bekerja setiap frame
 
@@ -1329,7 +1429,8 @@ menghentikan game sejenak saat berjalan (stutter).
   saat tombol ditekan.
 - Lambda `fullscan_run` di binding sigscanner JS: menangkap referensi ke `pattern_batch` statis, jadi tidak
   menggantung.
-- Sisa kode debug: satu-satunya `if (true)` di kode mod ada di `have_empty_slot.cpp` (bug 16). `while (true)`
+- Sisa kode debug: satu-satunya `if (true)` di kode mod ada di `have_empty_slot.cpp` (bug 16, file sudah
+  dihapus). `while (true)`
   di `zone_system.cpp` selalu berhenti saat enumerator habis.
 - Layout `HitData.DamageTypes` yang ditulis langsung oleh hook damage dan parry: 11 float pertama cocok dengan
   build sekarang. Field ke-12, `m_nonPlayer`, tidak ikut ditulis, dan tidak relevan untuk jalur ini.
