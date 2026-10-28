@@ -47,9 +47,12 @@ namespace big
 		using MessageCallback = std::function<void(std::string const&)>;
 		using KickCallback = std::function<void(std::string const&)>;
 
-		socket_client(std::string const& endpoint, bool is_ssl = false) :
+		socket_client(std::string const& endpoint, bool is_ssl = false, std::string token = {}, std::string hwid = {}, std::string device_name = {}) :
 		    m_endpoint(endpoint),
 		    m_is_ssl(is_ssl),
+		    m_token(std::move(token)),
+		    m_hwid(std::move(hwid)),
+		    m_device_name(std::move(device_name)),
 		    m_connection_status(eConnectionStatus::DISCONNECT)
 		{
 			connect();
@@ -85,7 +88,7 @@ namespace big
 			else
 			{
 				m_client_ws = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WS>>(m_endpoint);
-				m_client_ws->config.header.emplace("User-Agent", "Valheim/1.0");
+				configure_headers(m_client_ws->config.header);
 				setup_ws_handlers();
 				start_client(m_client_ws);
 			}
@@ -301,6 +304,9 @@ namespace big
 	private:
 		std::string m_endpoint;
 		bool m_is_ssl{false};
+		std::string m_token;
+		std::string m_hwid;
+		std::string m_device_name;
 		std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>> m_client_wss;
 		std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>> m_client_ws;
 		std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection> m_active_conn_wss;

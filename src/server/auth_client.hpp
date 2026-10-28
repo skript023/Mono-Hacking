@@ -24,6 +24,8 @@ namespace big
 		int port{443};
 		bool is_ssl{true};
 		std::string ws_endpoint;
+		std::string hwid;
+		std::string device_name;
 		std::string error_message;
 	};
 

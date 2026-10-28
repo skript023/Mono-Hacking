@@ -40,7 +40,7 @@ namespace big
 			}
 			m_auth_retry = std::chrono::seconds(15);
 
-			m_alpha_gateway = std::make_shared<socket_client>(m_auth_info.ws_endpoint, m_auth_info.is_ssl);
+			m_alpha_gateway = std::make_shared<socket_client>(m_auth_info.ws_endpoint, m_auth_info.is_ssl, m_auth_info.token, m_auth_info.hwid, m_auth_info.device_name);
 
 			m_alpha_gateway->on_message_received([this](const std::string& message) {
 				if (message == "pong")
