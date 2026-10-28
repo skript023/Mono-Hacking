@@ -1,6 +1,7 @@
 #include "command_binding.hpp"
 
 #include "commands/looped_command.hpp"
+#include "../js_lock.hpp"
 
 namespace js::command
 {
@@ -11,6 +12,7 @@ namespace js::command
 
 	static void invoke_callback(const std::optional<qjs::Value>& callback)
 	{
+		std::lock_guard lock(g_js_mutex);
 		if (!callback || !callback->isFunction())
 		{
 			return;

@@ -4,8 +4,12 @@
 #include "imgui.h"
 
 #include <array>
+#include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace big
@@ -58,6 +62,7 @@ namespace big
 		// Lifecycle & Persistence
 		void init_or_sync();
 		bool save_to_player();
+		void mark_dirty();
 		void tick(MonoObject* player);
 
 		// Slot actions
@@ -89,6 +94,7 @@ namespace big
 		// Native Unity UI
 		void update_native_ui(MonoObject* player);
 		void destroy_native_ui();
+		void shutdown();
 		MonoObject* get_native_grid() const
 		{
 			return m_native_grid;
@@ -110,6 +116,38 @@ namespace big
 		void update_native_grid_position(MonoObject* gui);
 		void decorate_native_slots();
 
+		struct slot_view
+		{
+			MonoObject* item{};
+			std::string prefab;
+			std::string name;
+			int stack{};
+			float durability{};
+			float max_durability{};
+			bool equipped{};
+		};
+		struct picker_entry
+		{
+			MonoObject* item{};
+			std::string prefab;
+			std::string label;
+		};
+		struct view_state
+		{
+			bool visible{};
+			MonoObject* player_inventory{};
+			std::array<slot_view, grid_width * grid_height> slots{};
+			std::vector<picker_entry> picker;
+		};
+		void refresh_view();
+		void request_view_refresh();
+
+		std::mutex m_view_mutex;
+		view_state m_view;
+		std::atomic_bool m_view_refreshing{false};
+		std::atomic<int> m_picker_slot{-1};
+		std::chrono::steady_clock::time_point m_view_refreshed{};
+
 		MonoObject* m_native_grid{nullptr};
 		uintptr_t m_native_grid_handle{0};
 		MonoObject* m_cached_inventory_gui{nullptr};
@@ -123,6 +161,12 @@ namespace big
 		bool m_in_equip{false};
 		bool m_syncing{false};
 		bool m_saving{false};
+		bool m_dirty{false};
+		bool m_defer_save{false};
+		int m_native_grid_active{-1};
+		std::unordered_map<MonoObject*, int> m_decorated;
+		void set_native_grid_active(bool active);
+		std::chrono::steady_clock::time_point m_dirty_since{};
 
 		// Ammo hotkey debounce
 		bool m_r_key_down{false};

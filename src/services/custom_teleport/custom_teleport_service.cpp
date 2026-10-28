@@ -103,12 +103,12 @@ namespace big
 		return true;
 	}
 
-	teleport_location* custom_teleport_service::get_saved_location_by_name(std::string name)
+	std::optional<teleport_location> custom_teleport_service::get_saved_location_by_name(std::string name)
 	{
 		for (auto& loc : g_custom_teleport_service.saved_locations_filtered_list())
 			if (loc.name == name)
-				return &loc;
+				return loc;
 
-		return nullptr;
+		return std::nullopt;
 	}
 }

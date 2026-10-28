@@ -6,10 +6,9 @@ namespace big
 {
 	void hooks::update_guardian_power(MonoObject* player, float dt)
 	{
-		if (g_running && player && player == unity::get_local_player() && g_settings.self.forsaken_power_always_ready)
+		if (g_running && g_settings.self.forsaken_power_always_ready && player && player == unity::get_local_player())
 		{
-			auto klass                   = mono::get_class("Player", "assembly_valheim");
-			auto m_guardianPowerCooldown = mono::get_field(klass, "m_guardianPowerCooldown");
+			static auto m_guardianPowerCooldown = mono::get_field("Player", "m_guardianPowerCooldown", "assembly_valheim");
 
 			float cooldown = 0.f;
 			mono::set_field_value(player, m_guardianPowerCooldown, &cooldown);

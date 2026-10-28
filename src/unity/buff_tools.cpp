@@ -1,11 +1,16 @@
 #include "buff_tools.hpp"
 #include <astra/host/notification.hpp>
+#include "commands/bool_command.hpp"
+#include "commands/commands.hpp"
+#include "menu_settings.hpp"
 #include "utility/unity.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <format>
+#include <mutex>
+#include <unordered_map>
 
 namespace big
 {
@@ -13,11 +18,28 @@ namespace big
 	{
 		const std::vector<buff_tools::boss_power> s_boss_powers = {{"GP_Eikthyr", "Eikthyr's Surge", "Eikthyr (Meadows)", "-60% Run and Jump stamina usage"}, {"GP_TheElder", "Elder's Wrath", "The Elder (Black Forest)", "+60% Wood cutting speed and axe damage"}, {"GP_Bonemass", "Bonemass' Resilience", "Bonemass (Swamp)", "Massive physical resistance (Blunt, Slash, Pierce)"}, {"GP_Moder", "Moder's Flight", "Moder (Mountain)", "Tailwind always blows from behind your ship"}, {"GP_Yagluth", "Yagluth's Aegis", "Yagluth (Plains)", "High resistance against Fire, Frost, and Lightning"}, {"GP_Queen", "Queen's Transcendence", "The Queen (Mistlands)", "+100% Eitr regeneration and +60% Mining speed"}, {"GP_Ashlands", "Fader's Dominion", "Fader (Ashlands)", "+Movement speed, carry weight, and ferocious attack buff"}, {"GP_DeepNorth", "Deep North Mastery", "Deep North Boss", "Cold immunity, hyper-stamina and frost empowerment"}};
 
-		const std::vector<std::string> s_debuff_names = {"Wet", "Poison", "Freezing", "Cold", "Burning", "Frost", "Smoked", "Tared", "Encumbered", "SoftDeath"};
-
+		const std::vector<std::string> s_debuff_names = {"Wet", "Poison", "Freezing", "Cold", "Burning", "Frost", "Smoked", "Tared"};
 	}
 
 	int buff_tools::get_stable_hash_impl(const std::string& name)
+	{
+		static std::mutex cache_mutex;
+		static std::unordered_map<std::string, int> cache;
+		{
+			std::lock_guard lock(cache_mutex);
+			if (auto cached = cache.find(name); cached != cache.end())
+			{
+				return cached->second;
+			}
+		}
+
+		int hash = compute_stable_hash(name);
+		std::lock_guard lock(cache_mutex);
+		cache.emplace(name, hash);
+		return hash;
+	}
+
+	int buff_tools::compute_stable_hash(const std::string& name)
 	{
 		static thread_local MonoMethod* method = nullptr;
 		if (!method)
@@ -264,10 +286,9 @@ namespace big
 		return method;
 	}
 
-	const std::vector<buff_tools::boss_power>& buff_tools::get_boss_powers_impl()
+	std::vector<buff_tools::boss_power> buff_tools::get_boss_powers_impl()
 	{
-		static std::vector<boss_power> registered_powers;
-		registered_powers.clear();
+		std::vector<boss_power> registered_powers;
 
 		auto database    = unity::get_object_db();
 		auto db_class    = database ? mono::object_get_class(database) : nullptr;
@@ -589,6 +610,37 @@ namespace big
 		bool quiet    = true;
 		void* args[2] = {&hash, &quiet};
 		mono::invoke_method(remove_se_method, seman, args);
+	}
+
+	bool buff_tools::blocks_effect_impl(MonoObject* seman, MonoObject* effect)
+	{
+		static auto auto_purge = commands::get_bool_command("auto_cleanse_debuffs"_hash);
+		const bool purge       = auto_purge && auto_purge->get_state();
+		if (!purge && !g_settings.self.prevent_freezing && !g_settings.self.prevent_cold && !g_settings.self.is_wet)
+		{
+			return false;
+		}
+		if (!seman || !effect || mono::get_field_value<"SEMan", "m_character", MonoObject*>(seman) != unity::get_local_player())
+		{
+			return false;
+		}
+
+		int hash = mono::get_field_value<"StatusEffect", "m_nameHash", int>(effect);
+		if (hash == 0)
+		{
+			static auto name_hash = mono::get_method("StatusEffect", "NameHash", 0, "assembly_valheim");
+			auto boxed            = name_hash ? mono::invoke_method(name_hash, effect, nullptr) : nullptr;
+			hash                  = boxed ? *static_cast<int*>(mono::object_unbox(boxed)) : 0;
+		}
+
+		if ((g_settings.self.prevent_freezing && hash == get_stable_hash_impl("Freezing")) || (g_settings.self.prevent_cold && hash == get_stable_hash_impl("Cold"))
+		    || (g_settings.self.is_wet && hash == get_stable_hash_impl("Wet")))
+		{
+			return true;
+		}
+		return purge && std::ranges::any_of(s_debuff_names, [&](const std::string& name) {
+			return hash == get_stable_hash_impl(name);
+		});
 	}
 
 	bool buff_tools::apply_registered_effect_impl(const std::string& prefab_name)

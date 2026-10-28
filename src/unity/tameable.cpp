@@ -146,8 +146,6 @@ namespace big
 			return false;
 		}
 
-		set_tame_time_left(0.f);
-
 		static auto tame_m = mono::get_method("Tameable", "Tame", 0, "assembly_valheim");
 		if (tame_m)
 		{
@@ -206,21 +204,6 @@ namespace big
 		{
 			void* args[1] = {player.get_object()};
 			mono::invoke_method(method, m_tameable, args);
-		}
-	}
-
-	void tameable::set_tame_time_left(float time)
-	{
-		if (!m_tameable)
-		{
-			return;
-		}
-
-		static auto klass = mono::get_class("Tameable", "assembly_valheim");
-		static auto field = klass ? mono::get_field(klass, "m_tameTimeLeft") : nullptr;
-		if (field)
-		{
-			mono::set_field_value(m_tameable, field, &time);
 		}
 	}
 

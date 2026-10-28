@@ -157,10 +157,10 @@ namespace big
 		    {"SwordSilver", "Silver Sword", "Weapons", 1, 4},
 		    {"SwordIron", "Iron Sword", "Weapons", 1, 4},
 		    {"SwordDyrnwyn", "Dyrnwyn (Fire Sword)", "Weapons", 1, 4},
-		    {"SwordNidhogg", "Nidhoggr", "Weapons", 1, 4},
+		    {"SwordNiedhogg", "Nidhoggr", "Weapons", 1, 4},
 		    {"AxeBlackMetal", "Blackmetal Axe", "Weapons", 1, 4},
 		    {"AxeJotunBane", "Jotun Bane", "Weapons", 1, 4},
-		    {"AxeBerserkir", "Berserkir Axes", "Weapons", 1, 4},
+		    {"AxeBerzerkr", "Berserkir Axes", "Weapons", 1, 4},
 		    {"BattleaxeCrystal", "Crystal Battleaxe", "Weapons", 1, 4},
 		    {"KnifeSkollAndHati", "Skoll and Hati", "Weapons", 1, 4},
 		    {"KnifeBlackMetal", "Blackmetal Knife", "Weapons", 1, 4},
@@ -190,8 +190,8 @@ namespace big
 		    {"StaffIceShards", "Staff of Frost", "Weapons", 1, 4},
 		    {"StaffShield", "Staff of Protection", "Weapons", 1, 4},
 		    {"StaffSkeleton", "Dead Raiser", "Weapons", 1, 4},
-		    {"StaffLightning", "Staff of the Wild", "Weapons", 1, 4},
-		    {"StaffRedDumortierite", "Staff of Fracturing", "Weapons", 1, 4},
+		    {"StaffLightning", "Dundr", "Weapons", 1, 4},
+		    {"StaffClusterbomb", "Staff of Fracturing", "Weapons", 1, 4},
 
 		    // Armor & Gear
 		    {"CapeFeather", "Feather Cape", "Armor & Gear", 1, 4},
@@ -201,14 +201,14 @@ namespace big
 		    {"HelmetCarapace", "Carapace Helmet", "Armor & Gear", 1, 4},
 		    {"ArmorCarapaceChest", "Carapace Breastplate", "Armor & Gear", 1, 4},
 		    {"ArmorCarapaceLegs", "Carapace Greaves", "Armor & Gear", 1, 4},
-		    {"HelmetAshlandsMedium", "Flametal Helmet", "Armor & Gear", 1, 4},
-		    {"ArmorAshlandsMediumChest", "Flametal Armor", "Armor & Gear", 1, 4},
-		    {"ArmorAshlandsMediumLegs", "Flametal Greaves", "Armor & Gear", 1, 4},
+		    {"HelmetFlametal", "Flametal Helmet", "Armor & Gear", 1, 4},
+		    {"ArmorFlametalChest", "Flametal Armor", "Armor & Gear", 1, 4},
+		    {"ArmorFlametalLegs", "Flametal Greaves", "Armor & Gear", 1, 4},
 		    {"HelmetMage", "Eitr-weave Hood", "Armor & Gear", 1, 4},
 		    {"ArmorMageChest", "Eitr-weave Robe", "Armor & Gear", 1, 4},
 		    {"ArmorMageLegs", "Eitr-weave Trousers", "Armor & Gear", 1, 4},
 		    {"HelmetPadded", "Padded Helmet", "Armor & Gear", 1, 4},
-		    {"ArmorPaddedChest", "Padded Cuirass", "Armor & Gear", 1, 4},
+		    {"ArmorPaddedCuirass", "Padded Cuirass", "Armor & Gear", 1, 4},
 		    {"ArmorPaddedGreaves", "Padded Greaves", "Armor & Gear", 1, 4},
 		    {"HelmetDrake", "Drake Helmet", "Armor & Gear", 1, 4},
 		    {"ArmorWolfChest", "Wolf Armor Chest", "Armor & Gear", 1, 4},
@@ -228,10 +228,10 @@ namespace big
 		    {"LoxPie", "Lox Meat Pie", "Food & Potions", 10, 1},
 		    {"SerpentStew", "Serpent Stew", "Food & Potions", 10, 1},
 		    {"Sausages", "Sausages", "Food & Potions", 20, 1},
-		    {"MagicallyStuffedMushroom", "Stuffed Mushroom", "Food & Potions", 10, 1},
+		    {"MagicallyStuffedShroom", "Stuffed Mushroom", "Food & Potions", 10, 1},
 		    {"YggdrasilPorridge", "Yggdrasil Porridge", "Food & Potions", 10, 1},
 		    {"PiquantPie", "Piquant Pie", "Food & Potions", 10, 1},
-		    {"SizzlingBerryTart", "Sizzling Berry Tart", "Food & Potions", 10, 1},
+		    {"SizzlingBerryBroth", "Sizzling Berry Broth", "Food & Potions", 10, 1},
 		    {"MeadHealthMajor", "Major Healing Mead", "Food & Potions", 10, 1},
 		    {"MeadHealthMedium", "Medium Healing Mead", "Food & Potions", 10, 1},
 		    {"MeadStaminaLingering", "Lingering Stamina Mead", "Food & Potions", 10, 1},
@@ -254,7 +254,7 @@ namespace big
 		    {"DvergrNeedle", "Dvergr Extractor", "Materials", 10, 1},
 		    {"YggdrasilWood", "Yggdrasil Wood", "Materials", 50, 1},
 		    {"BlackMarble", "Black Marble", "Materials", 50, 1},
-		    {"Ashwood", "Ashwood", "Materials", 50, 1},
+		    {"Blackwood", "Blackwood", "Materials", 50, 1},
 		    {"Grausten", "Grausten", "Materials", 50, 1},
 		    {"Wood", "Wood", "Materials", 50, 1},
 		    {"FineWood", "Fine Wood", "Materials", 50, 1},
@@ -325,7 +325,7 @@ namespace big
 			}
 		}
 
-		if (unity::get_object_db() && !s_auto_scan_started.exchange(true))
+		if (!s_auto_scan_started.load() && unity::get_object_db() && !s_auto_scan_started.exchange(true))
 		{
 			refresh_impl();
 		}
@@ -617,12 +617,12 @@ namespace big
 						continue;
 					}
 
-					uint8_t item_world_level = 0;
+					int item_world_level = 0;
 					if (world_level_field)
 					{
 						mono::get_field_value(item, world_level_field, &item_world_level);
 					}
-					if (item_world_level != static_cast<uint8_t>(std::clamp(world_level, 0, 255)))
+					if (item_world_level != std::clamp(world_level, 0, 255))
 					{
 						continue;
 					}
@@ -801,7 +801,11 @@ namespace big
 				}
 				else
 				{
-					notification::warning("Item Spawner", "Inventory is full or the item could not be added.");
+					static auto get_item_prefab = mono::get_method_exact("ObjectDB", "GetItemPrefab", {"System.String"}, "assembly_valheim");
+					auto db              = unity::get_object_db();
+					void* prefab_args[1] = {mono::to_mono_string(prefab_name)};
+					const bool known = !db || !get_item_prefab || mono::invoke_method(get_item_prefab, db, prefab_args);
+					notification::warning("Item Spawner", known ? std::string("Inventory is full or the item could not be added.") : std::format("Item prefab '{}' was not found in this game version.", prefab_name));
 				}
 				return;
 			}
@@ -1014,7 +1018,8 @@ namespace big
 				int stack_index           = 0;
 				static auto world_level_address = mono::get_static_field_value("Game", "m_worldLevel", "assembly_valheim");
 				const int game_world_level = world_level_address ? *static_cast<int*>(world_level_address) : 0;
-				while (remaining > 0)
+				constexpr int max_world_drops   = 200;
+				while (remaining > 0 && stack_index < max_world_drops)
 				{
 					int stack_size     = std::min(remaining, max_stack);
 					Vector3 offset_pos = spawn_pos + Vector3{(stack_index % 5) * 0.8f, 0.f, (stack_index / 5) * 0.8f};
@@ -1034,7 +1039,7 @@ namespace big
 					idata.set_cheated(false);
 					idata.set_crafter_id(crafter_id);
 					idata.set_crafter_name(crafter_name);
-					uint8_t world_level = static_cast<uint8_t>(std::clamp(game_world_level, 0, 255));
+					int world_level = std::clamp(game_world_level, 0, 255);
 					mono::set_field_value<"ItemDrop/ItemData", "m_worldLevel">(item_data_obj, world_level);
 					void* drop_args[4] = {item_data_obj, &stack_size, &offset_pos, &spawn_rot};
 					auto spawned_drop  = mono::invoke_method(drop_item_method, nullptr, drop_args);

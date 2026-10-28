@@ -51,6 +51,14 @@ namespace big
 		catch (const std::exception& e)
 		{
 			LOG(WARNING) << "Invalid menu settings at " << settings_file.string() << ": " << e.what() << "; using defaults.";
+			auto backup = settings_file;
+			backup += ".bak";
+			std::error_code backup_error;
+			std::filesystem::copy_file(settings_file, backup, std::filesystem::copy_options::overwrite_existing, backup_error);
+			if (backup_error)
+			{
+				LOG(WARNING) << "Cannot back up invalid menu settings: " << backup_error.message();
+			}
 			from_json(this->default_options, *this);
 			this->deserialize_extra_options(this->default_options);
 			this->options = this->default_options;
@@ -101,10 +109,12 @@ namespace big
 			LOG(WARNING) << "Cannot create menu settings directory: " << error.message();
 			return false;
 		}
-		std::ofstream file(settings_file, std::ios::out | std::ios::trunc);
+		auto temp_file = settings_file;
+		temp_file += ".tmp";
+		std::ofstream file(temp_file, std::ios::out | std::ios::trunc);
 		if (!file.is_open())
 		{
-			LOG(WARNING) << "Cannot open menu settings for writing: " << settings_file.string();
+			LOG(WARNING) << "Cannot open menu settings for writing: " << temp_file.string();
 			return false;
 		}
 		nlohmann::json j = *this;
@@ -113,7 +123,15 @@ namespace big
 		file.close();
 		if (file.fail())
 		{
-			LOG(WARNING) << "Failed to write menu settings: " << settings_file.string();
+			LOG(WARNING) << "Failed to write menu settings: " << temp_file.string();
+			std::filesystem::remove(temp_file, error);
+			return false;
+		}
+		std::filesystem::rename(temp_file, settings_file, error);
+		if (error)
+		{
+			LOG(WARNING) << "Cannot replace menu settings: " << error.message();
+			std::filesystem::remove(temp_file, error);
 			return false;
 		}
 		return true;

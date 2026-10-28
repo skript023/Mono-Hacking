@@ -85,66 +85,50 @@ namespace big
 		static auto get_collider = mono::get_method("Player", "GetCollider", 0, "assembly_valheim");
 		static auto get_enabled = mono::get_method("Collider", "get_enabled", 0, "UnityEngine.PhysicsModule", "UnityEngine");
 		static auto set_enabled = mono::get_method_overload("Collider", "set_enabled", 1, "System.Void", "System.Boolean", "UnityEngine.PhysicsModule", "UnityEngine");
-		static MonoObject* active_collider = nullptr;
-		static bool original_enabled       = true;
+		static uintptr_t active_collider = 0;
+		static bool original_enabled     = true;
 
-		if (!get_collider || !get_enabled || !set_enabled)
+		const bool noclip = g_running && g_settings.self.noclip;
+		if ((!noclip && !active_collider) || !get_collider || !get_enabled || !set_enabled)
 		{
 			return;
 		}
 
-		auto collider = mono::invoke_method(get_collider, player, nullptr);
-		if (active_collider != collider)
+		auto collider = noclip ? mono::invoke_method(get_collider, player, nullptr) : nullptr;
+		auto previous = mono::retained_object(active_collider);
+		if (active_collider && previous != collider)
 		{
-			if (active_collider)
+			if (previous)
 			{
 				void* restore_args[]  = {&original_enabled};
 				MonoObject* exception = nullptr;
-				mono::invoke_method(set_enabled, active_collider, restore_args, &exception);
-				if (exception)
-				{
-					return;
-				}
+				mono::invoke_method(set_enabled, previous, restore_args, &exception);
 			}
-			active_collider = collider;
-			if (active_collider)
-			{
-				MonoObject* exception = nullptr;
-				auto enabled          = mono::invoke_method(get_enabled, active_collider, nullptr, &exception);
-				auto value            = enabled ? mono::object_unbox(enabled) : nullptr;
-				if (!exception && value)
-				{
-					original_enabled = *reinterpret_cast<bool*>(value);
-				}
-				else
-				{
-					active_collider = nullptr;
-					return;
-				}
-			}
+			mono::release(active_collider);
+			active_collider = 0;
+		}
+		if (!collider)
+		{
+			return;
 		}
 
 		if (!active_collider)
 		{
-			return;
+			MonoObject* exception = nullptr;
+			auto enabled          = mono::invoke_method(get_enabled, collider, nullptr, &exception);
+			auto value            = enabled ? mono::object_unbox(enabled) : nullptr;
+			if (exception || !value)
+			{
+				return;
+			}
+			original_enabled = *reinterpret_cast<bool*>(value);
+			active_collider  = mono::retain(collider);
 		}
 
-		bool enabled = original_enabled;
-		if (g_running && g_settings.self.noclip)
-		{
-			enabled = false;
-		}
+		bool enabled          = false;
 		void* args[]          = {&enabled};
 		MonoObject* exception = nullptr;
-		mono::invoke_method(set_enabled, active_collider, args, &exception);
-		if (exception)
-		{
-			return;
-		}
-		if (!g_running || !g_settings.self.noclip)
-		{
-			active_collider = nullptr;
-		}
+		mono::invoke_method(set_enabled, collider, args, &exception);
 	}
 
 	static void update_build_overlap(MonoObject* player, bool enabled)
@@ -219,6 +203,18 @@ namespace big
 		{
 			equipment_manager::get().tick(player);
 
+			static bool last_no_weight = false;
+			if (last_no_weight != g_settings.self.no_weight)
+			{
+				last_no_weight            = g_settings.self.no_weight;
+				static auto update_weight = mono::get_method("Inventory", "UpdateTotalWeight", 0, "assembly_valheim");
+				auto inventory            = mono::get_field_value<"Humanoid", "m_inventory", MonoObject*>(local_player);
+				if (update_weight && inventory)
+				{
+					mono::invoke_method(update_weight, inventory, nullptr);
+				}
+			}
+
 			if (last_pickup_player != local_player || last_pickup_range != g_settings.self.pickup_range)
 			{
 				last_pickup_player = local_player;
@@ -252,18 +248,24 @@ namespace big
 		detour_base::get_original<update>()(player);
 		if (g_running && local_player && player == local_player)
 		{
-			if (g_settings.self.prevent_freezing)
+			static bool removed_freezing = false;
+			static bool removed_cold     = false;
+			static bool removed_wet      = false;
+			if (g_settings.self.prevent_freezing && !removed_freezing)
 			{
 				buff_tools::remove_status_effect("Freezing");
 			}
-			if (g_settings.self.prevent_cold)
+			if (g_settings.self.prevent_cold && !removed_cold)
 			{
 				buff_tools::remove_status_effect("Cold");
 			}
-			if (g_settings.self.is_wet)
+			if (g_settings.self.is_wet && !removed_wet)
 			{
 				buff_tools::remove_status_effect("Wet");
 			}
+			removed_freezing = g_settings.self.prevent_freezing;
+			removed_cold     = g_settings.self.prevent_cold;
+			removed_wet      = g_settings.self.is_wet;
 
 			const auto now      = std::chrono::steady_clock::now();
 			const float elapsed = std::clamp(std::chrono::duration<float>(now - last_tick).count(), 0.f, 0.25f);

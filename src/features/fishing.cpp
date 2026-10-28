@@ -1,5 +1,7 @@
 #include "commands/looped_command.hpp"
+#include "features/field_override.hpp"
 #include "mono/mono.hpp"
+#include "task_mgr.hpp"
 #include "unity/fishing_tools.hpp"
 
 namespace big::features
@@ -7,115 +9,52 @@ namespace big::features
 	class fishing_unbreakable_line : public looped_command
 	{
 		using looped_command::looped_command;
+		field_override<float, 2> m_override{"FishingFloat", {"m_breakDistance", "m_maxDistance"}};
 
 		virtual void on_tick() override
 		{
 			auto floats = fishing_tools::get_floats();
-			if (floats.empty())
-				return;
-
-			auto float_class = mono::get_class("FishingFloat", "assembly_valheim");
-			if (!float_class)
-				return;
-
-			static auto f_break_dist = mono::get_field(float_class, "m_breakDistance");
-			static auto f_max_dist = mono::get_field(float_class, "m_maxDistance");
-
-			float max_dist = 99999.f;
+			m_override.forget_missing(floats);
 			for (auto* fl : floats)
 			{
-				if (!fl)
-					continue;
-
-				if (f_break_dist)
-					mono::set_field_value(fl, f_break_dist, &max_dist);
-				if (f_max_dist)
-					mono::set_field_value(fl, f_max_dist, &max_dist);
+				if (m_override.original(fl))
+				{
+					m_override.write(fl, {99999.f, 99999.f});
+				}
 			}
 		}
 
 		virtual void on_disable() override
 		{
-			auto floats = fishing_tools::get_floats();
-			if (floats.empty())
-				return;
-
-			auto float_class = mono::get_class("FishingFloat", "assembly_valheim");
-			if (!float_class)
-				return;
-
-			static auto f_break_dist = mono::get_field(float_class, "m_breakDistance");
-			static auto f_max_dist = mono::get_field(float_class, "m_maxDistance");
-
-			float default_dist = 30.f;
-			for (auto* fl : floats)
-			{
-				if (!fl)
-					continue;
-
-				if (f_break_dist)
-					mono::set_field_value(fl, f_break_dist, &default_dist);
-				if (f_max_dist)
-					mono::set_field_value(fl, f_max_dist, &default_dist);
-			}
+			async_run([this] {
+				m_override.restore();
+			});
 		}
 	};
 
 	class fishing_no_stamina : public looped_command
 	{
 		using looped_command::looped_command;
+		field_override<float, 2> m_override{"FishingFloat", {"m_pullStaminaUse", "m_hookedStaminaPerSec"}};
 
 		virtual void on_tick() override
 		{
 			auto floats = fishing_tools::get_floats();
-			if (floats.empty())
-				return;
-
-			auto float_class = mono::get_class("FishingFloat", "assembly_valheim");
-			if (!float_class)
-				return;
-
-			static auto f_pull_stam = mono::get_field(float_class, "m_pullStaminaUse");
-			static auto f_hook_stam = mono::get_field(float_class, "m_hookedStaminaPerSec");
-
-			float zero = 0.f;
+			m_override.forget_missing(floats);
 			for (auto* fl : floats)
 			{
-				if (!fl)
-					continue;
-
-				if (f_pull_stam)
-					mono::set_field_value(fl, f_pull_stam, &zero);
-				if (f_hook_stam)
-					mono::set_field_value(fl, f_hook_stam, &zero);
+				if (m_override.original(fl))
+				{
+					m_override.write(fl, {0.f, 0.f});
+				}
 			}
 		}
 
 		virtual void on_disable() override
 		{
-			auto floats = fishing_tools::get_floats();
-			if (floats.empty())
-				return;
-
-			auto float_class = mono::get_class("FishingFloat", "assembly_valheim");
-			if (!float_class)
-				return;
-
-			static auto f_pull_stam = mono::get_field(float_class, "m_pullStaminaUse");
-			static auto f_hook_stam = mono::get_field(float_class, "m_hookedStaminaPerSec");
-
-			float def_pull = 15.f;
-			float def_hook = 1.f;
-			for (auto* fl : floats)
-			{
-				if (!fl)
-					continue;
-
-				if (f_pull_stam)
-					mono::set_field_value(fl, f_pull_stam, &def_pull);
-				if (f_hook_stam)
-					mono::set_field_value(fl, f_hook_stam, &def_hook);
-			}
+			async_run([this] {
+				m_override.restore();
+			});
 		}
 	};
 

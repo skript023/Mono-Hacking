@@ -368,10 +368,14 @@ namespace utils
 		return raw.str();
 	}
 
-	inline std::string get_hwid()
+	inline std::string get_hwid(const std::string& raw_str)
 	{
-		std::string raw_str = get_hwid_raw();
 		std::string hash = sha256_hex(raw_str);
 		return hash.empty() ? raw_str : hash;
+	}
+
+	inline std::string get_hwid()
+	{
+		return get_hwid(get_hwid_raw());
 	}
 }

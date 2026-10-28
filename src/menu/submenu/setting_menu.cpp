@@ -1,5 +1,7 @@
 #include "../view.hpp"
 #include "server/server_module.hpp"
+#include "mono/mono.hpp"
+#include "task_mgr.hpp"
 
 namespace big
 {
@@ -11,7 +13,13 @@ namespace big
 				g_running = false;
 			});
 			sub->add_option<reguler_option>("Exit", nullptr, [] {
-				exit(0);
+				async_run([] {
+					static auto quit = mono::get_method("Application", "Quit", 0, "UnityEngine.CoreModule", "UnityEngine");
+					if (quit)
+					{
+						mono::invoke_method(quit);
+					}
+				});
 			});
 		});
 	}

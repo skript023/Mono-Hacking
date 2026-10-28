@@ -5,7 +5,7 @@ namespace big
 {
 	void player::set_max_health(float health, bool flash)
 	{
-		auto method = mono::get_method("Player", "SetMaxHealth", 2, "assembly_valheim");
+		static auto method = mono::get_method("Player", "SetMaxHealth", 2, "assembly_valheim");
 
 		if (!method)
 		{
@@ -30,6 +30,13 @@ namespace big
 			LOG(FATAL) << "Failed to set max eitr value";
 		}
 	}
+	void player::set_eitr(float eitr)
+	{
+		if (!mono::set_field_value<"Player", "m_eitr">(m_character, eitr))
+		{
+			LOG(FATAL) << "Failed to set eitr value";
+		}
+	}
 	void player::set_base_stamina(float stamina)
 	{
 		if (!mono::set_field_value<"Player", "m_baseStamina">(m_character, stamina))
@@ -46,7 +53,7 @@ namespace big
 	}
 	void player::set_max_stamina(float stamina, bool flash)
 	{
-		auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
+		static auto method = mono::get_method("Player", "SetMaxStamina", 2, "assembly_valheim");
 		if (!method)
 		{
 			LOG(WARNING) << "Failed to find method Player::SetMaxStamina";
@@ -99,7 +106,7 @@ namespace big
 	}
 	void player::add_eitr(float eitr)
 	{
-		auto method = mono::get_method("Player", "AddEitr", 1, "assembly_valheim");
+		static auto method = mono::get_method("Player", "AddEitr", 1, "assembly_valheim");
 
 		if (!method)
 		{
@@ -111,7 +118,7 @@ namespace big
 	}
 	void player::add_stamina(float eitr)
 	{
-		auto method = mono::get_method("Player", "AddStamina", 1, "assembly_valheim");
+		static auto method = mono::get_method("Player", "AddStamina", 1, "assembly_valheim");
 
 		if (!method)
 		{
@@ -160,6 +167,10 @@ namespace big
 	float player::get_max_eitr()
 	{
 		return mono::get_field_value<"Player", "m_maxEitr", float>(m_character);
+	}
+	float player::get_eitr()
+	{
+		return mono::get_field_value<"Player", "m_eitr", float>(m_character);
 	}
 	float player::get_stamina_regen()
 	{

@@ -218,7 +218,7 @@ namespace big
 				return false;
 			}
 			if (item_data(target).get_quality() != item_data(source).get_quality()
-			    || item_data(target).get_variant() != item_data(source).get_variant() || mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", uint8_t>(target) != mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", uint8_t>(source) || mono::get_field_value<"ItemDrop/ItemData", "m_crafterID", int64_t>(target) != mono::get_field_value<"ItemDrop/ItemData", "m_crafterID", int64_t>(source)
+			    || item_data(target).get_variant() != item_data(source).get_variant() || mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", int>(target) != mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", int>(source) || mono::get_field_value<"ItemDrop/ItemData", "m_crafterID", int64_t>(target) != mono::get_field_value<"ItemDrop/ItemData", "m_crafterID", int64_t>(source)
 			    || item_data(target).get_crafter_name() != item_data(source).get_crafter_name())
 			{
 				return false;
@@ -262,7 +262,7 @@ namespace big
 		void consolidate_inventory(MonoObject* inventory)
 		{
 			static auto get_all = mono::get_method("Inventory", "GetAllItems", 0, "assembly_valheim");
-			static auto remove_item = mono::get_method_exact("Inventory", "RemoveItem", {"ItemDrop/ItemData"}, "assembly_valheim");
+			static auto remove_item = mono::get_method_exact("Inventory", "RemoveItem", {"ItemDrop.ItemData"}, "assembly_valheim");
 			if (!inventory || !get_all || !remove_item)
 			{
 				notification::warning("Inventory Editor", "Inventory stack methods are unavailable.");
@@ -651,7 +651,7 @@ namespace big
 
 					MonoObject* selected_shared = nullptr;
 					mono::get_field_value(selected, shared_field, &selected_shared);
-					const auto selected_world_level = mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", uint8_t>(selected);
+					const auto selected_world_level = mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", int>(selected);
 					const bool selected_has_custom_data = has_custom_data(selected);
 					auto all_items                      = mono::invoke_method(get_all, inv_obj, nullptr);
 					std::vector<std::pair<MonoObject*, int>> isolated;
@@ -663,7 +663,7 @@ namespace big
 						}
 						MonoObject* item_shared = nullptr;
 						mono::get_field_value(item, shared_field, &item_shared);
-						if (item_shared != selected_shared || item_data(item).get_quality() != item_data(selected).get_quality() || mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", uint8_t>(item) != selected_world_level)
+						if (item_shared != selected_shared || item_data(item).get_quality() != item_data(selected).get_quality() || mono::get_field_value<"ItemDrop/ItemData", "m_worldLevel", int>(item) != selected_world_level)
 						{
 							continue;
 						}

@@ -23,6 +23,7 @@ namespace big
 		void set_max_health(float health, bool flash);
 		void set_base_health(float health);
 		void set_max_eitr(float eitr);
+		void set_eitr(float eitr);
 		void set_base_stamina(float stamina);
 		void set_max_stamina(float stamina);
 		void set_max_stamina(float stamina, bool flash);
@@ -41,6 +42,7 @@ namespace big
 		float get_base_stamina();
 		float get_max_stamina();
 		float get_max_eitr();
+		float get_eitr();
 		float get_stamina_regen();
 		float get_eitr_regen();
 		float get_max_adrenalin();

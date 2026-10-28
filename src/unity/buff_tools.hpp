@@ -16,7 +16,7 @@ namespace big
 			std::string effect_description;
 		};
 
-		static const std::vector<boss_power>& get_boss_powers()
+		static std::vector<boss_power> get_boss_powers()
 		{
 			return instance().get_boss_powers_impl();
 		}
@@ -56,6 +56,10 @@ namespace big
 		{
 			return instance().remove_status_effect_impl(name);
 		}
+		static bool blocks_effect(MonoObject* seman, MonoObject* effect)
+		{
+			return instance().blocks_effect_impl(seman, effect);
+		}
 		static bool apply_registered_effect(const std::string& prefab_name)
 		{
 			return instance().apply_registered_effect_impl(prefab_name);
@@ -71,7 +75,7 @@ namespace big
 			return value;
 		}
 
-		const std::vector<boss_power>& get_boss_powers_impl();
+		std::vector<boss_power> get_boss_powers_impl();
 		void apply_rested_impl(int comfort, bool notify);
 		void activate_guardian_power_impl(const std::string& power_name);
 		bool discover_guardian_powers_impl();
@@ -81,8 +85,10 @@ namespace big
 		void apply_eitr_shield_impl(float hp);
 		void clear_all_debuffs_impl(bool notify);
 		void remove_status_effect_impl(const std::string& name);
+		bool blocks_effect_impl(MonoObject* seman, MonoObject* effect);
 		bool apply_registered_effect_impl(const std::string& prefab_name);
 		int get_stable_hash_impl(const std::string& name);
+		static int compute_stable_hash(const std::string& name);
 		MonoObject* get_seman_impl();
 		MonoMethod* get_add_status_effect_method_impl(bool by_prefab);
 		MonoObject* invoke_add_status_effect_impl(MonoObject* seman, MonoMethod* method, void* first_arg, int level, float skill);

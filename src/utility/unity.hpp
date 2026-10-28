@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <optional>
 #include "mono/mono.hpp"
 #include <pointers.hpp>
@@ -8,35 +9,33 @@ namespace big::unity
 {
 	inline MonoObject* get_local_player()
 	{
-		// 1. Cari Class Player
-		MonoClass* player_class = mono::get_class("Player", "assembly_valheim");
-		if (player_class == nullptr)
+		static std::atomic<MonoObject**> local_player_slot{};
+		auto slot = local_player_slot.load(std::memory_order_acquire);
+		if (!slot)
 		{
-			return nullptr;
+			MonoClass* player_class = mono::get_class("Player", "assembly_valheim");
+			if (player_class == nullptr)
+			{
+				return nullptr;
+			}
+
+			MonoClassField* local_player_field = mono::get_field(player_class, "m_localPlayer");
+			if (local_player_field == nullptr)
+			{
+				return nullptr;
+			}
+
+			void* static_field_data_addr = mono::get_static_field_data(player_class);
+			if (static_field_data_addr == nullptr)
+			{
+				return nullptr;
+			}
+
+			slot = reinterpret_cast<MonoObject**>(reinterpret_cast<uintptr_t>(static_field_data_addr) + mono::get_field_offset(local_player_field));
+			local_player_slot.store(slot, std::memory_order_release);
 		}
 
-		// 2. Cari Static Field m_localPlayer
-		MonoClassField* local_player_field = mono::get_field(player_class, "m_localPlayer");
-		if (local_player_field == nullptr)
-		{
-			return nullptr;
-		}
-
-		// 3. Dapatkan Base Address Static Field Data
-		void* static_field_data_addr = mono::get_static_field_data(player_class);
-		if (static_field_data_addr == nullptr)
-		{
-			return nullptr;
-		}
-
-		// 4. Hitung Offset dan Baca Nilai (MonoObject*)
-		uint32_t offset             = mono::get_field_offset(local_player_field);
-		void* local_player_ptr_addr = (void*)((uintptr_t)static_field_data_addr + offset);
-
-		// Casting address ke pointer-to-pointer, lalu dereference untuk mendapatkan MonoObject*
-		MonoObject* local_player_instance = *(MonoObject**)local_player_ptr_addr;
-
-		return local_player_instance;
+		return *slot;
 	}
 
 	inline MonoObject* get_zone_system()
@@ -49,7 +48,11 @@ namespace big::unity
 		}
 
 		// 2. Cari Static Field m_localPlayer
-		MonoClassField* zone_system_instance = mono::get_field(zone_system, "m_instance");
+		MonoClassField* zone_system_instance = mono::get_field(zone_system, "s_instance");
+		if (zone_system_instance == nullptr)
+		{
+			zone_system_instance = mono::get_field(zone_system, "m_instance");
+		}
 		if (zone_system_instance == nullptr)
 		{
 			return nullptr;
@@ -1222,18 +1225,6 @@ namespace big::unity
 
 	inline void teleport_to_world_point(Vector3 pos)
 	{
-		MonoObject* minimap = get_minimap();
-		if (minimap)
-		{
-			static MonoMethod* debug_teleport = mono::get_method("Minimap", "DebugTeleport", 1, "assembly_valheim");
-			if (debug_teleport)
-			{
-				void* args[1] = {&pos};
-				mono::invoke_method(debug_teleport, minimap, args);
-				return;
-			}
-		}
-
 		MonoObject* player = get_local_player();
 		if (player)
 		{
@@ -1632,24 +1623,6 @@ namespace big::unity
 		void* args[6] = {mono_name, &pos, mono_pin, &pin_type, &show_map, &discover_all};
 
 		mono::invoke_method(method, game, args);
-	}
-
-	inline void discover_bosses_and_traders()
-	{
-		struct boss_entry
-		{
-			const char* location_name;
-			const char* pin_name;
-			int pin_type;
-		};
-
-		static const boss_entry entries[] = {{"Eikthyrnir", "Eikthyr", 9}, {"GDKing", "The Elder", 9}, {"Bonemass", "Bonemass", 9}, {"Dragonqueen", "Moder", 9}, {"GoblinKing", "Yagluth", 9}, {"SeekerQueen", "The Queen", 9}, {"FaderLocation", "$enemy_fader_codename", 9}, {"DN_Bossroom", "$hud_pin_dnboss", 9}, {"Vendor_BlackForest", "Haldor", 2}, {"Hildir_camp", "Hildir", 16}, {"Hildir_crypt", "Hildir Crypt", 17}, {"Hildir_cave", "Hildir Cave", 17}, {"Hildir_tower", "Hildir Tower", 18}};
-
-		for (const auto& entry : entries)
-		{
-			discover_closest_location(entry.location_name, entry.pin_name, entry.pin_type, false, false);
-		}
-		LOG(INFO) << "Discover bosses and traders requested";
 	}
 
 	inline void sanitize_local_player_inventory()

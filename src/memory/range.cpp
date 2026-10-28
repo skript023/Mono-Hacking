@@ -173,7 +173,7 @@ namespace memory
 			if (r.size < sig.m_bytes.size())
 				continue;
 
-			range mem(r.base, regions.size());
+			range mem(r.base, r.size);
 
 			LOG(VERBOSE) << "Base: " << mem.begin().as<void*>() << " Size: " << std::hex << mem.end().as<void*>();
 

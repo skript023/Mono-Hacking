@@ -1,5 +1,6 @@
 #include "bool_command.hpp"
 #include "commands.hpp"
+#include "task_mgr.hpp"
 
 namespace big
 {
@@ -32,10 +33,19 @@ namespace big
 
 	void bool_command::set_state(bool state)
 	{
-		if (state && !m_state)
-			on_enable();
-		else if (!state && m_state)
-			on_disable();
+		if (state != m_state)
+		{
+			async_run([this, state] {
+				if (state)
+				{
+					on_enable();
+				}
+				else
+				{
+					on_disable();
+				}
+			});
+		}
 
 		m_state = state;
 

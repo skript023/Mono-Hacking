@@ -1,4 +1,5 @@
 #include "base_tools.hpp"
+#include "esp_projection.hpp"
 #include "mono/mono.hpp"
 #include "unity/player.hpp"
 #include "unity/localization.hpp"
@@ -87,6 +88,34 @@ namespace big
 			auto d = a - b;
 			return d.x * d.x + d.y * d.y + d.z * d.z;
 		}
+		std::vector<MonoObject*> scene_objects(const char* name)
+		{
+			static const std::unordered_map<std::string_view, const char*> instance_lists = {{"WearNTear", "s_allInstances"}, {"ShieldGenerator", "m_instances"}};
+			if (auto list = instance_lists.find(name); list != instance_lists.end())
+			{
+				auto slot = static_cast<MonoObject**>(mono::get_static_field_value(name, list->second, "assembly_valheim"));
+				return slot && *slot ? unity::list_to_vector(*slot) : std::vector<MonoObject*>{};
+			}
+
+			static auto find = mono::get_method_overload("Object", "FindObjectsOfType", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
+			auto type = mono::reflection_type(mono::get_class(name, "assembly_valheim"));
+			if (!find || !type)
+			{
+				return {};
+			}
+			void* args[] = {type};
+			auto array   = reinterpret_cast<MonoArray*>(mono::invoke_method(find, nullptr, args));
+			if (!array)
+			{
+				return {};
+			}
+			std::vector<MonoObject*> objects;
+			for (auto object : mono_array_view<MonoObject*>(array))
+			{
+				objects.push_back(object);
+			}
+			return objects;
+		}
 		std::vector<MonoObject*> nearby(const char* name, float radius)
 		{
 			std::vector<MonoObject*> result;
@@ -95,29 +124,28 @@ namespace big
 			{
 				return result;
 			}
-			static auto find = mono::get_method_overload("Object", "FindObjectsOfType", 1, nullptr, "Type", "UnityEngine.CoreModule", "UnityEngine");
-			auto type = mono::reflection_type(mono::get_class(name, "assembly_valheim"));
-			if (!find || !type)
-			{
-				return result;
-			}
-			void* args[] = {type};
-			auto array   = reinterpret_cast<MonoArray*>(mono::invoke_method(find, nullptr, args));
-			if (!array)
-			{
-				return result;
-			}
 			const auto origin = player(local).get_position();
-			for (auto object : mono_array_view<MonoObject*>(array))
+			std::vector<std::pair<float, MonoObject*>> found;
+			for (auto object : scene_objects(name))
 			{
-				if (object && distance_squared(origin, position(object)) <= radius * radius)
+				if (!object)
 				{
-					result.push_back(object);
+					continue;
+				}
+				const float distance = distance_squared(origin, position(object));
+				if (distance <= radius * radius)
+				{
+					found.emplace_back(distance, object);
 				}
 			}
-			std::sort(result.begin(), result.end(), [&](auto a, auto b) {
-				return distance_squared(origin, position(a)) < distance_squared(origin, position(b));
+			std::sort(found.begin(), found.end(), [](const auto& a, const auto& b) {
+				return a.first < b.first;
 			});
+			result.reserve(found.size());
+			for (const auto& entry : found)
+			{
+				result.push_back(entry.second);
+			}
 			return result;
 		}
 		std::string name(MonoObject* object)
@@ -198,7 +226,7 @@ namespace big
 		{
 			return 1.f;
 		}
-		const float radius = get_options().radius;
+		const float radius = option_impl(&options::radius);
 		return distance_squared(position(object), player(local).get_position()) <= radius * radius ? speed : 1.f;
 	}
 
@@ -621,16 +649,19 @@ namespace big
 		if (get_options().damaged_markers)
 		{
 			auto state = get_snapshot();
-			for (const auto& building : state.buildings)
+			if (!state.buildings.empty() && esp_projection::begin_frame())
 			{
-				Vector3 screen;
-				if (unity::world_to_screen(building.position, screen))
+				for (const auto& building : state.buildings)
 				{
-					next.push_back({building.detail, screen});
-				}
-				if (next.size() >= 200)
-				{
-					break;
+					Vector3 screen;
+					if (esp_projection::project(building.position, screen))
+					{
+						next.push_back({building.detail, screen});
+					}
+					if (next.size() >= 200)
+					{
+						break;
+					}
 				}
 			}
 		}
@@ -640,9 +671,51 @@ namespace big
 			projected = std::chrono::steady_clock::now();
 		}
 	}
+	void base_tools::advance_fermenters_impl(float speed, float radius)
+	{
+		static auto get_znet = mono::get_method("ZNet", "get_instance", 0, "assembly_valheim");
+		static auto net_time = mono::get_field("ZNet", "m_netTime", "assembly_valheim");
+		static auto get_zdo  = mono::get_method("ZNetView", "GetZDO", 0, "assembly_valheim");
+		static auto get_long = mono::get_method_exact("ZDO", "GetLong", {"System.Int32", "System.Int64"}, "assembly_valheim");
+		static auto set_long = mono::get_method_exact("ZDO", "Set", {"System.Int32", "System.Int64"}, "assembly_valheim");
+		static auto start_time = static_cast<int*>(mono::get_static_field_value("ZDOVars", "s_startTime", "assembly_valheim"));
+		std::unordered_map<MonoObject*, double> next;
+		auto znet = get_znet ? mono::invoke_method(get_znet, nullptr, nullptr) : nullptr;
+		if (speed > 1.f && znet && net_time && get_zdo && get_long && set_long && start_time)
+		{
+			double now = 0.0;
+			mono::get_field_value(znet, net_time, &now);
+			for (auto object : nearby("Fermenter", radius))
+			{
+				auto view = field<MonoObject*>(object, "m_nview");
+				if (!valid(object) || !value<bool>(view, "IsOwner"))
+				{
+					continue;
+				}
+				if (auto previous = fermenter_clock.find(object); previous != fermenter_clock.end() && now > previous->second)
+				{
+					auto zdo          = mono::invoke_method(get_zdo, view, nullptr);
+					int key           = *start_time;
+					int64_t empty     = 0;
+					void* get_args[2] = {&key, &empty};
+					auto boxed        = zdo ? mono::invoke_method(get_long, zdo, get_args) : nullptr;
+					int64_t start     = boxed ? *static_cast<int64_t*>(mono::object_unbox(boxed)) : 0;
+					if (start != 0)
+					{
+						int64_t shifted = start - static_cast<int64_t>((speed - 1.f) * (now - previous->second) * 10000000.0);
+						void* set_args[2] = {&key, &shifted};
+						mono::invoke_method(set_long, zdo, set_args);
+					}
+				}
+				next[object] = now;
+			}
+		}
+		fermenter_clock = std::move(next);
+	}
 	void base_tools::update_impl()
 	{
 		const auto cfg = get_options();
+		advance_fermenters_impl(cfg.fermenter_speed, cfg.radius);
 		if (!scan_requested.exchange(false) && !cfg.damaged_markers)
 		{
 			return;

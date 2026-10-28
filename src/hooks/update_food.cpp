@@ -10,7 +10,7 @@ namespace big
 	void hooks::update_food(MonoObject* player, float dt, bool force_update)
 	{
 		auto original = detour_base::get_original<update_food>();
-		if (!g_running || force_update || player != unity::get_local_player() || g_settings.self.food_duration_multiplier == 1.f)
+		if (!g_running || force_update || g_settings.self.food_duration_multiplier == 1.f || player != unity::get_local_player())
 		{
 			return original(player, dt, force_update);
 		}
@@ -30,7 +30,9 @@ namespace big
 		*timer = -1000000.f;
 		original(player, dt, false);
 
-		float food_time = previous_timer + elapsed * std::clamp(g_settings.self.food_duration_multiplier, 0.f, 10.f);
+		const float duration   = std::clamp(g_settings.self.food_duration_multiplier, 0.f, 10.f);
+		const float decay_rate = duration > 0.f ? 1.f / std::max(duration, 0.1f) : 0.f;
+		float food_time        = previous_timer + elapsed * decay_rate;
 		while (food_time >= 1.f)
 		{
 			food_time -= 1.f;

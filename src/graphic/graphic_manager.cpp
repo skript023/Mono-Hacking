@@ -794,7 +794,7 @@ namespace big
 			size_t size = GRAPHIC_ARRAYSIZE(methodsNames);
 
 			m_swapchain_methods.clear();
-			m_swapchain_methods.reserve(size);
+			m_swapchain_methods.resize(size);
 
 			for (int i = 0; i < size; i++)
 			{

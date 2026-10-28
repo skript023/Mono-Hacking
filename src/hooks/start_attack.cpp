@@ -202,7 +202,7 @@ namespace big
 		LOG(INFO) << "Original aim dir: " << aimDir->x << ", " << aimDir->y << ", " << aimDir->z;
 #endif
 		auto local = unity::get_local_player();
-		if (!local)
+		if (!local || mono::get_field_value<"Attack", "m_character", MonoObject*>(attack) != local)
 		{
 			return;
 		}
@@ -214,7 +214,6 @@ namespace big
 
 		if (!best)
 		{
-			LOG(FATAL) << "No target found within FOV";
 			return;
 		}
 

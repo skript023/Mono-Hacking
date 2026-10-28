@@ -204,6 +204,7 @@ namespace big
 		frame.AddrFrame.Offset = context.Rbp;
 		frame.AddrStack.Offset = context.Rsp;
 
+		std::fill(m_frame_pointers.begin(), m_frame_pointers.end(), 0);
 		for (size_t i = 0; i < m_frame_pointers.size(); ++i)
 		{
 			if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, GetCurrentProcess(), GetCurrentThread(), &frame, &context, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))

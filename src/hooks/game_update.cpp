@@ -61,7 +61,7 @@ namespace big
 
 	void hooks::game_update(MonoObject* game)
 	{
-		if (!g_running && (unity::hud_manager::cleanup_pending() || crafting_tools::cleanup_pending() || camera_tools::cleanup_pending() || world_time::cleanup_pending() || animal_tools::cleanup_pending()))
+		if (!g_running && (g_shutdown_pending || unity::hud_manager::cleanup_pending() || crafting_tools::cleanup_pending() || camera_tools::cleanup_pending() || world_time::cleanup_pending() || animal_tools::cleanup_pending()))
 		{
 			task_mgr::tick();
 		}

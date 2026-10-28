@@ -14,9 +14,10 @@ namespace big
 		{
 			movement_multiplier = g_settings.self.speed_multiplier;
 		}
-		if (player && player == unity::get_local_player())
+		const float multiplier = std::clamp(movement_multiplier, 0.1f, 10.f) * std::clamp(g_settings.self.run_speed_multiplier, 0.1f, 10.f);
+		if (multiplier != 1.f && player && player == unity::get_local_player())
 		{
-			return factor * std::clamp(movement_multiplier, 0.1f, 10.f) * std::clamp(g_settings.self.run_speed_multiplier, 0.1f, 10.f);
+			return factor * multiplier;
 		}
 
 		return factor;
@@ -31,9 +32,10 @@ namespace big
 		{
 			movement_multiplier = g_settings.self.speed_multiplier;
 		}
-		if (player && player == unity::get_local_player())
+		const float multiplier = std::clamp(movement_multiplier, 0.1f, 10.f) * std::clamp(g_settings.self.jog_speed_multiplier, 0.1f, 10.f);
+		if (multiplier != 1.f && player && player == unity::get_local_player())
 		{
-			return factor * std::clamp(movement_multiplier, 0.1f, 10.f) * std::clamp(g_settings.self.jog_speed_multiplier, 0.1f, 10.f);
+			return factor * multiplier;
 		}
 
 		return factor;

@@ -3,6 +3,7 @@
 #include "pointers.hpp"
 #include "renderer.hpp"
 #include "task_mgr.hpp"
+#include "commands/commands.hpp"
 #include "thread_pool.hpp"
 #include "benchmark.hpp"
 #include "file_manager.hpp"
@@ -10,7 +11,6 @@
 
 #include "mono/mono.hpp"
 #include "logger/logger.hpp"
-#include "plugins/plugins.hpp"
 #include <astra/host/settings.hpp>
 #include "server/server_module.hpp"
 #include "worker/main_worker.hpp"
@@ -20,7 +20,9 @@
 #include "unity/camera_tools.hpp"
 #include "unity/crafting_tools.hpp"
 #include "unity/world_time.hpp"
+#include "unity/equipment_slots.hpp"
 #include "javascript/javascript_manager.hpp"
+#include "javascript/bindings/trampoline_binding.hpp"
 
 #include <astra/host/notification.hpp>
 
@@ -114,12 +116,34 @@ DWORD APIENTRY main_thread(LPVOID)
 			std::this_thread::sleep_for(1s);
 		}
 
+		{
+			auto pending       = std::make_shared<std::atomic_bool>(true);
+			g_shutdown_pending = true;
+			async_run([pending] {
+				commands::shutdown();
+				equipment_manager::get().shutdown();
+				async_run([pending] {
+					pending->store(false);
+				});
+			});
+			const auto deadline = std::chrono::steady_clock::now() + 2s;
+			while (pending->load() && std::chrono::steady_clock::now() < deadline)
+			{
+				std::this_thread::sleep_for(10ms);
+			}
+			g_shutdown_pending = false;
+			if (pending->load())
+			{
+				LOG(WARNING) << "Game thread unavailable to turn off looped features before unload.";
+			}
+		}
 		crafting_tools::shutdown();
 		animal_tools::shutdown();
 		world_time::shutdown();
 		camera_tools::shutdown();
 		unity::hud_manager::shutdown();
 		render_vulkan::detach();
+		js::trampoline::shutdown();
 		g_hooking->disable();
 		LOG(INFO) << "Hooking disabled.";
 

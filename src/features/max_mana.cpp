@@ -1,19 +1,19 @@
 #include "commands/looped_command.hpp"
-#include "commands/float_command.hpp"
+#include "features/features.hpp"
 #include "mono/mono.hpp"
+#include "task_mgr.hpp"
 
 #include "unity/self.hpp"
 #include "utility/unity.hpp"
 
+#include <algorithm>
+
 namespace big::features
 {
-	float_command _eitr_amount("eitr_amount", "Maximum Eitr", "Maximum eitr capacity while the override is enabled.", 0.f, 10000.f, 0.f);
 	class eitr : public looped_command
 	{
 		using looped_command::looped_command;
-		MonoObject* m_player  = nullptr;
-		float m_original_eitr = 0.f;
-		bool m_has_original   = false;
+		MonoObject* m_player = nullptr;
 
 		virtual void on_tick() override
 		{
@@ -24,14 +24,17 @@ namespace big::features
 				return;
 			}
 
+			const float desired_eitr = _eitr_amount.get_state();
+			const float current_eitr = player.get_max_eitr();
 			if (object != m_player)
 			{
-				m_player        = object;
-				m_original_eitr = player.get_max_eitr();
-				m_has_original  = true;
+				m_player = object;
+				if (current_eitr != desired_eitr)
+				{
+					_food_max_eitr = current_eitr;
+				}
 			}
-			const float desired_eitr = _eitr_amount.get_state();
-			if (player.get_max_eitr() != desired_eitr)
+			if (current_eitr != desired_eitr)
 			{
 				player.set_max_eitr(desired_eitr);
 			}
@@ -39,14 +42,16 @@ namespace big::features
 
 		virtual void on_disable() override
 		{
-			auto player = self::get_player();
-			if (m_has_original && player.get_object() == m_player)
-			{
-				player.set_max_eitr(m_original_eitr);
-			}
-			m_player        = nullptr;
-			m_original_eitr = 0.f;
-			m_has_original  = false;
+			async_run([this] {
+				auto player           = self::get_player();
+				const float food_eitr = _food_max_eitr.exchange(-1.f);
+				if (food_eitr >= 0.f && player.get_object() && player.get_object() == m_player)
+				{
+					player.set_max_eitr(food_eitr);
+					player.set_eitr(std::clamp(player.get_eitr(), 0.f, food_eitr));
+				}
+				m_player = nullptr;
+			});
 		}
 	};
 

@@ -8,6 +8,7 @@
 #include "unity/online_players.hpp"
 #include "unity/base_tools.hpp"
 #include "unity/animal_tools.hpp"
+#include "unity/world_time.hpp"
 #include "commands/commands.hpp"
 #include "commands/bool_command.hpp"
 #include <astra/host/hotkeys.hpp>
@@ -24,6 +25,7 @@ namespace big
 		base_tools::hotkey_tick();
 		animal_tools::update();
 		animal_tools::hotkey_tick();
+		world_time::maintain();
 		settings::apply_external();
 		hotkeys::tick(g_pointers->m_hwnd);
 	}
@@ -32,8 +34,6 @@ namespace big
 	{
 		update();
 		commands::run_looped_command();
-		g_pointers->m_resolution.x = unity::get_screen_width();
-		g_pointers->m_resolution.y = unity::get_screen_height();
 	}
 
 	task<void> main_worker::run()
@@ -51,6 +51,8 @@ namespace big
 
 	static void safe_slow_update()
 	{
+		g_pointers->m_resolution.x = unity::get_screen_width();
+		g_pointers->m_resolution.y = unity::get_screen_height();
 		online_players::update();
 		base_tools::update();
 	}

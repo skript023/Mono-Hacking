@@ -120,7 +120,33 @@ namespace big
 
 	bool world_time::is_time_paused()
 	{
-		return s_time_scale.load(std::memory_order_acquire) <= 0.f;
+		static auto game_time_scale = static_cast<float*>(mono::get_static_field_value("Game", "m_timeScale", "assembly_valheim"));
+		return s_time_scale.load(std::memory_order_acquire) <= 0.f && (!game_time_scale || *game_time_scale <= 0.f);
+	}
+
+	void world_time::maintain()
+	{
+		const float desired = s_time_scale.load(std::memory_order_acquire);
+		if (desired == 1.f)
+		{
+			return;
+		}
+
+		static auto game_time_scale = static_cast<float*>(mono::get_static_field_value("Game", "m_timeScale", "assembly_valheim"));
+		static auto game_paused = static_cast<bool*>(mono::get_static_field_value("Game", "m_pause", "assembly_valheim"));
+		static std::chrono::steady_clock::time_point last_attempt{};
+		if (!game_time_scale || !game_paused || *game_paused || *game_time_scale == desired)
+		{
+			return;
+		}
+
+		const auto now = std::chrono::steady_clock::now();
+		if (now - last_attempt < std::chrono::milliseconds(500))
+		{
+			return;
+		}
+		last_attempt = now;
+		apply_time_scale(desired);
 	}
 
 	void world_time::shutdown()

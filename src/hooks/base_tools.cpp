@@ -5,28 +5,20 @@ namespace big
 {
 	double hooks::smelter_delta(MonoObject* object)
 	{
-		return detour_base::get_original<smelter_delta>()(object)
-		    * base_tools::multiplier(object, base_tools::get_options().smelter_speed);
-	}
-	double hooks::fermenter_time(MonoObject* object)
-	{
-		return detour_base::get_original<fermenter_time>()(object)
-		    * base_tools::multiplier(object, base_tools::get_options().fermenter_speed);
+		return detour_base::get_original<smelter_delta>()(object) * base_tools::multiplier(object, base_tools::option(&base_tools::options::smelter_speed));
 	}
 	float hooks::hive_delta(MonoObject* object)
 	{
-		return detour_base::get_original<hive_delta>()(object)
-		    * base_tools::multiplier(object, base_tools::get_options().honey_speed);
+		return detour_base::get_original<hive_delta>()(object) * base_tools::multiplier(object, base_tools::option(&base_tools::options::honey_speed));
 	}
 	float hooks::plant_grow_time(MonoObject* object)
 	{
-		return detour_base::get_original<plant_grow_time>()(object)
-		    / base_tools::multiplier(object, base_tools::get_options().plant_speed);
+		return detour_base::get_original<plant_grow_time>()(object) / base_tools::multiplier(object, base_tools::option(&base_tools::options::plant_speed));
 	}
 	void hooks::plant_update_health(MonoObject* object, double time_since_planted)
 	{
 		detour_base::get_original<plant_update_health>()(object, time_since_planted);
-		if (base_tools::get_options().bypass_plant_restrictions)
+		if (base_tools::option(&base_tools::options::bypass_plant_restrictions))
 		{
 			static auto status_field = mono::get_field("Plant", "m_status", "assembly_valheim");
 			if (status_field)
@@ -38,20 +30,29 @@ namespace big
 	}
 	float hooks::cooking_delta(MonoObject* object)
 	{
-		return detour_base::get_original<cooking_delta>()(object)
-		    * base_tools::multiplier(object, base_tools::get_options().cooking_speed);
+		return detour_base::get_original<cooking_delta>()(object) * base_tools::multiplier(object, base_tools::option(&base_tools::options::cooking_speed));
 	}
 	float hooks::sap_collector_delta(MonoObject* object)
 	{
-		return detour_base::get_original<sap_collector_delta>()(object)
-		    * base_tools::multiplier(object, base_tools::get_options().sap_speed);
+		return detour_base::get_original<sap_collector_delta>()(object) * base_tools::multiplier(object, base_tools::option(&base_tools::options::sap_speed));
 	}
 	MonoString* hooks::environment_override(MonoObject* object)
 	{
-		auto cfg = base_tools::get_options();
-		if (!cfg.weather.empty())
+		static std::string cached_weather;
+		static uintptr_t cached_string = 0;
+		auto weather                   = base_tools::option(&base_tools::options::weather);
+		if (!weather.empty())
 		{
-			return mono::to_mono_string(cfg.weather);
+			if (!cached_string || weather != cached_weather)
+			{
+				mono::release(cached_string);
+				cached_string  = mono::retain(reinterpret_cast<MonoObject*>(mono::to_mono_string(weather)));
+				cached_weather = std::move(weather);
+			}
+			if (auto cached = mono::retained_object(cached_string))
+			{
+				return reinterpret_cast<MonoString*>(cached);
+			}
 		}
 		return detour_base::get_original<environment_override>()(object);
 	}

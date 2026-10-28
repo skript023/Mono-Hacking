@@ -56,4 +56,6 @@ namespace big
 	using mono_signature_get_return_type_t = MonoType* (*)(MonoMethodSignature * sig);
 	using mono_signature_get_params_t = MonoType* (*)(MonoMethodSignature * sig, void** iter);
 	using mono_type_get_name_t = char* (*)(MonoType * type);
+	using mono_field_get_type_t            = MonoType* (*)(MonoClassField* field);
+	using mono_type_size_t                 = int (*)(MonoType* type, int* alignment);
 }

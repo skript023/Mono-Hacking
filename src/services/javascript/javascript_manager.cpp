@@ -7,14 +7,16 @@
 #include "bindings/sigscanner_binding.hpp"
 #include "bindings/store_binding.hpp"
 #include "bindings/trampoline_binding.hpp"
+#include "js_lock.hpp"
 #include "utility/joaat.hpp"
 
 namespace big
 {
 	javascript_manager::~javascript_manager()
 	{
-		unload_all_modules_impl();
 		js::trampoline::shutdown();
+		std::lock_guard lock(g_js_mutex);
+		unload_all_modules_impl();
 		js::sig::shutdown();
 		js_gui::shutdown();
 		js::command::shutdown();
@@ -120,6 +122,7 @@ namespace big
 
 	void javascript_manager::unload_all_modules_impl()
 	{
+		std::lock_guard js_lock(g_js_mutex);
 		{
 			std::lock_guard guard(m_module_lock);
 
@@ -142,6 +145,7 @@ namespace big
 
 	void javascript_manager::unload_module_impl(uint32_t module_id)
 	{
+		std::lock_guard js_lock(g_js_mutex);
 		std::lock_guard guard(m_module_lock);
 		std::erase_if(m_modules, [module_id](auto& module) {
 			return module_id == module->module_id();
@@ -170,6 +174,7 @@ namespace big
 		const auto module_name = module_path.filename().string();
 		const auto id          = joaat(module_name);
 
+		std::lock_guard js_lock(g_js_mutex);
 		std::lock_guard guard(m_module_lock);
 		for (const auto& module : m_modules)
 		{
@@ -198,9 +203,11 @@ namespace big
 	void javascript_manager::eval_script_impl(std::string const& script)
 	{
 		log_to_console(js_log_level::eval_in, "> " + script);
+		std::lock_guard lock(g_js_mutex);
 		try
 		{
-			auto result      = m_context.eval(script, "<eval>", JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);
+			const int type = JS_DetectModule(script.c_str(), script.size()) ? JS_EVAL_TYPE_MODULE : JS_EVAL_TYPE_GLOBAL;
+			auto result    = m_context.eval(script, "<eval>", type);
 			const char* text = JS_ToCString(m_context.ctx, result.v);
 			if (text)
 			{
@@ -226,6 +233,7 @@ namespace big
 	void javascript_manager::eval_file_impl(const std::filesystem::path& path)
 	{
 		log_to_console(js_log_level::eval_in, "> " + path.filename().string());
+		std::lock_guard lock(g_js_mutex);
 		try
 		{
 			m_context.evalFile(path.string().c_str(), JS_EVAL_TYPE_MODULE | JS_EVAL_TYPE_GLOBAL);

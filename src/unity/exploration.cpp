@@ -9,23 +9,9 @@ namespace big
 {
 	namespace
 	{
-		const std::vector<exploration::location_entry> boss_catalog = {
-		    {{"Eikthyrnir"}, "Eikthyr", "Eikthyr", 9, "Meadows"},
-		    {{"GDKing"}, "The Elder", "The Elder", 9, "Black Forest"},
-		    {{"Bonemass"}, "Bonemass", "Bonemass", 9, "Swamp"},
-		    {{"Dragonqueen"}, "Moder", "Moder", 9, "Mountain"},
-		    {{"GoblinKing"}, "Yagluth", "Yagluth", 9, "Plains"},
-		    {{"Mistlands_DvergrBossEntrance1", "Mistlands_DvergrBossEntrance", "Mistlands_BossEntrance", "Mistlands_DvergrTownEntrance1", "SeekerQueen"}, "The Queen", "The Queen", 9, "Mistlands"},
-		    {{"FaderLocation"}, "Fader", "$enemy_fader_codename", 9, "Ashlands"},
-		    {{"DN_Bossroom"}, "Deep North Boss", "$hud_pin_dnboss", 9, "Deep North"}};
+		const std::vector<exploration::location_entry> boss_catalog = {{{"Eikthyrnir"}, "Eikthyr", "Eikthyr", 9, "Meadows"}, {{"GDKing"}, "The Elder", "The Elder", 9, "Black Forest"}, {{"Bonemass"}, "Bonemass", "Bonemass", 9, "Swamp"}, {{"Dragonqueen"}, "Moder", "Moder", 9, "Mountain"}, {{"GoblinKing"}, "Yagluth", "Yagluth", 9, "Plains"}, {{"Mistlands_DvergrBossEntrance1", "Mistlands_DvergrBossEntrance", "Mistlands_BossEntrance", "SeekerQueen"}, "The Queen", "The Queen", 9, "Mistlands"}, {{"FaderLocation"}, "Fader", "$enemy_fader_codename", 9, "Ashlands"}, {{"DN_Bossroom"}, "Deep North Boss", "$hud_pin_dnboss", 9, "Deep North"}};
 
-		const std::vector<exploration::location_entry> trader_catalog = {
-		    {{"Vendor_BlackForest"}, "Haldor (Trader)", "Haldor", 2, "Black Forest"},
-		    {{"Hildir_camp"}, "Hildir (Merchant)", "Hildir", 14, "Meadows"},
-		    {{"BogWitch_Camp", "BogWitch"}, "Bog Witch (Alchemist)", "Bog Witch", 2, "Swamp"},
-		    {{"Hildir_crypt"}, "Smouldering Tomb (Crypt)", "Hildir Crypt", 15, "Black Forest"},
-		    {{"Hildir_cave"}, "Howling Cavern (Cave)", "Hildir Cave", 15, "Mountain"},
-		    {{"Hildir_tower"}, "Sealed Tower", "Hildir Tower", 16, "Plains"}};
+		const std::vector<exploration::location_entry> trader_catalog = {{{"Vendor_BlackForest"}, "Haldor (Trader)", "Haldor", 2, "Black Forest"}, {{"Hildir_camp"}, "Hildir (Merchant)", "Hildir", 14, "Meadows"}, {{"BogWitch_Camp", "BogWitch"}, "Bog Witch (Alchemist)", "Bog Witch", 2, "Swamp"}, {{"Hildir_crypt"}, "Smouldering Tomb (Crypt)", "Hildir Crypt", 15, "Black Forest"}, {{"Hildir_cave"}, "Howling Cavern (Cave)", "Hildir Cave", 15, "Mountain"}, {{"Hildir_plainsfortress"}, "Sealed Tower", "Hildir Tower", 16, "Plains"}};
 
 		bool try_local_discover(const std::string& name, const std::string& pin_name, int pin_type)
 		{
@@ -112,7 +98,10 @@ namespace big
 	{
 		for (const auto& candidate : entry.candidate_names)
 		{
-			try_local_discover(candidate, entry.pin_name, entry.pin_type);
+			if (try_local_discover(candidate, entry.pin_name, entry.pin_type))
+			{
+				break;
+			}
 		}
 
 		auto game = unity::get_game();

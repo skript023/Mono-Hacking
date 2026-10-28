@@ -4,6 +4,7 @@
 #include <winhttp.h>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <filesystem>
 #include <fstream>
 #include <mutex>
@@ -50,7 +51,11 @@ namespace big
 
 		~dll_session_client() noexcept
 		{
-			m_stop = true;
+			{
+				std::lock_guard lock(m_mutex);
+				m_stop = true;
+			}
+			m_wake.notify_all();
 			if (m_thread.joinable())
 				m_thread.join();
 			const auto server = load_config();
@@ -214,9 +219,15 @@ namespace big
 		{
 			while (!m_stop)
 			{
-				std::this_thread::sleep_for(std::chrono::seconds(20));
-				if (m_stop)
-					break;
+				{
+					std::unique_lock lock(m_mutex);
+					if (m_wake.wait_for(lock, std::chrono::seconds(20), [this] {
+						    return m_stop.load();
+					    }))
+					{
+						break;
+					}
+				}
 				std::string response;
 				int status{};
 				const auto ok = post(server, "/dll-session/heartbeat", "{}", {{"Authorization", "Bearer " + m_token}, {"X-HWID", m_hwid}}, response, status);
@@ -241,6 +252,7 @@ namespace big
 		std::thread m_thread;
 		std::atomic_bool m_stop{false};
 		mutable std::mutex m_mutex;
+		std::condition_variable m_wake;
 		clock::time_point m_lease_deadline{};
 		bool m_revoked{false};
 	};

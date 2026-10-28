@@ -29,9 +29,11 @@ namespace big
 			ImGui::SetNextItemWidth((screen_x * 0.5f) - 30.f);
 			if (ImGui::InputText("##Input Here", g_input_service.m_input, IM_ARRAYSIZE(g_input_service.m_input), ImGuiInputTextFlags_EnterReturnsTrue))
 			{
-				async_run([] {
-					g_input_service.execute();
-				});
+				g_input_service.execute();
+			}
+			else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+			{
+				g_input_service.cancel();
 			}
 
 			ImGui::Text("You entered: %s", g_input_service.m_input);

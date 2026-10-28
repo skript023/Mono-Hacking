@@ -68,11 +68,19 @@ namespace big
 			// Resume eksekusi coroutine pada leaf aktif
 			if (should_run)
 			{
-				TRY_CLAUSE
+				bool failed = false;
+				__try
 				{
 					leaf->get_handle().resume();
 				}
-				EXCEPT_CLAUSE
+				__except (big::vectored_exception_handler(GetExceptionInformation()), EXCEPTION_EXECUTE_HANDLER)
+				{
+					failed = true;
+				}
+				if (failed)
+				{
+					handle = nullptr;
+				}
 			}
 		}
 

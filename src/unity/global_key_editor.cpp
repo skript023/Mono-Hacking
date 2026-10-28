@@ -6,8 +6,11 @@
 
 #include <algorithm>
 #include <astra/host/canvas.hpp>
+#include <atomic>
 #include <cctype>
+#include <chrono>
 #include <imgui.h>
+#include <mutex>
 
 namespace big
 {
@@ -16,11 +19,36 @@ namespace big
 		bool s_open = false;
 		char s_search[96]{};
 		char s_new_key[128]{};
+
+		std::mutex s_keys_mutex;
+		std::vector<std::string> s_keys;
+		bool s_world_ready            = false;
+		std::atomic_bool s_refreshing = false;
+		std::chrono::steady_clock::time_point s_refreshed{};
+
+		void refresh_keys()
+		{
+			if (s_refreshing.exchange(true))
+			{
+				return;
+			}
+			async_run([] {
+				auto system = zone_system::get_instance();
+				auto keys   = system ? system.get_global_keys() : std::vector<std::string>{};
+				{
+					std::lock_guard lock(s_keys_mutex);
+					s_world_ready = static_cast<bool>(system);
+					s_keys        = std::move(keys);
+				}
+				s_refreshing = false;
+			});
+		}
 	}
 
 	void global_key_editor::toggle_window()
 	{
-		s_open = !s_open;
+		s_open      = !s_open;
+		s_refreshed = {};
 	}
 
 	void global_key_editor::draw_window()
@@ -35,8 +63,20 @@ namespace big
 			return;
 		}
 
-		auto system = zone_system::get_instance();
-		if (!system)
+		const auto now = std::chrono::steady_clock::now();
+		if (now - s_refreshed >= std::chrono::seconds(1))
+		{
+			s_refreshed = now;
+			refresh_keys();
+		}
+		bool world_ready = false;
+		std::vector<std::string> keys;
+		{
+			std::lock_guard lock(s_keys_mutex);
+			world_ready = s_world_ready;
+			keys        = s_keys;
+		}
+		if (!world_ready)
 		{
 			ImGui::TextDisabled("Join a world to inspect its global keys.");
 			canvas::end_panel();
@@ -46,7 +86,6 @@ namespace big
 		ImGui::SetNextItemWidth(-1.f);
 		ImGui::InputTextWithHint("##GlobalKeySearch", "Filter active keys", s_search, sizeof(s_search));
 		ImGui::BeginChild("ActiveGlobalKeys", {0.f, -140.f}, true);
-		auto keys         = system.get_global_keys();
 		std::string query = s_search;
 		std::transform(query.begin(), query.end(), query.begin(), [](unsigned char c) {
 			return static_cast<char>(std::tolower(c));

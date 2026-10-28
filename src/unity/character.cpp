@@ -22,7 +22,7 @@ namespace big
 	}
 	void character::set_health(float health)
 	{
-		auto method = mono::get_method("Character", "SetHealth", 1, "assembly_valheim");
+		static auto method = mono::get_method("Character", "SetHealth", 1, "assembly_valheim");
 
 		if (!method)
 		{
@@ -35,7 +35,7 @@ namespace big
 	}
 	void character::set_max_health(float health)
 	{
-		auto method = mono::get_method("Character", "SetMaxHealth", 1, "assembly_valheim");
+		static auto method = mono::get_method("Character", "SetMaxHealth", 1, "assembly_valheim");
 
 		if (!method)
 		{
@@ -48,7 +48,7 @@ namespace big
 	}
 	void character::set_tamed(bool tamed)
 	{
-		auto method = mono::get_method("Character", "SetTamed", 1, "assembly_valheim");
+		static auto method = mono::get_method("Character", "SetTamed", 1, "assembly_valheim");
 
 		if (!method)
 		{
@@ -183,6 +183,18 @@ namespace big
 	}
 	bool character::is_player()
 	{
+		static auto player_class = mono::get_class("Player", "assembly_valheim");
+		if (!m_character || !player_class)
+		{
+			return false;
+		}
+		for (auto klass = mono::object_get_class(m_character); klass; klass = mono::class_get_parent(klass))
+		{
+			if (klass == player_class)
+			{
+				return true;
+			}
+		}
 		return false;
 	}
 

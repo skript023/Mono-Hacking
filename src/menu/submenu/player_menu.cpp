@@ -29,8 +29,11 @@
 #include "unity/zone_system.hpp"
 #include "menu/esp/esp.h"
 #include "services/input/input_service.hpp"
+#include "render_queue.hpp"
+#include "game_snapshot.hpp"
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cctype>
 #include <mutex>
 
@@ -309,6 +312,61 @@ namespace big
 		canvas::end_panel();
 	}
 
+	namespace
+	{
+		struct overlay_values
+		{
+			bool valid{};
+			Vector3 position{};
+			float health{};
+			float max_health{};
+			float stamina{};
+			float max_stamina{};
+			float eitr{};
+			float max_eitr{};
+		};
+
+		game_snapshot<std::vector<buff_tools::boss_power>> s_boss_powers([] {
+			return buff_tools::get_boss_powers();
+		});
+		game_snapshot<std::vector<world_tools::raid_info>> s_raids([] {
+			return world_tools::get_available_raids();
+		});
+
+		std::mutex s_overlay_mutex;
+		overlay_values s_overlay;
+		std::atomic_bool s_overlay_refreshing = false;
+		std::chrono::steady_clock::time_point s_overlay_requested{};
+
+		void refresh_overlay()
+		{
+			if (s_overlay_refreshing.exchange(true))
+			{
+				return;
+			}
+			async_run([] {
+				overlay_values values;
+				if (auto local_player_obj = unity::get_local_player())
+				{
+					player local(local_player_obj);
+					values.valid       = true;
+					values.position    = local.get_position();
+					values.health      = local.get_health();
+					values.max_health  = local.get_max_health();
+					values.stamina     = mono::get_field_value<"Player", "m_stamina", float>(local_player_obj);
+					values.eitr        = mono::get_field_value<"Player", "m_eitr", float>(local_player_obj);
+					values.max_stamina = local.get_max_stamina();
+					values.max_eitr    = local.get_max_eitr();
+				}
+				{
+					std::lock_guard lock(s_overlay_mutex);
+					s_overlay = values;
+				}
+				s_overlay_refreshing = false;
+			});
+		}
+	}
+
 	void view::draw_overlay()
 	{
 		if (!g_settings.window.overlay)
@@ -316,26 +374,27 @@ namespace big
 			return;
 		}
 
-		auto local_player_obj = unity::get_local_player();
-		if (!local_player_obj)
+		const auto now = std::chrono::steady_clock::now();
+		if (now - s_overlay_requested >= std::chrono::milliseconds(100))
+		{
+			s_overlay_requested = now;
+			refresh_overlay();
+		}
+		overlay_values values;
+		{
+			std::lock_guard lock(s_overlay_mutex);
+			values = s_overlay;
+		}
+		if (!values.valid || !unity::get_local_player())
 		{
 			return;
 		}
 
-		player local(local_player_obj);
-		const auto position     = local.get_position();
-		const float health      = local.get_health();
-		const float max_health  = local.get_max_health();
-		const float stamina     = mono::get_field_value<"Player", "m_stamina", float>(local_player_obj);
-		const float eitr        = mono::get_field_value<"Player", "m_eitr", float>(local_player_obj);
-		const float max_stamina = local.get_max_stamina();
-		const float max_eitr    = local.get_max_eitr();
-
 		const astra::overlay_row rows[] = {
-		    {"Health", std::format("{:.0f} / {:.0f}", health, max_health)},
-		    {"Stamina", std::format("{:.0f} / {:.0f}", stamina, max_stamina)},
-		    {"Eitr", std::format("{:.0f} / {:.0f}", eitr, max_eitr)},
-		    {"Position", std::format("{:.1f}, {:.1f}, {:.1f}", position.x, position.y, position.z)},
+		    {"Health", std::format("{:.0f} / {:.0f}", values.health, values.max_health)},
+		    {"Stamina", std::format("{:.0f} / {:.0f}", values.stamina, values.max_stamina)},
+		    {"Eitr", std::format("{:.0f} / {:.0f}", values.eitr, values.max_eitr)},
+		    {"Position", std::format("{:.1f}, {:.1f}, {:.1f}", values.position.x, values.position.y, values.position.z)},
 		};
 		canvas::draw_overlay("Player status", rows);
 	}
@@ -524,7 +583,7 @@ namespace big
 			    1,
 			    0);
 			sub->add_option<number_option<float>>("Food Duration Multiplier",
-			    "Scale how quickly food timers decay; 0 keeps food duration from decreasing.",
+			    "Scale how long food lasts; 2.0 doubles the duration and 0 keeps food from decreasing.",
 			    &g_settings.self.food_duration_multiplier,
 			    0.f,
 			    10.f,
@@ -540,8 +599,8 @@ namespace big
 			sub->add_option<bool_option<bool>>("Prevent Cold",
 			    "Remove the Cold environment effect from the local player.",
 			    &g_settings.self.prevent_cold);
-			sub->add_option<bool_option<bool>>("Never Wet",
-			    "Treat the local player as sheltered from rain without changing roof checks elsewhere.",
+			sub->add_option<bool_option<bool>>("Never Wet or Tarred",
+			    "Keep the local player from getting Wet from rain or water, and Tarred from tar pits.",
 			    &g_settings.self.is_wet);
 		});
 
@@ -1110,7 +1169,7 @@ namespace big
 
 		canvas::add_submenu<regular_submenu>("Equipment & Quick Slots", "SubmenuEquipmentSlots"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("Enabled",
-			    "Enable BetrValheim extra inventory and equipment slots.",
+			    "Enable BetrValheim extra inventory and equipment slots. Items in these slots never drop on death, and they are only visible while the mod is loaded.",
 			    &g_settings.self.equipment_slots_enabled);
 			sub->add_option<bool_option<bool>>("Native Unity Inventory Grid",
 			    "Render equipment slots natively in Valheim's inventory screen.",
@@ -1251,11 +1310,11 @@ namespace big
 				});
 			});
 
-			static const std::vector<const char*> combat_values{"VeryEasy", "Easy", "Hard", "VeryHard"};
-			static const std::vector<const char*> death_values{"Casual", "VeryEasy", "Easy", "Hard", "Hardcore"};
-			static const std::vector<const char*> resource_values{"MuchLess", "Less", "More", "MuchMore", "Most"};
-			static const std::vector<const char*> raid_values{"None", "MuchLess", "Less", "More", "MuchMore"};
-			static const std::vector<const char*> portal_values{"Casual", "Hard", "VeryHard"};
+			static const std::vector<const char*> combat_values{"Default", "VeryEasy", "Easy", "Hard", "VeryHard"};
+			static const std::vector<const char*> death_values{"Default", "Casual", "VeryEasy", "Easy", "Hard", "Hardcore"};
+			static const std::vector<const char*> resource_values{"Default", "MuchLess", "Less", "More", "MuchMore", "Most"};
+			static const std::vector<const char*> raid_values{"Default", "None", "MuchLess", "Less", "More", "MuchMore"};
+			static const std::vector<const char*> portal_values{"Default", "Casual", "Hard", "VeryHard"};
 			static int combat_option   = 0;
 			static int death_option    = 0;
 			static int resource_option = 0;
@@ -1301,31 +1360,39 @@ namespace big
 				view::toggle_generated_location_browser();
 			});
 			sub->add_option<reguler_option>("Copy Current Coordinates", "Copy your current X, Y, Z coordinates.", [] {
-				auto player_obj = unity::get_local_player();
-				if (!player_obj)
-				{
-					notification::warning("Coordinates", "Join a world first.");
-					return;
-				}
-				player local_player(player_obj);
-				const auto position = local_player.get_position();
-				ImGui::SetClipboardText(coordinates(position).c_str());
-				notification::success("Coordinates", "Copied current coordinates.");
+				queue_job([] {
+					auto player_obj = unity::get_local_player();
+					if (!player_obj)
+					{
+						notification::warning("Coordinates", "Join a world first.");
+						return;
+					}
+					player local_player(player_obj);
+					render_queue::post([text = coordinates(local_player.get_position())] {
+						ImGui::SetClipboardText(text.c_str());
+						notification::success("Coordinates", "Copied current coordinates.");
+					});
+				});
 			});
 			sub->add_option<reguler_option>("Add Map Pin Here", "Create a saved map icon pin at your current location.", [] {
-				auto player_obj = unity::get_local_player();
-				if (!player_obj)
+				if (!unity::get_local_player())
 				{
 					notification::warning("Map Pin", "Join a world before adding a pin.");
 					return;
 				}
-				const Vector3 position = unity::get_position(player_obj);
-				g_input_service.show("Map Pin Name", [position](const std::string& name) {
+				g_input_service.show("Map Pin Name", [](const std::string& name) {
 					if (name.empty())
 					{
 						return;
 					}
-					queue_job([position, name] {
+					queue_job([name] {
+						auto player_obj = unity::get_local_player();
+						if (!player_obj)
+						{
+							notification::warning("Map Pin", "Join a world before adding a pin.");
+							return;
+						}
+						const Vector3 position = unity::get_position(player_obj);
 						if (minimap::get_instance().add_pin(position, 4, name))
 						{
 							notification::success("Map Pin", std::format("Added map pin '{}'.", name));
@@ -1565,7 +1632,6 @@ namespace big
 
 		canvas::add_submenu<regular_submenu>("ESP", "SubmenuESP"_hash, [](regular_submenu* sub) {
 			sub->add_option<bool_option<bool>>("esp_activate"_hash);
-			sub->add_option<bool_option<bool>>("draw_anim"_hash);
 			sub->add_option<bool_option<bool>>("draw_line"_hash);
 			sub->add_option<bool_option<bool>>("draw_name"_hash);
 			sub->add_option<bool_option<bool>>("draw_health"_hash);
@@ -1584,10 +1650,6 @@ namespace big
 			sub->add_option<bool_option<bool>>("tp"_hash);
 			sub->add_option<bool_option<bool>>("draw_fov"_hash);
 			sub->add_option<number_option<float>>("aimbot_fov"_hash);
-			sub->add_option<number_option<float>>("aimbot_smooth"_hash);
-			sub->add_option<number_option<int>>("aimbot_trigger"_hash);
-			sub->add_option<bool_option<bool>>("triggerbot"_hash);
-			sub->add_option<number_option<float>>("trigger_fov"_hash);
 		});
 
 		canvas::add_submenu<regular_submenu>("Item Spawner", "SubmenuItemSpawner"_hash, [](regular_submenu* sub) {
@@ -1656,9 +1718,9 @@ namespace big
 			});
 			sub->add_option<reguler_option>("Full Flametal Armor Set", "Spawn complete Flametal Ashlands set.", [] {
 				queue_job([] {
-					item_spawner::spawn_to_inventory("HelmetAshlandsMedium", 1, 4);
-					item_spawner::spawn_to_inventory("ArmorAshlandsMediumChest", 1, 4);
-					item_spawner::spawn_to_inventory("ArmorAshlandsMediumLegs", 1, 4);
+					item_spawner::spawn_to_inventory("HelmetFlametal", 1, 4);
+					item_spawner::spawn_to_inventory("ArmorFlametalChest", 1, 4);
+					item_spawner::spawn_to_inventory("ArmorFlametalLegs", 1, 4);
 					item_spawner::spawn_to_inventory("CapeAsh", 1, 4);
 				});
 			});
@@ -1735,7 +1797,7 @@ namespace big
 			});
 			sub->add_option<reguler_option>("Spawn Stuffed Mushroom (10x)", "Top Eitr Food (+75 Eitr)", [] {
 				queue_job([] {
-					item_spawner::spawn_to_inventory("MagicallyStuffedMushroom", 10, 1);
+					item_spawner::spawn_to_inventory("MagicallyStuffedShroom", 10, 1);
 				});
 			});
 			sub->add_option<reguler_option>("Spawn Major Healing Mead (10x)", "Instant burst heal mead", [] {
@@ -1794,7 +1856,8 @@ namespace big
 					buff_tools::activate_all_guardian_powers();
 				});
 			});
-			const auto& registered_powers = buff_tools::get_boss_powers();
+			static std::vector<buff_tools::boss_power> registered_powers;
+			registered_powers = s_boss_powers.get(std::chrono::seconds(2));
 			power_names.clear();
 			for (const auto& power : registered_powers)
 			{
@@ -1838,7 +1901,7 @@ namespace big
 		});
 
 		canvas::add_submenu<regular_submenu>("Individual Boss Powers", "SubmenuBossPowers"_hash, [](regular_submenu* sub) {
-			for (const auto& bp : buff_tools::get_boss_powers())
+			for (const auto& bp : s_boss_powers.get(std::chrono::seconds(2)))
 			{
 				std::string title = std::format("Apply {} Effect", bp.display_name);
 				sub->add_option<reguler_option>(title.c_str(), bp.effect_description.c_str(), [name = bp.internal_name] {
@@ -1892,7 +1955,7 @@ namespace big
 					world_tools::stop_current_raid();
 				});
 			});
-			for (const auto& r : world_tools::get_available_raids())
+			for (const auto& r : s_raids.get(std::chrono::seconds(2)))
 			{
 				std::string title = std::format("Start '{}'", r.display_name);
 				std::string desc  = std::format("Enemies: {}", r.enemies);

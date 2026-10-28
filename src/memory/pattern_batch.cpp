@@ -4,6 +4,23 @@
 
 namespace memory
 {
+	static bool cached_pattern_matches(range& region, int offset, const pattern& sig)
+	{
+		if (offset < 0 || static_cast<std::size_t>(offset) + sig.m_bytes.size() > region.size())
+		{
+			return false;
+		}
+		auto address = region.begin().add(offset);
+		for (std::size_t i = 0; i < sig.m_bytes.size(); ++i)
+		{
+			if (sig.m_bytes[i] && *address.add(i).as<std::uint8_t*>() != *sig.m_bytes[i])
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	pattern_batch::pattern_batch(const std::string_view name) :
 	    m_pattern_cache(name)
 	{
@@ -22,7 +39,7 @@ namespace memory
 			{
 				auto offset = m_pattern_cache.get_cached_offset(entry.m_hash.update(region.size()));
 
-				if (offset.has_value())
+				if (offset.has_value() && cached_pattern_matches(region, offset.value(), entry.m_pattern))
 				{
 					std::invoke(entry.m_callback, handle(region.begin().as<DWORD64>() + offset.value()));
 					LOG(INFO) << "Using cached pattern [" << entry.m_name << "] : [" << HEX_TO_UPPER(region.begin().as<DWORD64>() + offset.value()) << "]";

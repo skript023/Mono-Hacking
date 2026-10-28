@@ -2,6 +2,8 @@
 
 #define ASIO_STANDALONE
 
+#include <windows.h>
+#include <wincrypt.h>
 #include "client_ws.hpp"
 #include "client_wss.hpp"
 #include <thread>
@@ -13,6 +15,32 @@
 
 namespace big
 {
+	class verified_wss_client : public SimpleWeb::SocketClient<SimpleWeb::WSS>
+	{
+	public:
+		explicit verified_wss_client(const std::string& endpoint) :
+		    SimpleWeb::SocketClient<SimpleWeb::WSS>(endpoint, true)
+		{
+			auto store  = SSL_CTX_get_cert_store(context.native_handle());
+			auto system = CertOpenSystemStoreW(0, L"ROOT");
+			if (!system)
+			{
+				return;
+			}
+			PCCERT_CONTEXT certificate = nullptr;
+			while (store && (certificate = CertEnumCertificatesInStore(system, certificate)))
+			{
+				const unsigned char* data = certificate->pbCertEncoded;
+				if (auto x509 = d2i_X509(nullptr, &data, static_cast<long>(certificate->cbCertEncoded)))
+				{
+					X509_STORE_add_cert(store, x509);
+					X509_free(x509);
+				}
+			}
+			CertCloseStore(system, 0);
+		}
+	};
+
 	class socket_client
 	{
 	public:
@@ -37,7 +65,6 @@ namespace big
 
 		bool connect()
 		{
-			m_shutdown_requested = false;
 			std::lock_guard lifecycle_lock(m_lifecycle_mutex);
 			if (m_connection_status == eConnectionStatus::CONNECTED)
 			{
@@ -46,14 +73,15 @@ namespace big
 			}
 
 			disconnect();
+			m_shutdown_requested = false;
 			m_connection_status = eConnectionStatus::CONNECTING;
 
-			LOG(INFO) << "[SocketClient] Connecting to " << (m_is_ssl ? "wss://" : "ws://") << m_endpoint;
+			LOG(INFO) << "[SocketClient] Connecting to " << (m_is_ssl ? "wss://" : "ws://") << log_endpoint();
 
 			if (m_is_ssl)
 			{
-				m_client_wss = std::make_shared<SimpleWeb::SocketClient<SimpleWeb::WSS>>(m_endpoint);
-				configure_headers(m_client_wss->config.header);
+				m_client_wss = std::make_shared<verified_wss_client>(m_endpoint);
+				m_client_wss->config.header.emplace("User-Agent", "Valheim/1.0");
 				setup_wss_handlers();
 				start_client(m_client_wss);
 			}
@@ -134,13 +162,9 @@ namespace big
 		}
 
 	private:
-		template<typename Headers>
-		void configure_headers(Headers& headers) const
+		std::string_view log_endpoint() const
 		{
-			headers.emplace("User-Agent", "Valheim/1.0");
-			if (!m_token.empty()) headers.emplace("Authorization", "Bearer " + m_token);
-			if (!m_hwid.empty()) headers.emplace("X-HWID", m_hwid);
-			if (!m_device_name.empty()) headers.emplace("X-Device-Name", m_device_name);
+			return std::string_view(m_endpoint).substr(0, m_endpoint.find('?'));
 		}
 
 		template<typename Client>
@@ -171,21 +195,33 @@ namespace big
 		void handle_incoming_text(const std::string& text)
 		{
 			// Check for FORCE_LOGOUT event from server (Single active device enforcement)
-			if (text.find("FORCE_LOGOUT") != std::string::npos)
+			const auto j       = nlohmann::json::parse(text, nullptr, false);
+			bool force_logout  = text == "FORCE_LOGOUT";
+			std::string reason = "Account logged in from another device. Mod deactivated.";
+			if (j.is_object())
 			{
-				std::string reason = "Account logged in from another device. Mod deactivated.";
-				try
+				for (const char* field : {"event", "type", "action"})
 				{
-					auto j = nlohmann::json::parse(text, nullptr, false);
-					if (!j.is_discarded() && j.contains("message") && j["message"].is_string())
+					if (j.contains(field) && j[field].is_string())
 					{
-						reason = j["message"].get<std::string>();
+						auto value = j[field].get<std::string>();
+						std::ranges::transform(value, value.begin(), [](unsigned char c) {
+							return static_cast<char>(std::toupper(c));
+						});
+						force_logout |= value == "FORCE_LOGOUT";
 					}
 				}
-				catch (...)
+				for (const char* field : {"message", "reason"})
 				{
+					if (force_logout && j.contains(field) && j[field].is_string())
+					{
+						reason = j[field].get<std::string>();
+						break;
+					}
 				}
-
+			}
+			if (force_logout)
+			{
 				LOG(FATAL) << "[SocketClient] *** FORCE_LOGOUT: " << reason << " ***";
 				notification::info("Security Alert", reason);
 
@@ -220,7 +256,7 @@ namespace big
 			m_client_wss->on_open = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection> connection) {
 				m_connection_status = eConnectionStatus::CONNECTED;
 				m_active_conn_wss = connection;
-				LOG(INFO) << "[SocketClient] WSS connected successfully to " << m_endpoint;
+				LOG(INFO) << "[SocketClient] WSS connected successfully to " << log_endpoint();
 			};
 
 			m_client_wss->on_message = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::Connection>, std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WSS>::InMessage> in_msg) {
@@ -245,7 +281,7 @@ namespace big
 			m_client_ws->on_open = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::Connection> connection) {
 				m_connection_status = eConnectionStatus::CONNECTED;
 				m_active_conn_ws = connection;
-				LOG(INFO) << "[SocketClient] WS connected successfully to " << m_endpoint;
+				LOG(INFO) << "[SocketClient] WS connected successfully to " << log_endpoint();
 			};
 
 			m_client_ws->on_message = [this](std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::Connection>, std::shared_ptr<SimpleWeb::SocketClient<SimpleWeb::WS>::InMessage> in_msg) {
