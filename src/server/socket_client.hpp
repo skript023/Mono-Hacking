@@ -81,7 +81,7 @@ namespace big
 			if (m_is_ssl)
 			{
 				m_client_wss = std::make_shared<verified_wss_client>(m_endpoint);
-				m_client_wss->config.header.emplace("User-Agent", "Valheim/1.0");
+				configure_headers(m_client_wss->config.header);
 				setup_wss_handlers();
 				start_client(m_client_wss);
 			}
@@ -162,6 +162,15 @@ namespace big
 		}
 
 	private:
+		template<typename Headers>
+		void configure_headers(Headers& headers) const
+		{
+			headers.emplace("User-Agent", "Valheim/1.0");
+			if (!m_token.empty()) headers.emplace("Authorization", "Bearer " + m_token);
+			if (!m_hwid.empty()) headers.emplace("X-HWID", m_hwid);
+			if (!m_device_name.empty()) headers.emplace("X-Device-Name", m_device_name);
+		}
+
 		std::string_view log_endpoint() const
 		{
 			return std::string_view(m_endpoint).substr(0, m_endpoint.find('?'));
